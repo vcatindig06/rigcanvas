@@ -1077,34 +1077,6 @@ class _StompPad extends StatelessWidget {
   }
 }
 
-class _AddBlockButton extends StatelessWidget {
-  const _AddBlockButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3A241F),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF714234)),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.add, size: 17, color: Color(0xFFFFA083)),
-          SizedBox(width: 6),
-          Text('Add block', style: TextStyle(
-            color: Color(0xFFFFB29D),
-            fontWeight: FontWeight.w700,
-            fontSize: 11,
-          )),
-        ],
-      ),
-    );
-  }
-}
-
 class _InfoPill extends StatelessWidget {
   const _InfoPill({required this.label});
   final String label;
