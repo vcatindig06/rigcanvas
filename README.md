@@ -83,7 +83,7 @@ The Grid Workspace is designed around a four-row by eight-slot editor. Effect bl
 Preset, Scene, Stomp, and Hybrid are control modes for the same active preset:
 
 - **Preset:** edit, add, move, and remove blocks in the Grid.
-- **Scene:** recall up to eight saved scene snapshots; a snapshot restores block settings and Grid positions.
+- **Scene:** A–H recall the first eight saved snapshots, with additional saved scenes available below the pads; each snapshot restores block settings and Grid positions.
 - **Stomp:** A–H toggle the first eight blocks in preset order.
 - **Hybrid:** A–D recall scenes, while E–H toggle the first four blocks in preset order.
 
