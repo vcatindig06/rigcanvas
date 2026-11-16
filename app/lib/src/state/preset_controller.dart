@@ -145,11 +145,10 @@ class PresetController extends ChangeNotifier {
         oldIndex < 0 ||
         oldIndex >= current.blocks.length ||
         newIndex < 0 ||
-        newIndex > current.blocks.length) {
+        newIndex >= current.blocks.length) {
       return;
     }
     final nextBlocks = List<EffectBlock>.from(current.blocks);
-    if (newIndex > oldIndex) newIndex -= 1;
     final block = nextBlocks.removeAt(oldIndex);
     nextBlocks.insert(newIndex, block);
     await _replaceActiveBlocks(nextBlocks);
