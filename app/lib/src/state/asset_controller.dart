@@ -60,9 +60,12 @@ class AssetController extends ChangeNotifier {
         cleanFilename.substring(dot).toLowerCase() != inspection.extension) {
       throw const FormatException('Inspected asset extension does not match the selected file.');
     }
-    final cleanTitle = (title?.trim().isNotEmpty ?? false)
-        ? title!.trim()
-        : (inspection.suggestedTitle ?? _filenameWithoutExtension(filename));
+    if (title != null && title.trim().isEmpty) {
+      throw const FormatException('Asset title cannot be empty.');
+    }
+    final cleanTitle = title == null
+        ? (inspection.suggestedTitle ?? _filenameWithoutExtension(filename))
+        : title.trim();
     final cleanManufacturer = (manufacturer ?? inspection.manufacturer ?? '').trim();
     final cleanModel = (model ?? inspection.model ?? '').trim();
     _validateMetadata(cleanTitle, cleanManufacturer, cleanModel, tags, notes);

@@ -201,8 +201,7 @@ class _AssetLibraryScreenState extends State<AssetLibraryScreen> {
 
         return Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
             children: [
               Wrap(
                 spacing: 12,
@@ -294,25 +293,27 @@ class _AssetLibraryScreenState extends State<AssetLibraryScreen> {
                     'NAM and WAV files receive structure checks. AM2/AMP files are preserved unchanged and remain unverified. No KPT Pro compatibility or hardware loading is claimed.',
               ),
               const SizedBox(height: 12),
-              Expanded(
-                child: assets.isEmpty
-                    ? _AssetEmptyState(
-                        hasAssets: controller.assets.isNotEmpty,
-                        onImportCapture: () => _importAsset(RigAssetKind.ampCapture),
-                        onImportIr: () => _importAsset(RigAssetKind.cabinetIr),
-                      )
-                    : ListView.separated(
-                        itemCount: assets.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) =>
-                            _AssetCard(
-                              asset: assets[index],
-                              onFavorite: () => controller.toggleFavorite(assets[index].id),
-                              onEdit: () => _editAsset(assets[index]),
-                              onDelete: () => _deleteAsset(assets[index]),
-                            ),
-                      ),
-              ),
+              if (assets.isEmpty) ...[
+                const SizedBox(height: 12),
+                _AssetEmptyState(
+                  hasAssets: controller.assets.isNotEmpty,
+                  onImportCapture: () => _importAsset(RigAssetKind.ampCapture),
+                  onImportIr: () => _importAsset(RigAssetKind.cabinetIr),
+                ),
+              ] else ...[
+                const SizedBox(height: 12),
+                ...assets.map(
+                  (asset) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _AssetCard(
+                      asset: asset,
+                      onFavorite: () => controller.toggleFavorite(asset.id),
+                      onEdit: () => _editAsset(asset),
+                      onDelete: () => _deleteAsset(asset),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -566,12 +567,9 @@ class _AssetEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
@@ -611,8 +609,6 @@ class _AssetEmptyState extends StatelessWidget {
                 ),
               ],
             ],
-          ),
-        ),
       ),
     );
   }
