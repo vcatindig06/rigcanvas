@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
 import '../state/preset_controller.dart';
@@ -167,7 +167,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     : ReorderableListView.builder(
                         buildDefaultDragHandles: false,
                         itemCount: blocks.length,
-                        onReorder: (oldIndex, newIndex) => _runMutation(
+                        onReorderItem: (oldIndex, newIndex) => _runMutation(
                           () => controller.reorderActiveBlocks(
                             oldIndex,
                             newIndex,
