@@ -33,6 +33,21 @@ class JsonFilePresetRepository implements PresetRepository {
   @override
   Future<List<RigPreset>> loadPresets() async {
     final file = await _presetFile();
+    final backup = File('${file.path}.bak');
+    final temporary = File('${file.path}.tmp');
+
+    // Recover the previous complete database if the app stopped between
+    // moving the original file aside and promoting the new temporary file.
+    if (!await file.exists() && await backup.exists()) {
+      await backup.rename(file.path);
+    }
+
+    if (await file.exists() && await backup.exists()) {
+      await backup.delete();
+    }
+    if (await temporary.exists()) {
+      await temporary.delete();
+    }
     if (!await file.exists()) {
       return <RigPreset>[];
     }
