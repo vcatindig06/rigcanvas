@@ -58,7 +58,7 @@ class JsonFilePresetRepository implements PresetRepository {
       throw const FormatException('Local preset database is not a JSON object.');
     }
     final schemaVersion = decoded['schemaVersion'];
-    if (schemaVersion != 1 && schemaVersion != currentPresetSchemaVersion) {
+    if (schemaVersion != 1 && schemaVersion != 2 && schemaVersion != currentPresetSchemaVersion) {
       throw FormatException(
         'Local preset database schema ${decoded['schemaVersion']} is unsupported.',
       );
@@ -73,9 +73,8 @@ class JsonFilePresetRepository implements PresetRepository {
     if (ids.length != presets.length) {
       throw const FormatException('Local preset database contains duplicate IDs.');
     }
-    if (schemaVersion == 1) {
-      // Version 1 layouts were implicit linear chains. Save their equivalent
-      // four-row layout immediately so the next launch restores the Grid.
+    if (schemaVersion != currentPresetSchemaVersion) {
+      // Older databases are rewritten with Grid positions and fixed model IDs.
       await savePresets(presets);
     }
     return presets;
