@@ -365,7 +365,14 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('asset-link-dropdown')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Cabinet IR Not For Amp'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is DropdownMenuItem<String?> &&
+            widget.value == wrongFamilyIr.id,
+      ),
+      findsNothing,
+    );
     await tester.tap(find.text('No asset linked').last);
     await tester.pumpAndSettle();
 
