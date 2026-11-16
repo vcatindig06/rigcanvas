@@ -61,8 +61,8 @@ void main() {
     });
 
     test('does not discard a preset when an imported file is invalid', () async {
-      expect(
-        () => controller.importPresetJson('{"format":"not-rigcanvas"}'),
+      await expectLater(
+        controller.importPresetJson('{"format":"not-rigcanvas"}'),
         throwsFormatException,
       );
       expect(controller.presets, hasLength(1));

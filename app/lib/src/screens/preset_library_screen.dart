@@ -158,6 +158,7 @@ class _PresetLibraryScreenState extends State<PresetLibraryScreen> {
     switch (action) {
       case 'rename':
         await _renamePreset(preset);
+        break;
       case 'duplicate':
         try {
           await controller.duplicatePreset(preset.id);
@@ -165,10 +166,13 @@ class _PresetLibraryScreenState extends State<PresetLibraryScreen> {
         } catch (error) {
           _showMessage('Unable to duplicate preset: $error');
         }
+        break;
       case 'export':
         await _exportPreset(preset);
+        break;
       case 'delete':
         await _deletePreset(preset);
+        break;
     }
   }
 

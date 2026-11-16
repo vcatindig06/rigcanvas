@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'data/preset_repository.dart';
@@ -27,7 +29,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
     _controller = PresetController(
       widget.repository ?? JsonFilePresetRepository(),
     );
-    _controller.initialize();
+    unawaited(_controller.initialize());
   }
 
   @override

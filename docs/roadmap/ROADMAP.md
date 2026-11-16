@@ -12,8 +12,8 @@
 ## Milestone 1 — editor UX and local data
 
 - [ ] Preset list and preset detail.
-- [ ] Local preset schema with an explicit schema version.
-- [ ] RigCanvas-native JSON export/import.
+- [x] Local preset schema with an explicit schema version.
+- [x] RigCanvas-native JSON export/import.
 - [ ] Undo/redo and preset version history.
 - [ ] IR/AM2 asset library with metadata and compatibility checks.
 - [ ] Search, tags, favorites, and setlists.

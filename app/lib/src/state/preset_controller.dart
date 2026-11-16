@@ -49,7 +49,7 @@ class PresetController extends ChangeNotifier {
     }
   }
 
-  Future<void> selectPreset(String id) async {
+  void selectPreset(String id) {
     if (!_presets.any((preset) => preset.id == id)) return;
     _activePresetId = id;
     _errorMessage = null;
@@ -199,7 +199,7 @@ class PresetController extends ChangeNotifier {
     _activePresetId = activeId ??
         (_presets.any((preset) => preset.id == _activePresetId)
             ? _activePresetId
-            : _presets.firstOrNull?.id);
+            : (_presets.isEmpty ? null : _presets.first.id));
     notifyListeners();
   }
 
