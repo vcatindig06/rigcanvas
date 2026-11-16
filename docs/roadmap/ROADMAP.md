@@ -157,7 +157,8 @@ A milestone is not complete because the UI exists. It must include:
 - [x] Add an internal 440 Hz offline test signal and input/output RMS / peak reporting.
 - [x] Keep unsupported block families visible as skipped and avoid implying a physical guitar or speaker path.
 - [ ] Decode imported WAV IR files, resample as required, and load the verified samples from the Asset Library.
-- [ ] Add impulse-response, frequency-response, distortion, noise, parameter-boundary, and performance tests.
+- [x] Add native engine unit coverage for graph processing, FIR IR-buffer copy, offline buffer shape, invalid formats, and engine disposal. (69 total Flutter unit/widget tests pass in CI.)
+- [ ] Add deeper DSP validation: impulse-response and frequency-response references, distortion/noise measurements, parameter-boundary tests, and performance benchmarks.
 - [ ] Manually build and smoke-test the Audio page on physical Android hardware and a Windows PC.
 - [ ] Add production-safe real-time audio callback and device abstractions only after profiling and lifecycle design.
 - [ ] Implement Android and Windows capture/playback adapters with equivalent device controls and routing.
@@ -171,4 +172,4 @@ A milestone is not complete because the UI exists. It must include:
 - Added initial Dynamics (gate/compressor), Drive (soft clipping), Amplifier (preamp/tone shaping), and Cabinet (mono FIR buffer) nodes.
 - Added an Audio page that applies the supported enabled blocks in Grid order to an internal 440 Hz test signal and displays input/output RMS, peak, frame, and node metrics.
 - Unsupported families, missing live audio I/O, amp-capture playback, and unconnected WAV IR imports are disclosed in the app.
-- Automated tests and both platform builds are pending CI verification. Physical Android and Windows smoke tests remain.
+- GitHub Actions run [#87](https://github.com/vcatindig06/rigcanvas/actions/runs/43824897566) passed Flutter static analysis and all 69 unit/widget tests, built the Android APK with SHA-256 verification, and built the Windows release package. Both artifacts uploaded successfully. Physical Android and Windows smoke tests remain.
