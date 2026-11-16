@@ -42,7 +42,7 @@
 - [x] App-managed scene snapshots for local effect order, bypass states, and parameter values.
 - [x] Local stomp-style block bypass controls.
 - [ ] Map performance modes to KPT Pro controls only after capabilities are verified.
-- [ ] Gig View and setlists.
+- [x] Local Gig View with persistent setlists, song order, key/BPM/notes, and per-song preset/scene assignments.
 - [ ] External MIDI support where target OS/hardware expose it.
 
 ## Milestone 5 — Windows Desktop Rack

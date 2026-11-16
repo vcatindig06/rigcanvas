@@ -2,7 +2,7 @@
 
 RigCanvas is an independent Windows and Android guitar-rig editor and processing workspace. Development starts with a safe, local editor prototype and KPT Pro compatibility research.
 
-> **Current status:** early scaffold / simulation mode. No KPT Pro communication protocol has been confirmed or implemented. The workspace currently edits local mock effect blocks only.
+> **Current status:** local-first editor prototype with persistent presets, scene snapshots, and Gig View setlists. No KPT Pro communication protocol has been confirmed or implemented; hardware control remains disabled.
 
 ## Product direction
 

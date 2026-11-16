@@ -3,38 +3,49 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'data/preset_repository.dart';
+import 'data/setlist_repository.dart';
 import 'screens/feature_placeholder_screen.dart';
+import 'screens/gig_view_screen.dart';
 import 'screens/preset_library_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'state/preset_controller.dart';
+import 'state/setlist_controller.dart';
 
 class RigCanvasApp extends StatefulWidget {
   const RigCanvasApp({
     this.repository,
+    this.setlistRepository,
     super.key,
   });
 
   final PresetRepository? repository;
+  final SetlistRepository? setlistRepository;
 
   @override
   State<RigCanvasApp> createState() => _RigCanvasAppState();
 }
 
 class _RigCanvasAppState extends State<RigCanvasApp> {
-  late final PresetController _controller;
+  late final PresetController _presetController;
+  late final SetlistController _setlistController;
 
   @override
   void initState() {
     super.initState();
-    _controller = PresetController(
+    _presetController = PresetController(
       widget.repository ?? JsonFilePresetRepository(),
     );
-    unawaited(_controller.initialize());
+    _setlistController = SetlistController(
+      widget.setlistRepository ?? JsonFileSetlistRepository(),
+    );
+    unawaited(_presetController.initialize());
+    unawaited(_setlistController.initialize());
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _presetController.dispose();
+    _setlistController.dispose();
     super.dispose();
   }
 
@@ -67,31 +78,36 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
           centerTitle: false,
         ),
       ),
-      home: RigCanvasShell(controller: _controller),
+      home: RigCanvasShell(
+        presetController: _presetController,
+        setlistController: _setlistController,
+      ),
     );
   }
 }
 
 class RigCanvasShell extends StatefulWidget {
   const RigCanvasShell({
-    required this.controller,
+    required this.presetController,
+    required this.setlistController,
     super.key,
   });
 
-  final PresetController controller;
+  final PresetController presetController;
+  final SetlistController setlistController;
 
   @override
   State<RigCanvasShell> createState() => _RigCanvasShellState();
 }
 
 class _RigCanvasShellState extends State<RigCanvasShell> {
-  int _selectedIndex = 1;
+  int _selectedIndex = 0;
 
   static const _destinations = <NavigationDestination>[
     NavigationDestination(
-      icon: Icon(Icons.dashboard_outlined),
-      selectedIcon: Icon(Icons.dashboard),
-      label: 'Overview',
+      icon: Icon(Icons.queue_music_outlined),
+      selectedIcon: Icon(Icons.queue_music),
+      label: 'Gig',
     ),
     NavigationDestination(
       icon: Icon(Icons.account_tree_outlined),
@@ -118,22 +134,20 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
   Widget _pageForIndex() {
     switch (_selectedIndex) {
       case 0:
-        return const FeaturePlaceholderScreen(
-          key: ValueKey('overview'),
-          title: 'Overview',
-          description:
-              'Your connected hardware, recent presets, and project activity will appear here.',
-          icon: Icons.dashboard_outlined,
+        return GigViewScreen(
+          key: const ValueKey('gig'),
+          controller: widget.setlistController,
+          presetController: widget.presetController,
         );
       case 1:
         return WorkspaceScreen(
           key: const ValueKey('workspace'),
-          controller: widget.controller,
+          controller: widget.presetController,
         );
       case 2:
         return PresetLibraryScreen(
           key: const ValueKey('presets'),
-          controller: widget.controller,
+          controller: widget.presetController,
         );
       case 3:
         return const FeaturePlaceholderScreen(
