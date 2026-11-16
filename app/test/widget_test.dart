@@ -602,4 +602,32 @@ void main() {
     expect(find.text('Import cabinet IR'), findsOneWidget);
     expect(find.textContaining('AM2/AMP files are preserved unchanged'), findsOneWidget);
   });
+  testWidgets('runs the shared native DSP test signal from Audio on both layouts', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Software Audio Engine'), findsOneWidget);
+    expect(find.text('Shared native DSP core · Android + Windows'), findsOneWidget);
+    expect(find.byKey(const ValueKey('run-dsp-test')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('run-dsp-test')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('DSP TEST COMPLETE'), findsOneWidget);
+    expect(find.text('Processed frames'), findsOneWidget);
+    expect(find.textContaining('generated inside the engine'), findsOneWidget);
+    expect(find.textContaining('DSP test failed'), findsNothing);
+  });
+
 }
