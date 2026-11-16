@@ -78,7 +78,9 @@
 - Strengthened assignment safety: missing or wrong-family references must be cleared or replaced, and new assignments require an explicit warning acknowledgement.
 - Added dedicated test coverage for cabinet IR assignment and invalid-reference recovery alongside the existing amplifier-capture assignment test.
 - Confirmed feature-parity rule: the same Gig, Workspace, Presets, Assets, and Settings destinations are covered in compact and wide layout tests; Android APK and Windows desktop builds are both required in CI.
-- **Next focus:** Milestone 2 — collect the exact KPT Pro hardware/firmware and official M-EFCS versions, then perform read-only USB enumeration. Do not implement undocumented device writes.
+- Expanded the KPT Pro catalogue from available manual evidence: FX, AMP, MOD, DLY, REV, CAB, and EXT families are recorded separately; unsupported individual amp/cab names and parameter ranges are explicitly not invented.
+- Recorded the vendor download-page discrepancy: M-EFCS is listed for TANK-G/TANK-B, while a KPT Pro manual describes M-EFCS control. KPT Pro compatibility remains unverified; Tank-G protocol assumptions are prohibited.
+- **Next focus:** obtain the user's exact KPT Pro firmware version and M-EFCS app version/device-list result, then capture read-only USB descriptors. Do not implement undocumented device writes or mark the catalogue as verified device capability.
 
 ## Release gates
 
