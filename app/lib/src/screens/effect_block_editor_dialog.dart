@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
 import '../models/rig_asset.dart';
+import 'effect_model_picker_dialog.dart';
 
 class EffectBlockEditorDialog extends StatefulWidget {
   const EffectBlockEditorDialog({
@@ -69,6 +70,17 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
     super.dispose();
   }
 
+  Future<void> _chooseModel() async {
+    final selected = await showDialog<EffectModelDefinition>(
+      context: context,
+      builder: (context) => EffectModelPickerDialog(
+        initialFamily: widget.block.family,
+      ),
+    );
+    if (selected == null) return;
+    setState(() => _modelId = selected.id);
+  }
+
   String _formatValue(double value) {
     if (value == value.roundToDouble()) return value.toStringAsFixed(0);
     return value.toStringAsFixed(1);
@@ -107,45 +119,44 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                key: const ValueKey('effect-model-dropdown'),
-                initialValue: _modelId,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Select a built-in model',
-                  border: OutlineInputBorder(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF171D24),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF39434F)),
                 ),
-                items: EffectModelCatalog.forFamily(widget.block.family)
-                    .map((model) => DropdownMenuItem<String>(
-                          value: model.id,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  model.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                model.source == EffectModelSource.kptProFactory
-                                    ? 'KPT PRO'
-                                    : 'EXPANDED',
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  color: Color(0xFF9AA4B2),
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            EffectModelCatalog.byId(_modelId)?.name ?? 'Select model',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => _modelId = value);
-                },
+                          const SizedBox(height: 3),
+                          Text(
+                            EffectModelCatalog.byId(_modelId)?.source.label ?? '',
+                            style: const TextStyle(
+                              color: Color(0xFFFFC078),
+                              fontSize: 9,
+                              letterSpacing: 0.3,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      key: const ValueKey('effect-model-change'),
+                      onPressed: _chooseModel,
+                      icon: const Icon(Icons.swap_horiz, size: 16),
+                      label: const Text('Change'),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 7),
               Text(
