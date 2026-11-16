@@ -286,11 +286,15 @@ void main() {
     await tester.tap(find.text('British Stack'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('effect-model-dropdown')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-change')), findsOneWidget);
     expect(find.text('Block name'), findsNothing);
-    expect(find.byType(TextField), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('effect-model-dropdown')));
+    await tester.tap(find.byKey(const ValueKey('effect-model-change')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('effect-model-search')),
+      'British Modern Stack',
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('British Modern Stack').last);
     await tester.pumpAndSettle();
