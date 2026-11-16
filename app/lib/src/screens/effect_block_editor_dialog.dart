@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';

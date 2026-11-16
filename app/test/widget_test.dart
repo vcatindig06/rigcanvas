@@ -26,7 +26,15 @@ void main() {
     expect(find.text('Signal Workspace'), findsOneWidget);
     expect(find.text('KPT Pro · Disconnected'), findsOneWidget);
     expect(find.text('SIMULATION'), findsOneWidget);
-    expect(find.text('Transparent Overdrive'), findsOneWidget);
+
+    final blockFinder = find.text('Transparent Overdrive');
+    await tester.scrollUntilVisible(
+      blockFinder,
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    expect(blockFinder, findsOneWidget);
   });
 
   testWidgets('opens the local preset library', (tester) async {
