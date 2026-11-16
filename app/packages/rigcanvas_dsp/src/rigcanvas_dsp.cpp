@@ -46,7 +46,10 @@ void processDynamics(Node& n,float* x,uint32_t ch,uint32_t sr){
   if(n.mode==kGate){if(db<n.p[0])target=dbToLinear(clampf((db-n.p[0])*1.5f,-72,0));}
   else if(db>n.p[0]){float ratio=std::max(1.0f,n.p[1]);float reduction=n.p[0]+(db-n.p[0])/ratio-db;target=dbToLinear(reduction+n.p[4]);}
   else target=dbToLinear(n.p[4]);
-  float time=target<n.gain[0]?n.p[3]:n.p[2],g=smoothCoefficient(time,sr);
+  float time;
+  if(n.mode==kGate)time=target<n.gain[0]?n.p[3]:n.p[2];
+  else time=target<n.gain[0]?n.p[2]:n.p[3];
+  float g=smoothCoefficient(time,sr);
   n.gain[0]=g*n.gain[0]+(1-g)*target;
   float mix=clampf(n.p[5],0,1);
   for(uint32_t c=0;c<ch;++c){float wet=x[c]*n.gain[0];x[c]=x[c]*(1-mix)+wet*mix;}
