@@ -119,7 +119,11 @@ class PresetController extends ChangeNotifier {
     await _commit(next, activeId: nextActive);
   }
 
-  Future<void> addBlock(EffectFamily family, {int preferredRow = 0}) async {
+  Future<void> addBlock(
+    EffectFamily family, {
+    String? modelId,
+    int preferredRow = 0,
+  }) async {
     final current = activePreset;
     if (current == null) return;
     if (current.blocks.length >= maximumPresetBlocks) {
@@ -130,6 +134,7 @@ class PresetController extends ChangeNotifier {
     final block = EffectBlock.create(
       id: _newId('block'),
       family: family,
+      modelId: modelId,
     );
     final nextBlocks = [...current.blocks, block];
     await _replaceActivePreset(
