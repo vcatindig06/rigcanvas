@@ -162,10 +162,14 @@ class RigGrid {
       throw const FormatException('Preset grid contains duplicate or unknown slots.');
     }
 
-    // Recover a block missing from a partially saved layout by placing it in
-    // the first available slot. Existing valid positions are left untouched.
-    for (final blockId in ids) {
-      if (placementIds.contains(blockId)) continue;
+    // Recover blocks missing from a partially saved layout by placing them
+    // into the first available slots. Existing valid positions are untouched.
+    // When any placement is recovered, saved connections are stale by
+    // definition; the connections getter below rebuilds the lane graph.
+    final missingBlockIds = ids
+        .where((blockId) => !placementIds.contains(blockId))
+        .toList(growable: false);
+    for (final blockId in missingBlockIds) {
       final occupied = occupiedSlots;
       var placed = false;
       for (var row = 0; row < rigGridRowCount && !placed; row++) {
@@ -192,11 +196,13 @@ class RigGrid {
         throw const FormatException('Preset grid connections must be a list.');
       }
       final saved = rawConnections.map(GridConnection.fromJson).toList();
-      final expected = grid.connections;
-      if (saved.length != expected.length ||
-          saved.toSet().length != saved.length ||
-          !saved.toSet().containsAll(expected)) {
-        throw const FormatException('Preset grid connections do not match its lane layout.');
+      if (missingBlockIds.isEmpty) {
+        final expected = grid.connections;
+        if (saved.length != expected.length ||
+            saved.toSet().length != saved.length ||
+            !saved.toSet().containsAll(expected)) {
+          throw const FormatException('Preset grid connections do not match its lane layout.');
+        }
       }
     }
     return grid;
