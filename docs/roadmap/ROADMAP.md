@@ -26,14 +26,15 @@
 
 ## Milestone 1.5 — Grid Workspace v1 (local simulation)
 
-- [ ] Persist a four-row by eight-slot Grid using stable effect-block IDs.
-- [ ] Migrate schema-version-1 presets and scene snapshots into the row-major Grid without losing block settings or asset references.
-- [ ] Add and remove blocks from slots; drag blocks between slots and swap occupied positions.
-- [ ] Keep Grid positions in scene snapshots and restore them when recalling a scene.
-- [ ] Make Preset, Scene, Stomp, and Hybrid modes control the same active preset.
-- [ ] Add A–H scene pads, Stomp bypass controls, and the A–D / E–H Hybrid layout.
-- [ ] Verify the Grid and all four modes with unit and widget tests.
-- [ ] Pass Android installable APK and Windows release CI builds for the same commit; complete manual smoke checks on both targets.
+- [x] Persist a four-row by eight-slot Grid using stable effect-block IDs.
+- [x] Migrate schema-version-1 presets and scene snapshots into the row-major Grid without losing block settings or asset references.
+- [x] Add and remove blocks from slots; drag blocks between slots and swap occupied positions.
+- [x] Keep Grid positions in scene snapshots and restore them when recalling a scene.
+- [x] Make Preset, Scene, Stomp, and Hybrid modes control the same active preset.
+- [x] Add A–H scene pads, Stomp bypass controls, and the A–D / E–H Hybrid layout.
+- [x] Verify the Grid and all four modes with unit and widget tests (51 tests passed).
+- [x] Pass Android installable APK and Windows release CI builds for the same commit.
+- [ ] Manually smoke-test the Grid and all four modes on Android and Windows.
 
 **v1 boundary:** each row is an independent local lane with derived input-to-output ordering. Splitter/mixer nodes, cross-lane routing, user-defined multi-block footswitch assignments, and actual audio processing are not part of v1. Do not present lane endpoints as physical KPT Pro inputs or outputs.
 
@@ -112,5 +113,6 @@ A milestone is not complete because the UI exists. It must include:
 - Added scene-level Grid snapshots so scene recall can restore layout as well as block settings.
 - Implemented row-local add, move/swap, and remove operations; block removal also clears matching scene references.
 - Reworked the Workspace UI around the Grid and added Scene, Stomp, and Hybrid A–H controls. Stomp currently maps the first eight blocks in preset order; Hybrid maps A–D to scenes and E–H to the first four blocks.
-- Added Grid model, migration, controller, and widget tests. These are authored but are **not yet verified by GitHub Actions**.
-- **Status:** in development/review. Do not mark the milestone complete until analysis, tests, Android APK build, Windows build, and manual checks on both platforms pass.
+- Added Grid model, migration, controller, and widget tests. GitHub Actions run [#50](https://github.com/vcatindig06/rigcanvas/actions/runs/43816049229) passed analysis and all 51 automated tests.
+- The same run built and uploaded the installable Android APK plus SHA-256 checksum and the Windows release package.
+- **Status:** automated checks complete; manual Android and Windows smoke checks remain. PR [#5](https://github.com/vcatindig06/rigcanvas/pull/5) remains draft and unmerged pending those checks.
