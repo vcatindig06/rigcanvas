@@ -426,6 +426,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Missing asset reference'), findsOneWidget);
+    expect(
+      find.textContaining('Linked asset missing or incompatible with this block'),
+      findsOneWidget,
+    );
     final saveWithInvalidReference = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Save changes'),
     );
@@ -434,11 +438,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('asset-link-dropdown')));
     await tester.pumpAndSettle();
     expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is DropdownMenuItem<String?> &&
-            widget.value == wrongFamilyIr.id,
-      ),
+      find.textContaining('Cabinet IR Not For Amp'),
       findsNothing,
     );
     await tester.tap(find.text('No asset linked').last);
