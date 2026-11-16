@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'effect_block.dart';
 import 'rig_grid.dart';
 
-const int currentPresetSchemaVersion = 2;
+const int currentPresetSchemaVersion = 3;
 const int maximumPresetBlocks = 32;
 const int maximumPresetScenes = 64;
 
@@ -205,6 +205,7 @@ class RigPreset {
     return {
       'id': block.id,
       'name': block.name,
+      'modelId': block.modelId,
       'family': block.family.name,
       'description': block.description,
       'enabled': block.enabled,
@@ -227,10 +228,17 @@ class RigPreset {
       allowEmpty: true,
     );
     final familyName = _readString(value, 'family', maximumLength: 32);
+    final rawModelId = value['modelId'];
     final enabled = value['enabled'];
     final rawParameters = value['parameters'];
     final rawAssetId = value['assetId'];
 
+    if (rawModelId != null &&
+        (rawModelId is! String ||
+            rawModelId.trim().isEmpty ||
+            rawModelId.length > 128)) {
+      throw const FormatException('Effect block model identifier is invalid.');
+    }
     if (enabled is! bool) {
       throw const FormatException('Effect block enabled flag must be boolean.');
     }
@@ -292,6 +300,11 @@ class RigPreset {
     return EffectBlock(
       id: id,
       name: name,
+      modelId: EffectModelCatalog.resolveId(
+        family,
+        modelId: rawModelId as String?,
+        legacyName: name,
+      ),
       family: family,
       description: description,
       enabled: enabled,
@@ -362,7 +375,9 @@ class PresetCodec {
       throw const FormatException('This is not a RigCanvas preset file.');
     }
     final schemaVersion = decoded['schemaVersion'];
-    if (schemaVersion != 1 && schemaVersion != currentPresetSchemaVersion) {
+    if (schemaVersion != 1 &&
+        schemaVersion != 2 &&
+        schemaVersion != currentPresetSchemaVersion) {
       throw FormatException(
         'Unsupported preset schema version: ${decoded['schemaVersion']}.',
       );
