@@ -19,7 +19,7 @@ class EffectBlockEditorDialog extends StatefulWidget {
 }
 
 class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
-  late final TextEditingController _nameController;
+  late String _modelId;
   late Map<String, double> _parameters;
   late String? _assetId;
   bool _assetLinkAcknowledged = false;
@@ -59,14 +59,13 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.block.name);
+    _modelId = widget.block.modelId;
     _parameters = Map<String, double>.from(widget.block.parameters);
     _assetId = widget.block.assetId;
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
     super.dispose();
   }
 
@@ -98,12 +97,63 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: _nameController,
-                maxLength: 80,
+              const Text(
+                'MODEL CATALOG',
+                style: TextStyle(
+                  color: Color(0xFF9AA4B2),
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('effect-model-dropdown'),
+                initialValue: _modelId,
+                isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Block name',
+                  labelText: 'Select a built-in model',
                   border: OutlineInputBorder(),
+                ),
+                items: EffectModelCatalog.forFamily(widget.block.family)
+                    .map((model) => DropdownMenuItem<String>(
+                          value: model.id,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  model.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                model.source == EffectModelSource.kptProFactory
+                                    ? 'KPT PRO'
+                                    : 'EXPANDED',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  color: Color(0xFF9AA4B2),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _modelId = value);
+                },
+              ),
+              const SizedBox(height: 7),
+              Text(
+                EffectModelCatalog.byId(_modelId)?.description ?? '',
+                style: const TextStyle(
+                  color: Color(0xFF9AA4B2),
+                  fontSize: 11,
+                  height: 1.35,
                 ),
               ),
               if (_assetKind != null) ...[
@@ -215,7 +265,7 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                 ],
               ],
               const Text(
-                'These are local workspace values. Their names and ranges are generic editor parameters, not verified KPT Pro firmware controls.',
+                'Model selection is a local catalog choice. Parameters are editor metadata only; no audio DSP or KPT Pro control is active yet.',
                 style: TextStyle(
                   color: Color(0xFF9AA4B2),
                   fontSize: 11,
@@ -234,11 +284,12 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
         FilledButton(
           onPressed: _canSave
               ? () {
-                  final name = _nameController.text.trim();
-                  if (name.isEmpty) return;
+                  final selectedModel = EffectModelCatalog.byId(_modelId);
+                  if (selectedModel == null) return;
                   Navigator.of(context).pop(
                     widget.block.copyWith(
-                      name: name,
+                      modelId: selectedModel.id,
+                      description: selectedModel.description,
                       parameters: Map<String, double>.from(_parameters),
                       assetId: _assetId,
                       clearAssetId: _assetId == null,
