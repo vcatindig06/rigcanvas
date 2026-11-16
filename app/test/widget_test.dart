@@ -69,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sunday Gathering'), findsOneWidget);
-    await tester.tap(find.text('Add first song'));
+    await tester.tap(find.text('Add song'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Oceans');
