@@ -7,6 +7,7 @@ import '../models/rig_preset.dart';
 import '../state/asset_controller.dart';
 import '../state/preset_controller.dart';
 import 'effect_block_editor_dialog.dart';
+import 'effect_model_picker_dialog.dart';
 
 enum WorkspaceMode { preset, scene, stomp, hybrid }
 
@@ -56,6 +57,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     } catch (error) {
       _message('Could not save workspace: $error');
     }
+  }
+
+  Future<void> _addBlock({required int preferredRow}) async {
+    final selected = await showDialog<EffectModelDefinition>(
+      context: context,
+      builder: (context) => const EffectModelPickerDialog(),
+    );
+    if (selected == null) return;
+    await _mutate(
+      () => controller.addBlock(
+        selected.family,
+        modelId: selected.id,
+        preferredRow: preferredRow,
+      ),
+    );
   }
 
   Future<void> _edit(EffectBlock block) async {
@@ -238,22 +254,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                       _InfoPill(label: '${preset.grid.blockCount}/32 SLOTS'),
                       if (_mode == WorkspaceMode.preset) ...[
                         const SizedBox(width: 8),
-                        PopupMenuButton<EffectFamily>(
-                          tooltip: 'Add effect block',
-                          onSelected: (family) => _mutate(() => controller.addBlock(family)),
-                          itemBuilder: (context) => EffectFamily.values
-                              .map((family) => PopupMenuItem<EffectFamily>(
-                                    value: family,
-                                    child: Row(
-                                      children: [
-                                        Icon(family.icon, size: 18),
-                                        const SizedBox(width: 9),
-                                        Text(family.label),
-                                      ],
-                                    ),
-                                  ))
-                              .toList(),
-                          child: const _AddBlockButton(),
+                        FilledButton.icon(
+                          onPressed: () => _addBlock(preferredRow: 0),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add block'),
                         ),
                       ],
                     ],
@@ -267,9 +271,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     onEdit: _edit,
                     onRemove: _remove,
                     onToggle: _toggle,
-                    onAdd: (row, family) => _mutate(
-                      () => controller.addBlock(family, preferredRow: row),
-                    ),
+                    onAdd: (row) => _addBlock(preferredRow: row),
                     onMove: (id, row, column) => _mutate(
                       () => controller.moveBlockToSlot(id, row, column),
                     ),
@@ -408,7 +410,7 @@ class _GridBoard extends StatelessWidget {
   final ValueChanged<EffectBlock> onEdit;
   final ValueChanged<EffectBlock> onRemove;
   final ValueChanged<EffectBlock> onToggle;
-  final void Function(int, EffectFamily) onAdd;
+  final ValueChanged<int> onAdd;
   final void Function(String, int, int) onMove;
 
   @override
@@ -475,7 +477,7 @@ class _GridLane extends StatelessWidget {
   final ValueChanged<EffectBlock> onEdit;
   final ValueChanged<EffectBlock> onRemove;
   final ValueChanged<EffectBlock> onToggle;
-  final void Function(int, EffectFamily) onAdd;
+  final ValueChanged<int> onAdd;
   final void Function(String, int, int) onMove;
 
   @override
@@ -550,7 +552,7 @@ class _GridSlot extends StatelessWidget {
   final ValueChanged<EffectBlock> onEdit;
   final ValueChanged<EffectBlock> onRemove;
   final ValueChanged<EffectBlock> onToggle;
-  final void Function(int, EffectFamily) onAdd;
+  final ValueChanged<int> onAdd;
   final void Function(String, int, int) onMove;
 
   @override
@@ -617,7 +619,7 @@ class _EmptySlot extends StatelessWidget {
   final int column;
   final bool highlighted;
   final bool enabled;
-  final void Function(int, EffectFamily) onAdd;
+  final ValueChanged<int> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -632,39 +634,35 @@ class _EmptySlot extends StatelessWidget {
           width: highlighted ? 2 : 1,
         ),
       ),
-      child: enabled
-          ? PopupMenuButton<EffectFamily>(
-              tooltip: 'Add block to row ${row + 1}, slot ${column + 1}',
-              onSelected: (family) => onAdd(row, family),
-              itemBuilder: (context) => EffectFamily.values
-                  .map((family) => PopupMenuItem<EffectFamily>(
-                        value: family,
-                        child: Row(
-                          children: [
-                            Icon(family.icon, size: 17),
-                            const SizedBox(width: 9),
-                            Text(family.label),
-                          ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? () => onAdd(row) : null,
+          borderRadius: BorderRadius.circular(10),
+          child: enabled
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Color(0xFF9AA4B2), size: 22),
+                      SizedBox(height: 3),
+                      Text(
+                        'ADD',
+                        style: TextStyle(
+                          color: Color(0xFF8993A1),
+                          fontSize: 9,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w700,
                         ),
-                      ))
-                  .toList(),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add, color: Color(0xFF9AA4B2), size: 22),
-                    SizedBox(height: 3),
-                    Text('ADD', style: TextStyle(
-                      color: Color(0xFF8993A1),
-                      fontSize: 9,
-                      letterSpacing: 1,
-                      fontWeight: FontWeight.w700,
-                    )),
-                  ],
+                      ),
+                    ],
+                  ),
+                )
+              : const Center(
+                  child: Icon(Icons.more_horiz, color: Color(0xFF515B67)),
                 ),
-              ),
-            )
-          : const Center(child: Icon(Icons.more_horiz, color: Color(0xFF515B67))),
+        ),
+      ),
     );
   }
 }
@@ -698,6 +696,9 @@ class _GridEffectCard extends StatelessWidget {
     EffectFamily.modulation => const Color(0xFF27C98A),
     EffectFamily.delay => const Color(0xFF00C8D5),
     EffectFamily.reverb => const Color(0xFF00AFA8),
+    EffectFamily.eq => const Color(0xFFD3A85B),
+    EffectFamily.pitch => const Color(0xFFB56FD4),
+    EffectFamily.expression => const Color(0xFFB5A45A),
   };
 
   @override
@@ -770,6 +771,19 @@ class _GridEffectCard extends StatelessWidget {
                 fontSize: 10.5,
                 height: 1.12,
                 fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              block.model.source.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: block.model.source == EffectModelSource.kptProFactory
+                    ? const Color(0xFFFFC078)
+                    : const Color(0xFFB7C4D1),
+                fontSize: 7,
+                letterSpacing: 0.25,
+                fontWeight: FontWeight.w800,
               ),
             ),
             if (asset != null)
