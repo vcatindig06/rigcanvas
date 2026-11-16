@@ -19,7 +19,6 @@ void main(List<String> args) async {
       includes: ['src'],
       language: Language.cpp,
       std: 'c++17',
-      cppLinkStdLib: 'c++_static',
     );
     await builder.run(input: input, output: output, logger: logger);
   });
