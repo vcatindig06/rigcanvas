@@ -65,12 +65,18 @@ void main() {
     await controller.initialize();
     addTearDown(controller.dispose);
 
-    await controller.addBlock(EffectFamily.reverb, preferredRow: 3);
+    await controller.addBlock(
+      EffectFamily.reverb,
+      modelId: 'kpt.reverb.cloud',
+      preferredRow: 3,
+    );
     final preset = controller.activePreset!;
     final added = preset.blocks.last;
 
     expect(preset.grid.positionOf(added.id)?.row, 3);
     expect(preset.grid.positionOf(added.id)?.column, 0);
+    expect(added.modelId, 'kpt.reverb.cloud');
+    expect(added.name, 'Cloud');
     expect(repository.stored.single.grid.positionOf(added.id)?.row, 3);
   });
 }
