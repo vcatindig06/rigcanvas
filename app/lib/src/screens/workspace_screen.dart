@@ -495,8 +495,8 @@ class _EffectBlockTile extends StatelessWidget {
     final linkedAssetSummary = linkedAsset == null
         ? (block.assetId == null ? null : 'Linked asset missing from library')
         : '${block.family == EffectFamily.amplifier ? 'Capture' : 'Cabinet IR'}: '
-            '${linkedAsset.title} · '
-            '${linkedAsset.validation == RigAssetValidation.validated ? 'format checked' : 'format unverified'}';
+            '${linkedAsset!.title} · '
+            '${linkedAsset!.validation == RigAssetValidation.validated ? 'format checked' : 'format unverified'}';
     final subtitle = [
       if (summary.isNotEmpty) summary,
       block.description,
