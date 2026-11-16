@@ -329,6 +329,11 @@ class _AssetAssignmentNotice extends StatelessWidget {
             ? 'NAM JSON structure checked. Supported model architecture, version, and playback-runtime compatibility are not confirmed.'
             : 'AM2/AMP capture bytes are stored unchanged. Their internal structure and playback-runtime compatibility are not confirmed.'
         : 'WAV metadata detected: ${asset.formatSummary}. The offline Audio test decodes supported PCM / IEEE-float mono or stereo WAV and resamples it to 48 kHz, but this does not establish manufacturer-model accuracy or KPT Pro compatibility.';
+    final structureDetail = asset.kind == RigAssetKind.cabinetIr
+        ? 'The file passed a format check. The offline Audio test can load supported PCM / IEEE-float mono or stereo cabinet IRs, but that does not prove accurate cabinet modeling or KPT Pro support.'
+        : asset.extension == '.nam'
+            ? 'NAM JSON structure was checked, but the model architecture and playback runtime are not confirmed.'
+            : 'This amp-capture file is stored unchanged; playback runtime compatibility is not confirmed.';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(11),
@@ -365,7 +370,7 @@ class _AssetAssignmentNotice extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             structureChecked
-                ? 'The file passed a format check. The offline DSP test can load supported PCM / IEEE-float mono or stereo IRs, but that does not prove accurate cabinet modeling or KPT Pro support.'
+                ? structureDetail
                 : 'This capture is stored unchanged. Its internal format has not been verified, so it must not be treated as loadable or compatible.',
             style: const TextStyle(
               color: Color(0xFFE3B8A9),

@@ -392,7 +392,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('File structure checked'), findsOneWidget);
-    expect(find.textContaining('This does not prove'), findsOneWidget);
+    expect(
+      find.textContaining('model architecture and playback runtime are not confirmed'),
+      findsOneWidget,
+    );
 
     final saveBeforeAcknowledgement = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Save changes'),
@@ -481,7 +484,10 @@ void main() {
       find.textContaining('WAV metadata detected: WAV PCM'),
       findsOneWidget,
     );
-    expect(find.textContaining('no audio engine yet'), findsOneWidget);
+    expect(
+      find.textContaining('offline Audio test can load supported PCM / IEEE-float mono or stereo cabinet IRs'),
+      findsOneWidget,
+    );
 
     final saveBeforeAcknowledgement = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Save changes'),
