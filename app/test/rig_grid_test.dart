@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rigcanvas/src/models/effect_block.dart';
 import 'package:rigcanvas/src/models/rig_grid.dart';
 import 'package:rigcanvas/src/models/rig_preset.dart';
 
