@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart'
-    show FilledButton, TextField, TextFormField;
+    show FilledButton, Scrollable, TextField, TextFormField;
 import 'package:rigcanvas/src/app.dart';
 import 'package:rigcanvas/src/data/asset_repository.dart';
 import 'package:rigcanvas/src/data/preset_repository.dart';
@@ -156,7 +156,11 @@ void main() {
 
     await tester.tap(find.text('Workspace'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('British Stack'));
+    await tester.scrollUntilVisible(
+      find.text('British Stack'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('British Stack'));
     await tester.pumpAndSettle();
 
