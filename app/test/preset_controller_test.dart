@@ -67,5 +67,40 @@ void main() {
       );
       expect(controller.presets, hasLength(1));
     });
+
+    test('captures and recalls a scene snapshot', () async {
+      final originalDrive = controller.activePreset!.blocks[1];
+      final modifiedDrive = originalDrive.copyWith(
+        enabled: false,
+        parameters: {...originalDrive.parameters, 'gain': 84},
+      );
+      await controller.updateBlock(modifiedDrive);
+      await controller.captureScene(name: 'Chorus');
+
+      final scene = controller.activePreset!.scenes.single;
+      expect(scene.name, 'Chorus');
+      expect(scene.blocks[1].enabled, isFalse);
+      expect(scene.blocks[1].parameters['gain'], 84);
+
+      await controller.updateBlock(
+        controller.activePreset!.blocks[1].copyWith(
+          enabled: true,
+          parameters: {...controller.activePreset!.blocks[1].parameters, 'gain': 20},
+        ),
+      );
+      await controller.applyScene(scene.id);
+
+      expect(controller.activePreset!.blocks[1].enabled, isFalse);
+      expect(controller.activePreset!.blocks[1].parameters['gain'], 84);
+    });
+
+    test('deletes a saved scene', () async {
+      await controller.captureScene(name: 'Verse');
+      final sceneId = controller.activePreset!.scenes.single.id;
+
+      await controller.deleteScene(sceneId);
+
+      expect(controller.activePreset!.scenes, isEmpty);
+    });
   });
 }

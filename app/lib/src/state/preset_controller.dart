@@ -81,6 +81,7 @@ class PresetController extends ChangeNotifier {
       createdAt: now,
       updatedAt: now,
       blocks: List<EffectBlock>.from(source.blocks),
+      scenes: List<RigScene>.from(source.scenes),
       target: source.target,
     );
     await _commit([..._presets, copy], activeId: copy.id);
@@ -154,6 +155,67 @@ class PresetController extends ChangeNotifier {
     await _replaceActiveBlocks(nextBlocks);
   }
 
+  Future<void> captureScene({required String name}) async {
+    final current = activePreset;
+    if (current == null) return;
+
+    final cleanName = name.trim();
+    if (cleanName.isEmpty || cleanName.length > 80) {
+      throw const FormatException('Scene name must contain 1–80 characters.');
+    }
+    if (current.scenes.length >= maximumPresetScenes) {
+      throw const FormatException(
+        'This preset has reached the maximum number of scenes.',
+      );
+    }
+
+    final snapshot = RigScene(
+      id: _newId('scene'),
+      name: cleanName,
+      createdAt: DateTime.now().toUtc(),
+      blocks: current.blocks
+          .map(
+            (block) => block.copyWith(
+              parameters: Map<String, double>.from(block.parameters),
+            ),
+          )
+          .toList(),
+    );
+    await _replaceActiveScenes([...current.scenes, snapshot]);
+  }
+
+  Future<void> applyScene(String sceneId) async {
+    final current = activePreset;
+    if (current == null) return;
+    RigScene? selected;
+    for (final scene in current.scenes) {
+      if (scene.id == sceneId) {
+        selected = scene;
+        break;
+      }
+    }
+    if (selected == null) return;
+
+    final restoredBlocks = selected.blocks
+        .map(
+          (block) => block.copyWith(
+            parameters: Map<String, double>.from(block.parameters),
+          ),
+        )
+        .toList();
+    await _replaceActiveBlocks(restoredBlocks);
+  }
+
+  Future<void> deleteScene(String sceneId) async {
+    final current = activePreset;
+    if (current == null) return;
+    final nextScenes = current.scenes
+        .where((scene) => scene.id != sceneId)
+        .toList();
+    if (nextScenes.length == current.scenes.length) return;
+    await _replaceActiveScenes(nextScenes);
+  }
+
   Future<void> importPresetJson(String source) async {
     final imported = PresetCodec.decode(source);
     final duplicateId = _presets.any((preset) => preset.id == imported.id);
@@ -184,6 +246,19 @@ class PresetController extends ChangeNotifier {
     await _commit(next, activeId: current.id);
   }
 
+  Future<void> _replaceActiveScenes(List<RigScene> scenes) async {
+    final current = activePreset;
+    if (current == null) return;
+    final next = _presets
+        .map(
+          (preset) => preset.id == current.id
+              ? preset.copyWith(scenes: scenes)
+              : preset,
+        )
+        .toList();
+    await _commit(next, activeId: current.id);
+  }
+
   RigPreset? _findPreset(String id) {
     for (final preset in _presets) {
       if (preset.id == id) return preset;
@@ -206,7 +281,11 @@ class PresetController extends ChangeNotifier {
     final timestamp = DateTime.now().microsecondsSinceEpoch;
     var candidate = '$prefix-$timestamp';
     var suffix = 0;
-    while (_presets.any((preset) => preset.id == candidate)) {
+    while (_presets.any(
+      (preset) =>
+          preset.id == candidate ||
+          preset.scenes.any((scene) => scene.id == candidate),
+    )) {
       suffix++;
       candidate = '$prefix-$timestamp-$suffix';
     }

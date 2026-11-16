@@ -4,6 +4,30 @@ import 'effect_block.dart';
 
 const int currentPresetSchemaVersion = 1;
 const int maximumPresetBlocks = 32;
+const int maximumPresetScenes = 64;
+
+class RigScene {
+  const RigScene({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+    required this.blocks,
+  });
+
+  final String id;
+  final String name;
+  final DateTime createdAt;
+  final List<EffectBlock> blocks;
+
+  RigScene copyWith({String? name, List<EffectBlock>? blocks}) {
+    return RigScene(
+      id: id,
+      name: name ?? this.name,
+      createdAt: createdAt,
+      blocks: blocks ?? this.blocks,
+    );
+  }
+}
 
 class RigPreset {
   const RigPreset({
@@ -13,6 +37,7 @@ class RigPreset {
     required this.createdAt,
     required this.updatedAt,
     required this.blocks,
+    this.scenes = const <RigScene>[],
     this.target = 'local-workspace',
   });
 
@@ -22,6 +47,7 @@ class RigPreset {
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<EffectBlock> blocks;
+  final List<RigScene> scenes;
   final String target;
 
   RigPreset copyWith({
@@ -30,6 +56,7 @@ class RigPreset {
     String? description,
     DateTime? updatedAt,
     List<EffectBlock>? blocks,
+    List<RigScene>? scenes,
     String? target,
   }) {
     return RigPreset(
@@ -39,6 +66,7 @@ class RigPreset {
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now().toUtc(),
       blocks: blocks ?? this.blocks,
+      scenes: scenes ?? this.scenes,
       target: target ?? this.target,
     );
   }
@@ -52,6 +80,7 @@ class RigPreset {
       'updatedAt': updatedAt.toUtc().toIso8601String(),
       'target': target,
       'blocks': blocks.map(_blockToJson).toList(),
+      'scenes': scenes.map(_sceneToJson).toList(),
     };
   }
 
@@ -72,6 +101,7 @@ class RigPreset {
     final createdAt = _readDate(value, 'createdAt');
     final updatedAt = _readDate(value, 'updatedAt');
     final rawBlocks = value['blocks'];
+    final rawScenes = value['scenes'] ?? const <Object?>[];
 
     if (name.trim().isEmpty) {
       throw const FormatException('Preset name cannot be empty.');
@@ -81,11 +111,22 @@ class RigPreset {
         'Preset blocks must be a list of up to $maximumPresetBlocks items.',
       );
     }
+    if (rawScenes is! List || rawScenes.length > maximumPresetScenes) {
+      throw const FormatException(
+        'Preset scenes must be a list of up to $maximumPresetScenes items.',
+      );
+    }
 
     final blocks = rawBlocks.map(_blockFromJson).toList();
     final blockIds = blocks.map((block) => block.id).toSet();
     if (blockIds.length != blocks.length) {
       throw const FormatException('Preset contains duplicate effect block IDs.');
+    }
+
+    final scenes = rawScenes.map(_sceneFromJson).toList();
+    final sceneIds = scenes.map((scene) => scene.id).toSet();
+    if (sceneIds.length != scenes.length) {
+      throw const FormatException('Preset contains duplicate scene IDs.');
     }
 
     return RigPreset(
@@ -95,7 +136,48 @@ class RigPreset {
       createdAt: createdAt,
       updatedAt: updatedAt,
       blocks: blocks,
+      scenes: scenes,
       target: target,
+    );
+  }
+
+  static Map<String, Object?> _sceneToJson(RigScene scene) {
+    return {
+      'id': scene.id,
+      'name': scene.name,
+      'createdAt': scene.createdAt.toUtc().toIso8601String(),
+      'blocks': scene.blocks.map(_blockToJson).toList(),
+    };
+  }
+
+  static RigScene _sceneFromJson(Object? value) {
+    if (value is! Map<String, dynamic>) {
+      throw const FormatException('Scene must be a JSON object.');
+    }
+
+    final id = _readString(value, 'id', maximumLength: 128);
+    final name = _readString(value, 'name', maximumLength: 80);
+    final createdAt = _readDate(value, 'createdAt');
+    final rawBlocks = value['blocks'];
+
+    if (name.trim().isEmpty) {
+      throw const FormatException('Scene name cannot be empty.');
+    }
+    if (rawBlocks is! List || rawBlocks.length > maximumPresetBlocks) {
+      throw const FormatException('Scene has an invalid effect block list.');
+    }
+
+    final blocks = rawBlocks.map(_blockFromJson).toList();
+    final ids = blocks.map((block) => block.id).toSet();
+    if (ids.length != blocks.length) {
+      throw const FormatException('Scene contains duplicate effect block IDs.');
+    }
+
+    return RigScene(
+      id: id,
+      name: name.trim(),
+      createdAt: createdAt,
+      blocks: blocks,
     );
   }
 

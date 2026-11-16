@@ -1,8 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
+import '../models/rig_preset.dart';
 import '../state/preset_controller.dart';
 import 'effect_block_editor_dialog.dart';
+
+enum WorkspaceMode { preset, scene, stomp, hybrid }
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({
@@ -18,6 +21,7 @@ class WorkspaceScreen extends StatefulWidget {
 
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
   PresetController get controller => widget.controller;
+  WorkspaceMode _mode = WorkspaceMode.preset;
 
   void _showMessage(String message) {
     if (!mounted) return;
@@ -43,6 +47,55 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     await _runMutation(() => controller.updateBlock(updated));
   }
 
+  Future<void> _captureScene() async {
+    final nameController = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Capture scene'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          maxLength: 80,
+          decoration: const InputDecoration(
+            labelText: 'Scene name',
+            hintText: 'e.g. Chorus, Ambient Intro',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (value) =>
+              Navigator.of(dialogContext).pop(value.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(nameController.text.trim()),
+            child: const Text('Capture'),
+          ),
+        ],
+      ),
+    );
+    nameController.dispose();
+    if (name == null) return;
+    await _runMutation(() => controller.captureScene(name: name));
+  }
+
+  String get _modeDescription {
+    switch (_mode) {
+      case WorkspaceMode.preset:
+        return 'Edit the complete local preset and its signal chain.';
+      case WorkspaceMode.scene:
+        return 'Capture and recall snapshots of this preset’s block states and parameters.';
+      case WorkspaceMode.stomp:
+        return 'Toggle individual local effect blocks like a virtual pedalboard.';
+      case WorkspaceMode.hybrid:
+        return 'Recall a saved scene, then make individual stomp changes.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -63,6 +116,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         }
         final blocks = preset.blocks;
         final enabledCount = blocks.where((block) => block.enabled).length;
+        final showScenes =
+            _mode == WorkspaceMode.scene || _mode == WorkspaceMode.hybrid;
 
         return Padding(
           padding: const EdgeInsets.all(20),
@@ -94,17 +149,74 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   const SizedBox(width: 4),
                   _MetricPill(label: '${blocks.length} BLOCKS'),
                   _MetricPill(label: '$enabledCount ACTIVE'),
+                  _MetricPill(label: '${preset.scenes.length} SCENES'),
                   const _SimulationPill(),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<WorkspaceMode>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(
+                      value: WorkspaceMode.preset,
+                      icon: Icon(Icons.tune),
+                      label: Text('Preset'),
+                    ),
+                    ButtonSegment(
+                      value: WorkspaceMode.scene,
+                      icon: Icon(Icons.layers_outlined),
+                      label: Text('Scene'),
+                    ),
+                    ButtonSegment(
+                      value: WorkspaceMode.stomp,
+                      icon: Icon(Icons.toggle_on_outlined),
+                      label: Text('Stomp'),
+                    ),
+                    ButtonSegment(
+                      value: WorkspaceMode.hybrid,
+                      icon: Icon(Icons.dashboard_customize_outlined),
+                      label: Text('Hybrid'),
+                    ),
+                  ],
+                  selected: {_mode},
+                  onSelectionChanged: (selection) {
+                    if (selection.isNotEmpty) {
+                      setState(() => _mode = selection.first);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _modeDescription,
+                style: const TextStyle(
+                  color: Color(0xFF9AA4B2),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 12),
               const _SafetyNotice(),
-              const SizedBox(height: 18),
+              if (showScenes) ...[
+                const SizedBox(height: 12),
+                _SceneManager(
+                  scenes: preset.scenes,
+                  onCapture: _captureScene,
+                  onApply: (sceneId) => _runMutation(
+                    () => controller.applyScene(sceneId),
+                  ),
+                  onDelete: (sceneId) => _runMutation(
+                    () => controller.deleteScene(sceneId),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
               Row(
                 children: [
-                  const Text(
-                    'EFFECT CHAIN',
-                    style: TextStyle(
+                  Text(
+                    _mode == WorkspaceMode.stomp ? 'STOMP BLOCKS' : 'EFFECT CHAIN',
+                    style: const TextStyle(
                       color: Color(0xFF9AA4B2),
                       fontSize: 11,
                       letterSpacing: 1.4,
@@ -167,18 +279,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     : ReorderableListView.builder(
                         buildDefaultDragHandles: false,
                         itemCount: blocks.length,
-                        onReorderItem: (oldIndex, newIndex) => _runMutation(
-                          () => controller.reorderActiveBlocks(
-                            oldIndex,
-                            newIndex,
-                          ),
-                        ),
+                        onReorderItem: (oldIndex, newIndex) {
+                          if (_mode == WorkspaceMode.stomp) return;
+                          _runMutation(
+                            () => controller.reorderActiveBlocks(
+                              oldIndex,
+                              newIndex,
+                            ),
+                          );
+                        },
                         itemBuilder: (context, index) {
                           final block = blocks[index];
                           return _EffectBlockTile(
                             key: ValueKey(block.id),
                             index: index,
                             block: block,
+                            canReorder: _mode != WorkspaceMode.stomp,
                             onTap: () => _editBlock(block),
                             onToggle: (enabled) => _runMutation(
                               () => controller.updateBlock(
@@ -202,17 +318,146 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 }
 
+class _SceneManager extends StatelessWidget {
+  const _SceneManager({
+    required this.scenes,
+    required this.onCapture,
+    required this.onApply,
+    required this.onDelete,
+  });
+
+  final List<RigScene> scenes;
+  final VoidCallback onCapture;
+  final ValueChanged<String> onApply;
+  final ValueChanged<String> onDelete;
+
+  String _date(DateTime value) {
+    final date = value.toLocal();
+    return '${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'SCENE SNAPSHOTS',
+              style: TextStyle(
+                color: Color(0xFF9AA4B2),
+                fontSize: 11,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: onCapture,
+              icon: const Icon(Icons.add, size: 17),
+              label: const Text('Capture scene'),
+            ),
+          ],
+        ),
+        if (scenes.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF15191F),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF292F38)),
+            ),
+            child: const Text(
+              'No scenes yet. Set your block switches and parameters, then capture a scene.',
+              style: TextStyle(
+                color: Color(0xFF9AA4B2),
+                fontSize: 11,
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 76,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: scenes.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final scene = scenes[index];
+                final activeCount =
+                    scene.blocks.where((block) => block.enabled).length;
+                return SizedBox(
+                  width: 190,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => onApply(scene.id),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    scene.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '$activeCount active · ${_date(scene.createdAt)}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF9AA4B2),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete scene',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => onDelete(scene.id),
+                            icon: const Icon(Icons.close, size: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _EffectBlockTile extends StatelessWidget {
   const _EffectBlockTile({
     required super.key,
     required this.index,
     required this.block,
+    required this.canReorder,
     required this.onTap,
     required this.onToggle,
   });
 
   final int index;
   final EffectBlock block;
+  final bool canReorder;
   final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
 
@@ -265,13 +510,14 @@ class _EffectBlockTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Switch(value: block.enabled, onChanged: onToggle),
-              ReorderableDragStartListener(
-                index: index,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.drag_indicator, color: Color(0xFF8993A1)),
+              if (canReorder)
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(Icons.drag_indicator, color: Color(0xFF8993A1)),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

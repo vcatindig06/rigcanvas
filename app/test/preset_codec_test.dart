@@ -19,6 +19,39 @@ void main() {
       expect(decoded.blocks[1].parameters['gain'], 35);
     });
 
+    test('round-trips scene snapshots with the preset', () {
+      final preset = RigPreset.starter();
+      final withScene = preset.copyWith(
+        scenes: [
+          RigScene(
+            id: 'scene-chorus',
+            name: 'Chorus',
+            createdAt: DateTime.utc(2026, 11, 16),
+            blocks: preset.blocks,
+          ),
+        ],
+      );
+
+      final restored = PresetCodec.decode(PresetCodec.encode(withScene));
+
+      expect(restored.scenes, hasLength(1));
+      expect(restored.scenes.single.name, 'Chorus');
+      expect(restored.scenes.single.blocks[1].parameters['gain'], 35);
+    });
+
+    test('loads an older preset that has no scenes field', () {
+      final presetJson = RigPreset.starter().toJson()..remove('scenes');
+      final source = jsonEncode({
+        'format': 'rigcanvas-preset',
+        'schemaVersion': currentPresetSchemaVersion,
+        'preset': presetJson,
+      });
+
+      final restored = PresetCodec.decode(source);
+
+      expect(restored.scenes, isEmpty);
+    });
+
     test('rejects an unsupported schema version', () {
       final source = jsonEncode({
         'format': 'rigcanvas-preset',
