@@ -68,3 +68,8 @@ See docs/roadmap/ROADMAP.md.
 ## Licensing
 
 No open-source license is applied yet. Third-party SDKs, capture formats, trademarks, and bundled DSP assets must be reviewed before distribution.
+
+
+## Workspace asset links
+
+Amplifier blocks can reference an imported amp capture, and Cabinet blocks can reference a cabinet IR from the local Asset Library. The link is saved as a local asset ID in the preset and scene snapshot. New assignments require acknowledgement of the compatibility notice. A file-format check is not an audio-renderer or KPT Pro compatibility guarantee; the current Workspace still runs in simulation mode only.

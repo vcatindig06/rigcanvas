@@ -52,6 +52,83 @@ void main() {
       expect(restored.scenes, isEmpty);
     });
 
+
+    test('round-trips capture and cabinet IR references in presets and scenes', () {
+      final starter = RigPreset.starter();
+      final linkedBlocks = starter.blocks.map((block) {
+        if (block.family == EffectFamily.amplifier) {
+          return block.copyWith(assetId: 'asset-capture');
+        }
+        if (block.family == EffectFamily.cabinet) {
+          return block.copyWith(assetId: 'asset-cabinet-ir');
+        }
+        return block;
+      }).toList();
+      final linkedPreset = starter.copyWith(
+        blocks: linkedBlocks,
+        scenes: [
+          RigScene(
+            id: 'scene-linked-assets',
+            name: 'Linked Assets',
+            createdAt: DateTime.utc(2026, 11, 16),
+            blocks: linkedBlocks,
+          ),
+        ],
+      );
+
+      final restored = PresetCodec.decode(PresetCodec.encode(linkedPreset));
+      final amplifier = restored.blocks.firstWhere(
+        (block) => block.family == EffectFamily.amplifier,
+      );
+      final cabinet = restored.blocks.firstWhere(
+        (block) => block.family == EffectFamily.cabinet,
+      );
+
+      expect(amplifier.assetId, 'asset-capture');
+      expect(cabinet.assetId, 'asset-cabinet-ir');
+      expect(
+        restored.scenes.single.blocks
+            .firstWhere((block) => block.family == EffectFamily.amplifier)
+            .assetId,
+        'asset-capture',
+      );
+    });
+
+    test('continues to read legacy blocks without an asset reference', () {
+      final presetJson = RigPreset.starter().toJson();
+      final blocks = presetJson['blocks'] as List<dynamic>;
+      for (final block in blocks) {
+        (block as Map<String, dynamic>).remove('assetId');
+      }
+      final source = jsonEncode({
+        'format': 'rigcanvas-preset',
+        'schemaVersion': currentPresetSchemaVersion,
+        'preset': presetJson,
+      });
+
+      final restored = PresetCodec.decode(source);
+
+      expect(restored.blocks.every((block) => block.assetId == null), isTrue);
+    });
+
+    test('rejects asset links on unrelated effect families', () {
+      final presetJson = RigPreset.starter().toJson();
+      final blocks = presetJson['blocks'] as List<dynamic>;
+      final gate = blocks.first as Map<String, dynamic>;
+      gate['assetId'] = 'asset-invalid';
+
+      final source = jsonEncode({
+        'format': 'rigcanvas-preset',
+        'schemaVersion': currentPresetSchemaVersion,
+        'preset': presetJson,
+      });
+
+      expect(
+        () => PresetCodec.decode(source),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
     test('rejects an unsupported schema version', () {
       final source = jsonEncode({
         'format': 'rigcanvas-preset',

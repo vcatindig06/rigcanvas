@@ -189,6 +189,7 @@ class RigPreset {
       'description': block.description,
       'enabled': block.enabled,
       'parameters': block.parameters,
+      'assetId': block.assetId,
     };
   }
 
@@ -208,9 +209,16 @@ class RigPreset {
     final familyName = _readString(value, 'family', maximumLength: 32);
     final enabled = value['enabled'];
     final rawParameters = value['parameters'];
+    final rawAssetId = value['assetId'];
 
     if (enabled is! bool) {
       throw const FormatException('Effect block enabled flag must be boolean.');
+    }
+    if (rawAssetId != null &&
+        (rawAssetId is! String ||
+            rawAssetId.trim().isEmpty ||
+            rawAssetId.length > 128)) {
+      throw const FormatException('Effect block asset reference is invalid.');
     }
     if (rawParameters is! Map<String, dynamic>) {
       throw const FormatException('Effect block parameters must be an object.');
@@ -222,6 +230,14 @@ class RigPreset {
         'Unsupported effect family "$familyName".',
       ),
     );
+
+    if (rawAssetId != null &&
+        family != EffectFamily.amplifier &&
+        family != EffectFamily.cabinet) {
+      throw const FormatException(
+        'Only amplifier and cabinet blocks can reference library assets.',
+      );
+    }
 
     final specs = effectParameterSpecs[family] ?? <EffectParameterSpec>[];
     final allowedKeys = specs.map((spec) => spec.key).toSet();
@@ -260,6 +276,7 @@ class RigPreset {
       description: description,
       enabled: enabled,
       parameters: parameters,
+      assetId: rawAssetId as String?,
     );
   }
 

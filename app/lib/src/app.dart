@@ -157,6 +157,7 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
         return WorkspaceScreen(
           key: const ValueKey('workspace'),
           controller: widget.presetController,
+          assetController: widget.assetController,
         );
       case 2:
         return PresetLibraryScreen(

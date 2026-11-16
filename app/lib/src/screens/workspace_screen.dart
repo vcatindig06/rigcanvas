@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
+import '../models/rig_asset.dart';
 import '../models/rig_preset.dart';
+import '../state/asset_controller.dart';
 import '../state/preset_controller.dart';
 import 'effect_block_editor_dialog.dart';
 
@@ -10,10 +12,12 @@ enum WorkspaceMode { preset, scene, stomp, hybrid }
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({
     required this.controller,
+    required this.assetController,
     super.key,
   });
 
   final PresetController controller;
+  final AssetController assetController;
 
   @override
   State<WorkspaceScreen> createState() => _WorkspaceScreenState();
@@ -21,7 +25,16 @@ class WorkspaceScreen extends StatefulWidget {
 
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
   PresetController get controller => widget.controller;
+  AssetController get assetController => widget.assetController;
   WorkspaceMode _mode = WorkspaceMode.preset;
+
+  RigAsset? _assetFor(String? assetId) {
+    if (assetId == null) return null;
+    for (final asset in assetController.assets) {
+      if (asset.id == assetId) return asset;
+    }
+    return null;
+  }
 
   void _showMessage(String message) {
     if (!mounted) return;
@@ -41,7 +54,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _editBlock(EffectBlock block) async {
     final updated = await showDialog<EffectBlock>(
       context: context,
-      builder: (context) => EffectBlockEditorDialog(block: block),
+      builder: (context) => EffectBlockEditorDialog(
+        block: block,
+        assets: assetController.assets,
+      ),
     );
     if (updated == null) return;
     await _runMutation(() => controller.updateBlock(updated));
@@ -99,9 +115,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: Listenable.merge([controller, assetController]),
       builder: (context, _) {
-        if (controller.isLoading) {
+        if (controller.isLoading || assetController.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -294,6 +310,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                             key: ValueKey(block.id),
                             index: index,
                             block: block,
+                            linkedAsset: _assetFor(block.assetId),
                             canReorder: _mode != WorkspaceMode.stomp,
                             onTap: () => _editBlock(block),
                             onToggle: (enabled) => _runMutation(
@@ -450,6 +467,7 @@ class _EffectBlockTile extends StatelessWidget {
     required super.key,
     required this.index,
     required this.block,
+    required this.linkedAsset,
     required this.canReorder,
     required this.onTap,
     required this.onToggle,
@@ -457,6 +475,7 @@ class _EffectBlockTile extends StatelessWidget {
 
   final int index;
   final EffectBlock block;
+  final RigAsset? linkedAsset;
   final bool canReorder;
   final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
@@ -472,6 +491,17 @@ class _EffectBlockTile extends StatelessWidget {
           : value.toStringAsFixed(1);
       return '${spec.label}: $shown${spec.unit}';
     }).join('  ·  ');
+
+    final linkedAssetSummary = linkedAsset == null
+        ? (block.assetId == null ? null : 'Linked asset missing from library')
+        : '${block.family == EffectFamily.amplifier ? 'Capture' : 'Cabinet IR'}: '
+            '${linkedAsset.title} · '
+            '${linkedAsset.validation == RigAssetValidation.validated ? 'format checked' : 'format unverified'}';
+    final subtitle = [
+      if (summary.isNotEmpty) summary,
+      block.description,
+      if (linkedAssetSummary != null) linkedAssetSummary,
+    ].join('\n');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -499,10 +529,8 @@ class _EffectBlockTile extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            summary.isEmpty
-                ? block.description
-                : '$summary\n${block.description}',
-            maxLines: 2,
+            subtitle,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11, color: Color(0xFF8993A1)),
           ),

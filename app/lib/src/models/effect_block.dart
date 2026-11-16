@@ -289,6 +289,7 @@ class EffectBlock {
     required this.description,
     this.enabled = true,
     this.parameters = const <String, double>{},
+    this.assetId,
   });
 
   final String id;
@@ -298,11 +299,16 @@ class EffectBlock {
   final bool enabled;
   final Map<String, double> parameters;
 
+  /// Local Asset Library reference. This does not load or transmit the asset.
+  final String? assetId;
+
   EffectBlock copyWith({
     String? name,
     String? description,
     bool? enabled,
     Map<String, double>? parameters,
+    String? assetId,
+    bool clearAssetId = false,
   }) {
     return EffectBlock(
       id: id,
@@ -311,6 +317,7 @@ class EffectBlock {
       description: description ?? this.description,
       enabled: enabled ?? this.enabled,
       parameters: parameters ?? this.parameters,
+      assetId: clearAssetId ? null : (assetId ?? this.assetId),
     );
   }
 

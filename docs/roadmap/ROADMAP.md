@@ -16,6 +16,7 @@
 - [x] RigCanvas-native JSON export/import.
 - [ ] Undo/redo and preset version history.
 - [x] IR/AM2 asset library with metadata and conservative format checks.
+- [x] Link local amp captures to Amplifier blocks and cabinet IRs to Cabinet blocks, with explicit compatibility warnings and preset/scene persistence.
 - [x] Search, tags, favorites, and setlists.
 
 ## Milestone 2 — hardware discovery
