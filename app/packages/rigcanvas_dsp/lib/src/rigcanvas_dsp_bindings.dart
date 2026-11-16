@@ -60,7 +60,7 @@ external double rgEngineInputPeakDb(Pointer<Void> handle);
 external double rgEngineOutputPeakDb(Pointer<Void> handle);
 
 @Native<Uint32 Function(Pointer<Void>)>(symbol: 'rg_engine_processed_frames')
-external int rgEngineProcessed_frames(Pointer<Void> handle);
+external int rgEngineProcessedFrames(Pointer<Void> handle);
 
 @Native<Uint32 Function(Pointer<Void>)>(symbol: 'rg_engine_enabled_node_count')
 external int rgEngineEnabledNodeCount(Pointer<Void> handle);
