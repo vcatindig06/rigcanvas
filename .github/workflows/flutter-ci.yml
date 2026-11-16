@@ -57,7 +57,7 @@ jobs:
         run: flutter test --reporter expanded
 
   build-android:
-    name: Build Android debug APK
+    name: Build Android installable mobile APK
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -79,16 +79,25 @@ jobs:
       - name: Resolve packages
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build installable Android APK
         run: flutter build apk --debug
 
-      - name: Upload APK
+      - name: Verify Android package and create checksum
+        shell: bash
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
+          test -s "$APK_PATH"
+          sha256sum "$APK_PATH" > "$APK_PATH.sha256"
+
+      - name: Upload mobile app package
         uses: actions/upload-artifact@v4
         with:
-          name: rigcanvas-android-debug
-          path: app/build/app/outputs/flutter-apk/app-debug.apk
+          name: rigcanvas-mobile-android-apk
+          path: |
+            app/build/app/outputs/flutter-apk/app-debug.apk
+            app/build/app/outputs/flutter-apk/app-debug.apk.sha256
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
 
   build-windows:
     name: Build Windows desktop
