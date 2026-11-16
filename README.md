@@ -2,7 +2,7 @@
 
 RigCanvas is an independent Windows and Android guitar-rig editor and processing workspace. Development starts with a safe, local editor prototype and KPT Pro compatibility research.
 
-> **Current status:** local-first editor prototype with persistent presets, scene snapshots, Gig View setlists, and an Asset Library for amp captures and cabinet impulse responses. KPT Pro communication remains disabled: no device protocol has been confirmed or implemented.
+> **Current status:** local-first editor prototype with persistent presets, Grid layout, scene snapshots, Gig View setlists, and an Asset Library for amp captures and cabinet impulse responses. The Grid Workspace v1 implementation is under review; it remains a local simulation. KPT Pro communication remains disabled: no device protocol has been confirmed or implemented.
 
 ## Product direction
 
@@ -74,3 +74,19 @@ No open-source license is applied yet. Third-party SDKs, capture formats, tradem
 ## Workspace asset links
 
 Amplifier blocks can reference an imported amp capture, and Cabinet blocks can reference a cabinet IR from the local Asset Library. The link is saved as a local asset ID in the preset and scene snapshot. New assignments require acknowledgement of the compatibility notice. A file-format check is not an audio-renderer or KPT Pro compatibility guarantee; the current Workspace still runs in simulation mode only.
+
+
+## Grid Workspace v1
+
+The Grid Workspace is designed around a four-row by eight-slot editor. Effect blocks keep stable IDs while their saved row and slot positions can be changed by drag-and-drop. Dropping a block onto an occupied slot swaps the two positions. The layout and its derived lane connections are stored in the RigCanvas preset format.
+
+Preset, Scene, Stomp, and Hybrid are control modes for the same active preset:
+
+- **Preset:** edit, add, move, and remove blocks in the Grid.
+- **Scene:** recall up to eight saved scene snapshots; a snapshot restores block settings and Grid positions.
+- **Stomp:** A–H toggle the first eight blocks in preset order.
+- **Hybrid:** A–D recall scenes, while E–H toggle the first four blocks in preset order.
+
+The current v1 layout treats each row as an independent local lane. It does not yet model splitters, mixers, cross-lane routing, custom multi-block footswitch assignments, or audio processing. The input/output labels are local editor lane endpoints, not verified KPT Pro ports.
+
+Android and Windows use the same Flutter workspace and preset schema. This UI does not send data to hardware, process audio, or imply that imported capture/IR files are playback-compatible.
