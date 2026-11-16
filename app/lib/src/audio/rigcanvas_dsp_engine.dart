@@ -182,7 +182,7 @@ class RigCanvasDspEngine {
     return DspProcessMetrics(
       sampleRate: sampleRate,
       channels: channels,
-      processedFrames: native.rgEngineProcessed_frames(_handle),
+      processedFrames: native.rgEngineProcessedFrames(_handle),
       enabledNodeCount: native.rgEngineEnabledNodeCount(_handle),
       inputRmsDb: native.rgEngineInputRmsDb(_handle),
       outputRmsDb: native.rgEngineOutputRmsDb(_handle),
