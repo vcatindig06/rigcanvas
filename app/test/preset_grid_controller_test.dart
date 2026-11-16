@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rigcanvas/src/data/preset_repository.dart';
+import 'package:rigcanvas/src/models/effect_block.dart';
 import 'package:rigcanvas/src/models/rig_preset.dart';
 import 'package:rigcanvas/src/state/preset_controller.dart';
 
@@ -59,3 +60,18 @@ void main() {
     expect(preset.scenes.single.blocks.any((block) => block.id == blockId), isFalse);
   });
 }
+
+test('adding a block assigns it to the requested lane and persists it', () async {
+  final repository = MemoryPresetRepository();
+  final controller = PresetController(repository);
+  await controller.initialize();
+  addTearDown(controller.dispose);
+
+  await controller.addBlock(EffectFamily.reverb, preferredRow: 3);
+  final preset = controller.activePreset!;
+  final added = preset.blocks.last;
+
+  expect(preset.grid.positionOf(added.id)?.row, 3);
+  expect(preset.grid.positionOf(added.id)?.column, 0);
+  expect(repository.stored.single.grid.positionOf(added.id)?.row, 3);
+});
