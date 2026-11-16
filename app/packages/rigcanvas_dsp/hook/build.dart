@@ -7,7 +7,6 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 void main(List<String> args) async {
   await build(args, (input, output) async {
     final logger = Logger('rigcanvas-dsp')
-      ..level = Level.ALL
       ..onRecord.listen((record) => stdout.writeln(record.message));
 
     final builder = CBuilder.library(
