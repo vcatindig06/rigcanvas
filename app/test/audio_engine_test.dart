@@ -76,6 +76,17 @@ void main() {
       }
     });
 
+    test('rejects use after disposal and invalid engine formats', () {
+      final engine = RigCanvasDspEngine();
+      engine.dispose();
+      expect(engine.dispose, returnsNormally);
+      expect(engine.runTestTone, throwsStateError);
+      expect(
+        () => RigCanvasDspEngine(sampleRate: 7000),
+        throwsArgumentError,
+      );
+    });
+
     test('validates buffer shape and IR length before native calls', () {
       final engine = RigCanvasDspEngine();
       try {
