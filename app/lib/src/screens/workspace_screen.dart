@@ -1,165 +1,203 @@
 import 'package:flutter/material.dart';
 
 import '../models/effect_block.dart';
+import '../state/preset_controller.dart';
+import 'effect_block_editor_dialog.dart';
 
 class WorkspaceScreen extends StatefulWidget {
-  const WorkspaceScreen({super.key});
+  const WorkspaceScreen({
+    required this.controller,
+    super.key,
+  });
+
+  final PresetController controller;
 
   @override
   State<WorkspaceScreen> createState() => _WorkspaceScreenState();
 }
 
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
-  final List<EffectBlock> _blocks = EffectBlock.demoChain();
+  PresetController get controller => widget.controller;
 
-  void _reorderBlocks(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final block = _blocks.removeAt(oldIndex);
-      _blocks.insert(newIndex, block);
-    });
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _toggleBlock(EffectBlock block, bool enabled) {
-    final index = _blocks.indexWhere((candidate) => candidate.id == block.id);
-    if (index < 0) return;
-
-    setState(() {
-      _blocks[index] = _blocks[index].copyWith(enabled: enabled);
-    });
+  Future<void> _runMutation(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (error) {
+      _showMessage('Could not save workspace: $error');
+    }
   }
 
-  void _addBlock(EffectFamily family) {
-    final label = family.label;
-    final block = EffectBlock(
-      id: 'local-${DateTime.now().microsecondsSinceEpoch}',
-      name: 'New $label Block',
-      family: family,
-      description: 'Local workspace block · not sent to hardware',
+  Future<void> _editBlock(EffectBlock block) async {
+    final updated = await showDialog<EffectBlock>(
+      context: context,
+      builder: (context) => EffectBlockEditorDialog(block: block),
     );
-
-    setState(() => _blocks.add(block));
+    if (updated == null) return;
+    await _runMutation(() => controller.updateBlock(updated));
   }
 
   @override
   Widget build(BuildContext context) {
-    final enabledCount = _blocks.where((block) => block.enabled).length;
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        if (controller.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
+        final preset = controller.activePreset;
+        if (preset == null) {
+          return Center(
+            child: Text(
+              controller.errorMessage ?? 'No local preset is available.',
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+        final blocks = preset.blocks;
+        final enabledCount = blocks.where((block) => block.enabled).length;
+
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(
-                    'Signal Workspace',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Arrange and prototype your guitar signal chain.',
-                    style: TextStyle(color: Color(0xFF9AA4B2)),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 4),
-              _MetricPill(label: '${_blocks.length} BLOCKS'),
-              _MetricPill(label: '$enabledCount ACTIVE'),
-              const _SimulationPill(),
-            ],
-          ),
-          const SizedBox(height: 18),
-          const _SafetyNotice(),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              const Text(
-                'EFFECT CHAIN',
-                style: TextStyle(
-                  color: Color(0xFF9AA4B2),
-                  fontSize: 11,
-                  letterSpacing: 1.4,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              PopupMenuButton<EffectFamily>(
-                tooltip: 'Add effect block',
-                onSelected: _addBlock,
-                itemBuilder: (context) => EffectFamily.values
-                    .map(
-                      (family) => PopupMenuItem<EffectFamily>(
-                        value: family,
-                        child: Row(
-                          children: [
-                            Icon(family.icon, size: 18),
-                            const SizedBox(width: 10),
-                            Text(family.label),
-                          ],
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Signal Workspace',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    )
-                    .toList(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3A241F),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF714234)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.add, size: 18, color: Color(0xFFFFA083)),
-                      SizedBox(width: 7),
+                      const SizedBox(height: 4),
                       Text(
-                        'Add block',
-                        style: TextStyle(
-                          color: Color(0xFFFFB29D),
-                          fontWeight: FontWeight.w600,
-                        ),
+                        preset.name,
+                        style: const TextStyle(color: Color(0xFF9AA4B2)),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(width: 4),
+                  _MetricPill(label: '${blocks.length} BLOCKS'),
+                  _MetricPill(label: '$enabledCount ACTIVE'),
+                  const _SimulationPill(),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const _SafetyNotice(),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  const Text(
+                    'EFFECT CHAIN',
+                    style: TextStyle(
+                      color: Color(0xFF9AA4B2),
+                      fontSize: 11,
+                      letterSpacing: 1.4,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  PopupMenuButton<EffectFamily>(
+                    tooltip: 'Add effect block',
+                    onSelected: (family) => _runMutation(
+                      () => controller.addBlock(family),
+                    ),
+                    itemBuilder: (context) => EffectFamily.values
+                        .map(
+                          (family) => PopupMenuItem<EffectFamily>(
+                            value: family,
+                            child: Row(
+                              children: [
+                                Icon(family.icon, size: 18),
+                                const SizedBox(width: 10),
+                                Text(family.label),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3A241F),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF714234)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.add, size: 18, color: Color(0xFFFFA083)),
+                          SizedBox(width: 7),
+                          Text(
+                            'Add block',
+                            style: TextStyle(
+                              color: Color(0xFFFFB29D),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: blocks.isEmpty
+                    ? const Center(
+                        child: Text('Add an effect block to start your chain.'),
+                      )
+                    : ReorderableListView.builder(
+                        buildDefaultDragHandles: false,
+                        itemCount: blocks.length,
+                        onReorder: (oldIndex, newIndex) => _runMutation(
+                          () => controller.reorderActiveBlocks(
+                            oldIndex,
+                            newIndex,
+                          ),
+                        ),
+                        itemBuilder: (context, index) {
+                          final block = blocks[index];
+                          return _EffectBlockTile(
+                            key: ValueKey(block.id),
+                            index: index,
+                            block: block,
+                            onTap: () => _editBlock(block),
+                            onToggle: (enabled) => _runMutation(
+                              () => controller.updateBlock(
+                                block.copyWith(enabled: enabled),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Local preset editor · Changes are saved on this device. Nothing is sent to the KPT Pro.',
+                style: TextStyle(fontSize: 11, color: Color(0xFF788391)),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ReorderableListView.builder(
-              buildDefaultDragHandles: false,
-              itemCount: _blocks.length,
-              onReorder: _reorderBlocks,
-              itemBuilder: (context, index) {
-                final block = _blocks[index];
-                return _EffectBlockTile(
-                  key: ValueKey(block.id),
-                  index: index,
-                  block: block,
-                  onToggle: (enabled) => _toggleBlock(block, enabled),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Demo data only · Device read/write and audio processing are not implemented yet.',
-            style: TextStyle(fontSize: 11, color: Color(0xFF788391)),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -169,21 +207,32 @@ class _EffectBlockTile extends StatelessWidget {
     required super.key,
     required this.index,
     required this.block,
+    required this.onTap,
     required this.onToggle,
   });
 
   final int index;
   final EffectBlock block;
+  final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
 
   @override
   Widget build(BuildContext context) {
     final muted = !block.enabled;
+    final specs = effectParameterSpecs[block.family] ?? <EffectParameterSpec>[];
+    final summary = specs.take(3).map((spec) {
+      final value = block.parameters[spec.key] ?? spec.initial;
+      final shown = value == value.roundToDouble()
+          ? value.toStringAsFixed(0)
+          : value.toStringAsFixed(1);
+      return '${spec.label}: $shown${spec.unit}';
+    }).join('  ·  ');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Card(
         child: ListTile(
+          onTap: onTap,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 5,
@@ -205,7 +254,9 @@ class _EffectBlockTile extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            '${block.family.label}  ·  ${block.description}',
+            summary.isEmpty
+                ? block.description
+                : '$summary\n${block.description}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11, color: Color(0xFF8993A1)),

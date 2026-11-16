@@ -1,7 +1,7 @@
 name: rigcanvas
 description: Cross-platform guitar rig editor and KPT Pro research workspace.
 publish_to: "none"
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  file_picker: ^13.3.3
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

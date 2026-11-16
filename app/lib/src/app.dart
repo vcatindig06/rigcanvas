@@ -1,10 +1,40 @@
 import 'package:flutter/material.dart';
 
+import 'data/preset_repository.dart';
 import 'screens/feature_placeholder_screen.dart';
+import 'screens/preset_library_screen.dart';
 import 'screens/workspace_screen.dart';
+import 'state/preset_controller.dart';
 
-class RigCanvasApp extends StatelessWidget {
-  const RigCanvasApp({super.key});
+class RigCanvasApp extends StatefulWidget {
+  const RigCanvasApp({
+    this.repository,
+    super.key,
+  });
+
+  final PresetRepository? repository;
+
+  @override
+  State<RigCanvasApp> createState() => _RigCanvasAppState();
+}
+
+class _RigCanvasAppState extends State<RigCanvasApp> {
+  late final PresetController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PresetController(
+      widget.repository ?? JsonFilePresetRepository(),
+    );
+    _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,13 +65,18 @@ class RigCanvasApp extends StatelessWidget {
           centerTitle: false,
         ),
       ),
-      home: const RigCanvasShell(),
+      home: RigCanvasShell(controller: _controller),
     );
   }
 }
 
 class RigCanvasShell extends StatefulWidget {
-  const RigCanvasShell({super.key});
+  const RigCanvasShell({
+    required this.controller,
+    super.key,
+  });
+
+  final PresetController controller;
 
   @override
   State<RigCanvasShell> createState() => _RigCanvasShellState();
@@ -89,26 +124,26 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
           icon: Icons.dashboard_outlined,
         );
       case 1:
-        return const WorkspaceScreen(key: ValueKey('workspace'));
+        return WorkspaceScreen(
+          key: const ValueKey('workspace'),
+          controller: widget.controller,
+        );
       case 2:
-        return FeaturePlaceholderScreen(
+        return PresetLibraryScreen(
           key: const ValueKey('presets'),
-          title: 'Preset Library',
-          description:
-              'Local preset storage, comparison, import/export, and backup tools are planned for the next milestone.',
-          icon: Icons.library_music_outlined,
+          controller: widget.controller,
         );
       case 3:
-        return FeaturePlaceholderScreen(
-          key: const ValueKey('assets'),
+        return const FeaturePlaceholderScreen(
+          key: ValueKey('assets'),
           title: 'Asset Library',
           description:
               'Manage compatible AMP/AM2 captures and cabinet IR files. Compatibility checks will be added before import.',
           icon: Icons.folder_open_outlined,
         );
       default:
-        return FeaturePlaceholderScreen(
-          key: const ValueKey('settings'),
+        return const FeaturePlaceholderScreen(
+          key: ValueKey('settings'),
           title: 'Settings',
           description:
               'Connection preferences, audio settings, appearance, and diagnostics will live here.',
