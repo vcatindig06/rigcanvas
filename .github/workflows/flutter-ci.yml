@@ -43,6 +43,9 @@ jobs:
       - name: Format source
         run: dart format lib test
 
+      - name: Apply supported Dart fixes
+        run: dart fix --apply
+
       - name: Analyze
         run: flutter analyze --fatal-infos
 
