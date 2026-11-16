@@ -621,7 +621,10 @@ void main() {
     expect(find.text('Shared native DSP core · Android + Windows'), findsOneWidget);
     expect(find.byKey(const ValueKey('run-dsp-test')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('run-dsp-test')));
+    final runDspButton = find.byKey(const ValueKey('run-dsp-test'));
+    await tester.ensureVisible(runDspButton);
+    await tester.pumpAndSettle();
+    await tester.tap(runDspButton);
     await tester.pumpAndSettle();
 
     expect(find.text('DSP TEST COMPLETE'), findsOneWidget);
