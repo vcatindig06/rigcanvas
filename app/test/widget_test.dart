@@ -145,6 +145,10 @@ void main() {
 
     expect(find.text('RigCanvas'), findsOneWidget);
     expect(find.text('Signal Workspace'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+    expect(find.text('IN 1'), findsOneWidget);
+    expect(find.text('OUT 4'), findsOneWidget);
+    expect(find.byKey(const ValueKey('grid-slot-3-7')), findsOneWidget);
     expect(find.text('KPT Pro · Disconnected'), findsOneWidget);
     expect(find.text('SIMULATION'), findsOneWidget);
     expect(find.text('Input Gate'), findsOneWidget);
@@ -179,6 +183,39 @@ void main() {
 
     expect(find.text('Oceans'), findsOneWidget);
     expect(find.textContaining('Key D'), findsOneWidget);
+  });
+
+  testWidgets('keeps Preset, Scene, Stomp and Hybrid on one Grid', (tester) async {
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+    expect(find.text('British Stack'), findsOneWidget);
+
+    await tester.tap(find.text('Scene').last);
+    await tester.pumpAndSettle();
+    expect(find.text('SCENES · A–H'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+
+    await tester.tap(find.text('Stomp').last);
+    await tester.pumpAndSettle();
+    expect(find.text('STOMP ASSIGNMENTS · A–H'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+
+    await tester.tap(find.text('Hybrid').last);
+    await tester.pumpAndSettle();
+    expect(find.text('SCENES · A–D'), findsOneWidget);
+    expect(find.text('STOMP ASSIGNMENTS · E–H'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
   });
 
   testWidgets('opens the local preset library', (tester) async {
