@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'data/preset_repository.dart';
 import 'screens/feature_placeholder_screen.dart';
@@ -118,8 +118,8 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
   Widget _pageForIndex() {
     switch (_selectedIndex) {
       case 0:
-        return FeaturePlaceholderScreen(
-          key: const ValueKey('overview'),
+        return const FeaturePlaceholderScreen(
+          key: ValueKey('overview'),
           title: 'Overview',
           description:
               'Your connected hardware, recent presets, and project activity will appear here.',
