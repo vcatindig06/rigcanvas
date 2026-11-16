@@ -38,10 +38,10 @@
 
 ## Milestone 4 — performance workflow
 
-- [ ] Preset mode.
-- [ ] Stomp view aligned to verified device behavior.
-- [ ] App-managed scene snapshots where supported by device parameter operations.
-- [ ] Hybrid control mapping.
+- [x] Local Preset / Scene / Stomp / Hybrid workspace modes.
+- [x] App-managed scene snapshots for local effect order, bypass states, and parameter values.
+- [x] Local stomp-style block bypass controls.
+- [ ] Map performance modes to KPT Pro controls only after capabilities are verified.
 - [ ] Gig View and setlists.
 - [ ] External MIDI support where target OS/hardware expose it.
 
