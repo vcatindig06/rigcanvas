@@ -110,7 +110,7 @@ These labels describe functional archetypes, not cloned commercial models, manuf
 - [KPT Pro manual page 30](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html?page=30) — dTape, Dual and Lofi delays.
 - [KPT Pro manual page 31](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html?page=31) — Room, Hall, Swell, Spring and Shimmer reverb controls.
 - [KPT Pro manual page 32](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html?page=32) — remaining reverb and external expression controls.
-- [YUIMER KPT Pro product listing](https://www.theoriginalera.com/products/drop-shipping-yuimer-tank-upgraded-kpt-pro-white-multi-effect-pedal-ann-new-algorithm-electric-guitar-bass-2-in-1-effector) — corroborates 50 guitar / 10 bass preamp and cabinet slot counts. This is a reseller, not a firmware reference.
+- [YUIMER KPT Pro product listing](https://www.theoriginalera.com/products/kpt-pro-multi-effects-pedal-upgraded-version-from-yuimer-factory-previously-known-as-tank-g-and-tank-b) — corroborates 50 guitar / 10 bass preamp and cabinet slot counts. This is a reseller, not a firmware reference.
 
 ### Broader multi-effects references
 
