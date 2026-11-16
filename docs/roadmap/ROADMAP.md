@@ -144,3 +144,31 @@ A milestone is not complete because the UI exists. It must include:
 - The same run built and uploaded the Android APK plus SHA-256 checksum and the Windows release package.
 - **Status:** catalog implementation and automated cross-platform builds complete; physical KPT Pro slot verification and manual Android/Windows smoke tests remain. PR [#5](https://github.com/vcatindig06/rigcanvas/pull/5) remains draft.
 - **Boundary:** the expanded options are catalog metadata/archetypes only. DSP/audio processing and KPT Pro write/control support are not implemented.
+
+
+## Milestone 5.1 — shared native DSP foundation (offline prototype)
+
+- [x] Compile one C++17 DSP implementation for Android and Windows with Flutter native-assets build hooks.
+- [x] Expose a bounded C ABI and Dart FFI wrapper for engine lifecycle, node configuration, processing, and metrics.
+- [x] Implement generic linked-stereo noise gate and compressor modes.
+- [x] Implement generic soft-clipping overdrive and an amp preamp / tone-shaping stage.
+- [x] Add FIR cabinet convolution for an explicitly supplied mono float IR buffer (up to 4096 taps).
+- [x] Process the active preset's enabled supported nodes in saved Grid row/slot order.
+- [x] Add an internal 440 Hz offline test signal and input/output RMS / peak reporting.
+- [x] Keep unsupported block families visible as skipped and avoid implying a physical guitar or speaker path.
+- [ ] Decode imported WAV IR files, resample as required, and load the verified samples from the Asset Library.
+- [ ] Add impulse-response, frequency-response, distortion, noise, parameter-boundary, and performance tests.
+- [ ] Manually build and smoke-test the Audio page on physical Android hardware and a Windows PC.
+- [ ] Add production-safe real-time audio callback and device abstractions only after profiling and lifecycle design.
+- [ ] Implement Android and Windows capture/playback adapters with equivalent device controls and routing.
+
+**Milestone 5.1 boundary:** this is offline/block DSP only. It is not a low-latency live guitar processor. Current gate/compressor/drive/amp algorithms are generic prototypes, not manufacturer-model simulations. Cabinet FIR is usable only when sample buffers are supplied directly; imported WAV decoding and auto-loading are not yet connected. See [DSP engine architecture](../architecture/DSP_ENGINE.md).
+
+### DSP foundation implementation log — 2026-11-16
+
+- Started a shared C++17 DSP core under app/native, compiled for target platforms via app/hook/build.dart.
+- Added Dart FFI bindings and a wrapper using the native-assets API rather than separate Android and Windows DSP implementations.
+- Added initial Dynamics (gate/compressor), Drive (soft clipping), Amplifier (preamp/tone shaping), and Cabinet (mono FIR buffer) nodes.
+- Added an Audio page that applies the supported enabled blocks in Grid order to an internal 440 Hz test signal and displays input/output RMS, peak, frame, and node metrics.
+- Unsupported families, missing live audio I/O, amp-capture playback, and unconnected WAV IR imports are disclosed in the app.
+- Automated tests and both platform builds are pending CI verification. Physical Android and Windows smoke tests remain.
