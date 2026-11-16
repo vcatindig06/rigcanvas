@@ -2,12 +2,15 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import 'data/asset_repository.dart';
 import 'data/preset_repository.dart';
 import 'data/setlist_repository.dart';
+import 'screens/asset_library_screen.dart';
 import 'screens/feature_placeholder_screen.dart';
 import 'screens/gig_view_screen.dart';
 import 'screens/preset_library_screen.dart';
 import 'screens/workspace_screen.dart';
+import 'state/asset_controller.dart';
 import 'state/preset_controller.dart';
 import 'state/setlist_controller.dart';
 
@@ -15,11 +18,13 @@ class RigCanvasApp extends StatefulWidget {
   const RigCanvasApp({
     this.repository,
     this.setlistRepository,
+    this.assetRepository,
     super.key,
   });
 
   final PresetRepository? repository;
   final SetlistRepository? setlistRepository;
+  final AssetRepository? assetRepository;
 
   @override
   State<RigCanvasApp> createState() => _RigCanvasAppState();
@@ -28,6 +33,7 @@ class RigCanvasApp extends StatefulWidget {
 class _RigCanvasAppState extends State<RigCanvasApp> {
   late final PresetController _presetController;
   late final SetlistController _setlistController;
+  late final AssetController _assetController;
 
   @override
   void initState() {
@@ -38,14 +44,19 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
     _setlistController = SetlistController(
       widget.setlistRepository ?? JsonFileSetlistRepository(),
     );
+    _assetController = AssetController(
+      widget.assetRepository ?? JsonFileAssetRepository(),
+    );
     unawaited(_presetController.initialize());
     unawaited(_setlistController.initialize());
+    unawaited(_assetController.initialize());
   }
 
   @override
   void dispose() {
     _presetController.dispose();
     _setlistController.dispose();
+    _assetController.dispose();
     super.dispose();
   }
 
@@ -81,6 +92,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
       home: RigCanvasShell(
         presetController: _presetController,
         setlistController: _setlistController,
+        assetController: _assetController,
       ),
     );
   }
@@ -90,11 +102,13 @@ class RigCanvasShell extends StatefulWidget {
   const RigCanvasShell({
     required this.presetController,
     required this.setlistController,
+    required this.assetController,
     super.key,
   });
 
   final PresetController presetController;
   final SetlistController setlistController;
+  final AssetController assetController;
 
   @override
   State<RigCanvasShell> createState() => _RigCanvasShellState();
@@ -150,12 +164,9 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
           controller: widget.presetController,
         );
       case 3:
-        return const FeaturePlaceholderScreen(
-          key: ValueKey('assets'),
-          title: 'Asset Library',
-          description:
-              'Manage compatible AMP/AM2 captures and cabinet IR files. Compatibility checks will be added before import.',
-          icon: Icons.folder_open_outlined,
+        return AssetLibraryScreen(
+          key: const ValueKey('assets'),
+          controller: widget.assetController,
         );
       default:
         return const FeaturePlaceholderScreen(

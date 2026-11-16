@@ -1,9 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart' show ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart' show TextField, TextFormField;
 import 'package:rigcanvas/src/app.dart';
+import 'package:rigcanvas/src/data/asset_repository.dart';
 import 'package:rigcanvas/src/data/preset_repository.dart';
 import 'package:rigcanvas/src/data/setlist_repository.dart';
+import 'package:rigcanvas/src/models/rig_asset.dart';
 import 'package:rigcanvas/src/models/rig_preset.dart';
 import 'package:rigcanvas/src/models/rig_setlist.dart';
 
@@ -31,12 +35,31 @@ class MemorySetlistRepository implements SetlistRepository {
   }
 }
 
+class MemoryAssetRepository implements AssetRepository {
+  List<RigAsset> stored = <RigAsset>[];
+
+  @override
+  Future<List<RigAsset>> loadAssets() async => List.of(stored);
+
+  @override
+  Future<void> saveAssets(List<RigAsset> assets) async {
+    stored = List.of(assets);
+  }
+
+  @override
+  Future<void> storeAssetFile(String filename, Uint8List bytes) async {}
+
+  @override
+  Future<void> deleteAssetFile(String filename) async {}
+}
+
 void main() {
   testWidgets('shows the RigCanvas local simulation workspace', (tester) async {
     await tester.pumpWidget(
       RigCanvasApp(
         repository: MemoryPresetRepository(),
         setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
       ),
     );
     await tester.pumpAndSettle();
@@ -56,6 +79,7 @@ void main() {
       RigCanvasApp(
         repository: MemoryPresetRepository(),
         setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
       ),
     );
     await tester.pumpAndSettle();
@@ -86,6 +110,7 @@ void main() {
       RigCanvasApp(
         repository: MemoryPresetRepository(),
         setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
       ),
     );
     await tester.pumpAndSettle();
@@ -95,5 +120,24 @@ void main() {
 
     expect(find.text('Preset Library'), findsOneWidget);
     expect(find.text('New preset'), findsOneWidget);
+  });
+
+  testWidgets('opens the functional local asset library', (tester) async {
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Assets'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asset Library'), findsOneWidget);
+    expect(find.text('Import capture'), findsOneWidget);
+    expect(find.text('Import cabinet IR'), findsOneWidget);
+    expect(find.textContaining('AM2/AMP files are preserved unchanged'), findsOneWidget);
   });
 }

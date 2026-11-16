@@ -6,17 +6,17 @@
 - [x] Record initial KPT Pro documentation findings.
 - [x] Create Flutter Windows/Android application shell.
 - [x] Create local simulation workspace with reorderable effect blocks.
-- [ ] Run Flutter format, analyze, tests, and platform builds in CI.
-- [ ] Confirm first CI run is green.
+- [x] Run Flutter format, analyze, tests, and platform builds in CI.
+- [x] Confirm first CI run is green.
 
 ## Milestone 1 — editor UX and local data
 
-- [ ] Preset list and preset detail.
+- [x] Preset list and preset detail.
 - [x] Local preset schema with an explicit schema version.
 - [x] RigCanvas-native JSON export/import.
 - [ ] Undo/redo and preset version history.
-- [ ] IR/AM2 asset library with metadata and compatibility checks.
-- [ ] Search, tags, favorites, and setlists.
+- [x] IR/AM2 asset library with metadata and conservative format checks.
+- [x] Search, tags, favorites, and setlists.
 
 ## Milestone 2 — hardware discovery
 

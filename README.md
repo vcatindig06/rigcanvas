@@ -2,7 +2,7 @@
 
 RigCanvas is an independent Windows and Android guitar-rig editor and processing workspace. Development starts with a safe, local editor prototype and KPT Pro compatibility research.
 
-> **Current status:** local-first editor prototype with persistent presets, scene snapshots, and Gig View setlists. No KPT Pro communication protocol has been confirmed or implemented; hardware control remains disabled.
+> **Current status:** local-first editor prototype with persistent presets, scene snapshots, Gig View setlists, and an Asset Library for amp captures and cabinet impulse responses. KPT Pro communication remains disabled: no device protocol has been confirmed or implemented.
 
 ## Product direction
 
@@ -13,18 +13,18 @@ The Controller and Desktop Rack are separate capability targets. Software-only b
 
 ## Repository layout
 
-- `app/` — Flutter Windows/Android application.
-- `docs/architecture/` — architecture and engineering decisions.
-- `docs/hardware/` — KPT Pro compatibility notes.
-- `docs/device-discovery/` — safe protocol-research procedure.
-- `docs/roadmap/` — staged milestones and acceptance criteria.
-- `engine/` — reserved for a future native C++ audio engine.
+- app/ — Flutter Windows/Android application.
+- docs/architecture/ — architecture and engineering decisions.
+- docs/hardware/ — KPT Pro compatibility notes.
+- docs/device-discovery/ — safe protocol-research procedure.
+- docs/roadmap/ — staged milestones and acceptance criteria.
+- engine/ — reserved for a future native C++ audio engine.
 
 ## Technology direction
 
 - Flutter / Dart for the shared Controller UI.
 - Narrow device gateway abstraction between UI and USB/Bluetooth adapters.
-- Local-first preset and setlist persistence (SQLite/Drift candidate).
+- Local-first preset, setlist, and asset persistence in app-private storage.
 - Kotlin and Android USB/Bluetooth APIs for Android-specific communication.
 - Native Windows USB APIs behind a Windows adapter.
 - Separate native C++ engine for real-time Windows audio processing.
@@ -38,29 +38,32 @@ Install Flutter stable and the Android / Windows platform toolchains.
 
 From the repository root:
 
-```bash
-cd app
-flutter create --project-name rigcanvas --org com.rigcanvas --platforms=android,windows .
-flutter pub get
-flutter run -d windows
-```
+    cd app
+    flutter create --project-name rigcanvas --org com.rigcanvas --platforms=android,windows .
+    flutter pub get
+    flutter run -d windows
 
 For Android, connect a developer-enabled device and run:
 
-```bash
-cd app
-flutter run
-```
+    cd app
+    flutter run
 
 The initial app opens in **Simulation Workspace**. Reordering blocks and toggling them changes local UI state only.
 
+## Asset Library
+
+- Amp captures: .nam files receive a JSON-envelope check. .am2 and .amp files are copied unchanged and labeled unverified because their format has not been confirmed here.
+- Cabinet IRs: mono/stereo PCM or IEEE-float WAV files receive header, encoding, channel, sample-rate, bit-depth, and data-length checks.
+- Imported files and catalog metadata are stored locally in the app's private support directory. The library supports search, tags, favorites, metadata editing, and deletion.
+- Current validation is a file-format check, not a promise that a file runs in a future audio engine or is compatible with the KPT Pro.
+
 ## Hardware safety
 
-Do not flash firmware, replay undocumented traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See [KPT Pro compatibility](docs/hardware/KPT_PRO_COMPATIBILITY.md) and the [protocol investigation plan](docs/device-discovery/PROTOCOL_INVESTIGATION.md).
+Do not flash firmware, replay undocumented traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
 
 ## Roadmap
 
-See [the development roadmap](docs/roadmap/ROADMAP.md).
+See docs/roadmap/ROADMAP.md.
 
 ## Licensing
 
