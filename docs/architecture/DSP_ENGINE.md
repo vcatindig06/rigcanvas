@@ -2,7 +2,7 @@
 
 ## Purpose
 
-RigCanvas now has one native C++ DSP implementation compiled for Android and Windows through Flutter's native-assets build hook. The Flutter UI and preset format stay shared; only compilation targets differ. Dart calls the C ABI through dart:ffi.
+RigCanvas now has one native C++ DSP implementation compiled for Android and Windows through a local package_ffi-style dependency at app/packages/rigcanvas_dsp, using Flutter's native-assets build hook. The Flutter UI and preset format stay shared; only compilation targets differ. Dart calls the C ABI through dart:ffi.
 
 The current milestone is an **offline processing foundation**, not a real-time guitar processor.
 
