@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show Scrollable;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rigcanvas/src/app.dart';
 import 'package:rigcanvas/src/data/preset_repository.dart';
