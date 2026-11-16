@@ -329,16 +329,15 @@ class RigPreset {
 
   factory RigPreset.starter({DateTime? now}) {
     final timestamp = (now ?? DateTime.now()).toUtc();
+    final blocks = EffectBlock.demoChain();
     return RigPreset(
       id: 'preset-starter',
       name: 'Sunday Clean + Ambient',
       description: 'Starter workspace · edit and customize this preset.',
       createdAt: timestamp,
       updatedAt: timestamp,
-      blocks: EffectBlock.demoChain(),
-      grid: RigGrid.fromBlockIds(
-        EffectBlock.demoChain().map((block) => block.id),
-      ),
+      blocks: blocks,
+      grid: RigGrid.fromBlockIds(blocks.map((block) => block.id)),
     );
   }
 }
