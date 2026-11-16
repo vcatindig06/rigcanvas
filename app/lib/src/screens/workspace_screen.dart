@@ -205,7 +205,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   if (_mode == WorkspaceMode.hybrid) ...[
                     const SizedBox(height: 14),
                     _ScenePads(
-                      scenes: preset.scenes.take(4).toList(),
+                      scenes: preset.scenes,
                       padCount: 4,
                       onApply: (id) => _mutate(() => controller.applyScene(id)),
                       onCapture: _captureScene,
@@ -873,6 +873,20 @@ class _ScenePads extends StatelessWidget {
             ],
           ),
         ),
+        if (scenes.length > padCount) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final scene in scenes.skip(padCount))
+                ActionChip(
+                  label: Text(scene.name),
+                  onPressed: () => onApply(scene.id),
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }
