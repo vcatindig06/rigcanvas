@@ -190,6 +190,7 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
           appBar: AppBar(
             titleSpacing: 20,
             title: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.graphic_eq, color: Color(0xFFFF7956)),
                 const SizedBox(width: 10),
@@ -197,23 +198,6 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
                   'RigCanvas',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
-                if (isWide) ...[
-                  const SizedBox(width: 14),
-                  const Flexible(
-                    child: Text(
-                      'GUITAR RIG WORKSPACE',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
-                      style: TextStyle(
-                        color: Color(0xFF8993A1),
-                        fontSize: 10,
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
             actions: const [
