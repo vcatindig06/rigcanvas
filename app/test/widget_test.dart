@@ -4,7 +4,7 @@ import 'dart:ui' show Size;
 import 'package:flutter/foundation.dart' show ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart'
-    show FilledButton, MaterialApp, NavigationBar, NavigationRail, Scaffold, Scrollable, TextField, TextFormField;
+    show DropdownMenuItem, FilledButton, MaterialApp, NavigationBar, NavigationRail, Scaffold, Scrollable, TextField, TextFormField;
 import 'package:rigcanvas/src/app.dart';
 import 'package:rigcanvas/src/data/asset_repository.dart';
 import 'package:rigcanvas/src/state/asset_controller.dart';
