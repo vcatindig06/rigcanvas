@@ -16,7 +16,10 @@
 - [x] RigCanvas-native JSON export/import.
 - [ ] Undo/redo and preset version history.
 - [x] IR/AM2 asset library with metadata and conservative format checks.
-- [x] Link local amp captures to Amplifier blocks and cabinet IRs to Cabinet blocks, with explicit compatibility warnings and preset/scene persistence.
+- [x] Link local amp captures only to Amplifier blocks and cabinet IRs only to Cabinet blocks, with a warning acknowledgement before new assignment and preset/scene persistence.
+- [x] Prevent saving a missing or wrong-family asset reference until the link is replaced or cleared.
+- [x] Show format-specific limitations: NAM structure checks do not confirm model/runtime support; AM2/AMP files remain unverified; WAV metadata checks do not confirm audio-engine or KPT Pro acceptance.
+- [x] Cover both Amp and Cabinet assignment plus wrong-family reference recovery in widget tests.
 - [x] Search, tags, favorites, and setlists.
 
 ## Milestone 2 — hardware discovery
@@ -57,6 +60,20 @@
 - [ ] Delay/reverb tail management.
 - [ ] VST3 hosting after licensing and compatibility review.
 - [ ] Neural capture runtime after format and model-runtime licensing review.
+
+## Weekly roadmap review
+
+- **Cadence:** Every Monday (Asia/Manila).
+- Compare roadmap checkboxes against source code, automated tests, and the latest GitHub Actions results; do not treat a UI-only placeholder as a completed capability.
+- Record the review date, completed work, blockers, and the next highest-value milestone.
+- Keep KPT Pro protocol work read-only until exact model, firmware, official application, and transport behavior have been verified. Never infer KPT Pro support from Tank-G/Tank-B documentation.
+
+### Review log — 2026-11-16
+
+- Verified the Workspace editor exposes local amp-capture references for Amplifier blocks and cabinet IR references for Cabinet blocks; preset and scene serialization retain asset IDs.
+- Strengthened assignment safety: missing or wrong-family references must be cleared or replaced, and new assignments require an explicit warning acknowledgement.
+- Added dedicated test coverage for cabinet IR assignment and invalid-reference recovery alongside the existing amplifier-capture assignment test.
+- **Next focus:** Milestone 2 — collect the exact KPT Pro hardware/firmware and official M-EFCS versions, then perform read-only USB enumeration. Do not implement undocumented device writes.
 
 ## Release gates
 
