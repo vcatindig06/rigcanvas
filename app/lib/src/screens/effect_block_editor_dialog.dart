@@ -1,3 +1,5 @@
+import 'dart:ui' show FontFeature;
+
 import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
@@ -86,7 +88,8 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                 ),
                 Slider(
                   value: (_parameters[spec.key] ?? spec.initial)
-                      .clamp(spec.minimum, spec.maximum),
+                      .clamp(spec.minimum, spec.maximum)
+                      .toDouble(),
                   min: spec.minimum,
                   max: spec.maximum,
                   divisions: spec.divisions,
