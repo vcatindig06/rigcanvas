@@ -59,38 +59,14 @@ class _GigViewScreenState extends State<GigViewScreen> {
   Future<String?> _setlistNameDialog({
     required String title,
     required String initialValue,
-  }) async {
-    final textController = TextEditingController(text: initialValue);
-    final result = await showDialog<String>(
+  }) {
+    return showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          maxLength: 80,
-          decoration: const InputDecoration(
-            labelText: 'Setlist name',
-            border: OutlineInputBorder(),
-          ),
-          onSubmitted: (value) =>
-              Navigator.of(dialogContext).pop(value.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(textController.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
+      builder: (dialogContext) => _SetlistNameDialog(
+        title: title,
+        initialValue: initialValue,
       ),
     );
-    textController.dispose();
-    return result;
   }
 
   Future<void> _deleteSetlist(RigSetlist setlist) async {
@@ -467,6 +443,62 @@ class _GigViewScreenState extends State<GigViewScreen> {
   }
 }
 
+class _SetlistNameDialog extends StatefulWidget {
+  const _SetlistNameDialog({
+    required this.title,
+    required this.initialValue,
+  });
+
+  final String title;
+  final String initialValue;
+
+  @override
+  State<_SetlistNameDialog> createState() => _SetlistNameDialogState();
+}
+
+class _SetlistNameDialogState extends State<_SetlistNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 80,
+        decoration: const InputDecoration(
+          labelText: 'Setlist name',
+          border: OutlineInputBorder(),
+        ),
+        onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 class _SongDraft {
   const _SongDraft({
     required this.title,
@@ -725,34 +757,36 @@ class _EmptyGigState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.queue_music,
-            size: 46,
-            color: Color(0xFFFF987B),
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'No setlists yet',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Create a setlist for your next rehearsal or service.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF9AA4B2)),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            key: const ValueKey('create-setlist-empty'),
-            onPressed: onCreate,
-            icon: const Icon(Icons.add),
-            label: const Text('Create setlist'),
-          ),
-        ],
+    return SingleChildScrollView(
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.queue_music,
+              size: 46,
+              color: Color(0xFFFF987B),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'No setlists yet',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Create a setlist for your next rehearsal or service.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF9AA4B2)),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              key: const ValueKey('create-setlist-empty'),
+              onPressed: onCreate,
+              icon: const Icon(Icons.add),
+              label: const Text('Create setlist'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -765,33 +799,35 @@ class _EmptySongState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.music_note,
-            size: 40,
-            color: Color(0xFFFF987B),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'This setlist is empty',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Add songs, set keys and tempos, then attach a local rig.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF9AA4B2), fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add),
-            label: const Text('Add first song'),
-          ),
-        ],
+    return SingleChildScrollView(
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.music_note,
+              size: 40,
+              color: Color(0xFFFF987B),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'This setlist is empty',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Add songs, set keys and tempos, then attach a local rig.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF9AA4B2), fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Add first song'),
+            ),
+          ],
+        ),
       ),
     );
   }
