@@ -90,3 +90,15 @@ Preset, Scene, Stomp, and Hybrid are control modes for the same active preset:
 The current v1 layout treats each row as an independent local lane. It does not yet model splitters, mixers, cross-lane routing, custom multi-block footswitch assignments, or audio processing. The input/output labels are local editor lane endpoints, not verified KPT Pro ports.
 
 Android and Windows use the same Flutter workspace and preset schema. This UI does not send data to hardware, process audio, or imply that imported capture/IR files are playback-compatible.
+
+
+## Fixed effect-model catalog
+
+Adding a block now opens a searchable model picker rather than creating a generic custom-named block. Models are grouped into Dynamics, Drive, Amplifier, Cabinet, Modulation, Delay, Reverb, EQ, Pitch, and Wah / Expression. Each model has a stable ID; the block name is resolved from the selected catalog entry and custom free-text model names are not supported.
+
+The catalog distinguishes two sources:
+
+- **KPT Pro Factory:** 152 catalog entries based on the available KPT Pro manual's named options and documented numbered AMP/CAB slots, including a separately documented 3-band EQ overview entry. The manual itself has a discrepancy: the detailed MOD list names nine options while its FAQ says eight; the app preserves all nine named options. AMP/CAB individual factory labels are not available in the inspected manual, so those choices are shown as numbered guitar/bass slots, not invented model names.
+- **RigCanvas Library:** additional generic amp, cabinet, drive, dynamics, modulation, delay, reverb, EQ, pitch, and expression archetypes informed by the broad block families of leading processors. These are not KPT Pro factory models.
+
+The current catalog is selection metadata only. It does not implement the DSP, load a virtual amp/cab model for playback, or send model/parameter values to the KPT Pro. See [Effect Model Catalog research](docs/research/EFFECT_MODEL_CATALOG.md) for the source distinctions, manual discrepancies, and next validation requirements.
