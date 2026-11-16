@@ -72,8 +72,8 @@ void main() {
     await tester.tap(find.text('Add first song'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Song title'), 'Oceans');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Key'), 'D');
+    await tester.enterText(find.byType(TextFormField).at(0), 'Oceans');
+    await tester.enterText(find.byType(TextFormField).at(1), 'D');
     await tester.tap(find.text('Save song'));
     await tester.pumpAndSettle();
 
