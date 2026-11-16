@@ -781,6 +781,18 @@ class _GridEffectCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Color(0xFFB7C4D1), fontSize: 7),
               ),
+            if (block.assetId != null && asset == null)
+              Text(
+                'Linked asset missing or incompatible with this block: ${block.assetId}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFFF9A83),
+                  fontSize: 7,
+                  height: 1.05,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
           ],
         ),
       ),
