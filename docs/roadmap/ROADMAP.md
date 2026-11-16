@@ -40,14 +40,16 @@
 
 ## Milestone 1.6 — Fixed effect-model catalog
 
-- [ ] Add a searchable catalog picker with category filters and explicit KPT Pro Factory / RigCanvas Library source labels.
-- [ ] Include the named KPT Pro FX, MOD, DLY, REV and EXT options and the documented numbered guitar/bass AMP and CAB slots.
-- [ ] Include the KPT Pro overview's 3-band EQ item while documenting its uncertain module placement and the manual's 8-versus-9 MOD discrepancy.
-- [ ] Add additional generic Dynamics, Drive, Amplifier, Cabinet, Modulation, Delay, Reverb, EQ, Pitch and Expression archetypes informed by leading multi-effects systems.
-- [ ] Persist stable model IDs and normalize legacy custom labels through preset schema v3 migration.
-- [ ] Remove free-text custom block naming; add and edit blocks through the same model picker.
-- [ ] Add unit, migration, controller and cross-platform widget tests for catalog selection and source separation.
-- [ ] Pass Android installable APK and Windows release CI builds for the same revision.
+- [x] Add a searchable catalog picker with category filters and explicit KPT Pro Factory / RigCanvas Library source labels.
+- [x] Include the named KPT Pro FX, MOD, DLY, REV and EXT options and the documented numbered guitar/bass AMP and CAB slots.
+- [x] Include the KPT Pro overview's 3-band EQ item while documenting its uncertain module placement and the manual's 8-versus-9 MOD discrepancy.
+- [x] Add additional generic Dynamics, Drive, Amplifier, Cabinet, Modulation, Delay, Reverb, EQ, Pitch and Expression archetypes informed by leading multi-effects systems.
+- [x] Persist stable model IDs and normalize legacy custom labels through preset schema v3 migration.
+- [x] Remove free-text custom block naming; add and edit blocks through the same model picker.
+- [x] Add unit, migration, controller and cross-platform widget tests for catalog selection and source separation (63 tests passed).
+- [x] Pass Android installable APK and Windows release CI builds for the same revision.
+- [ ] Verify the numbered KPT Pro AMP/CAB slots and exact MOD/REV choices against the user's physical pedal, firmware and M-EFCS.
+- [ ] Manually smoke-test model selection and preset migration on Android and Windows.
 
 **Important boundary:** KPT Pro factory AMP/CAB names are not published in the accessible manual copy. Show numbered slots instead of guessed names. RigCanvas Library entries are generic archetypes, not clones or licensed manufacturer algorithms. The picker does not mean audio rendering or KPT Pro protocol support exists.
  
@@ -138,5 +140,7 @@ A milestone is not complete because the UI exists. It must include:
 - Added numbered guitar/bass AMP and CAB factory-slot entries because the manual supplies slot counts but not individual descriptive names.
 - Added stable model IDs to preset schema v3, with schema-v1/v2 import and local-database migration.
 - Replaced custom free-text model names with a fixed catalog selection for block insertion and editing.
-- Added model catalog count, source-separation, migration, controller and widget tests. Automated checks are pending a new CI run.
+- Added catalog count/source-separation tests, schema migration tests, controller tests and model-picker widget tests. GitHub Actions run [#66](https://github.com/vcatindig06/rigcanvas/actions/runs/43820097363) passed Flutter analysis and all 63 tests.
+- The same run built and uploaded the Android APK plus SHA-256 checksum and the Windows release package.
+- **Status:** catalog implementation and automated cross-platform builds complete; physical KPT Pro slot verification and manual Android/Windows smoke tests remain. PR [#5](https://github.com/vcatindig06/rigcanvas/pull/5) remains draft.
 - **Boundary:** the expanded options are catalog metadata/archetypes only. DSP/audio processing and KPT Pro write/control support are not implemented.
