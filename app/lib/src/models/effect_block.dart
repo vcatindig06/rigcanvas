@@ -215,6 +215,13 @@ class EffectModelCatalog {
       );
     }),
 
+    // The KPT Pro overview also lists a built-in three-band EQ.
+    // It is shown as a documented factory control, separately from the
+    // seven named movable module inventories above.
+    _model('kpt.eq.three_band', EffectFamily.eq, '3-Band EQ',
+      'KPT Pro manual overview EQ option; its exact module position is not specified.',
+      EffectModelSource.kptProFactory),
+
     // KPT Pro EXT module: five documented external-control choices.
     _model('kpt.ext.volume', EffectFamily.expression, 'VOL',
       'KPT Pro factory external-control volume option.', EffectModelSource.kptProFactory),
