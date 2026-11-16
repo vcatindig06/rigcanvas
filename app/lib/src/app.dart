@@ -197,17 +197,23 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
                   'RigCanvas',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(width: 14),
-                if (isWide)
-                  const Text(
-                    'GUITAR RIG WORKSPACE',
-                    style: TextStyle(
-                      color: Color(0xFF8993A1),
-                      fontSize: 10,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.w600,
+                if (isWide) ...[
+                  const SizedBox(width: 14),
+                  const Flexible(
+                    child: Text(
+                      'GUITAR RIG WORKSPACE',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: TextStyle(
+                        color: Color(0xFF8993A1),
+                        fontSize: 10,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                ],
               ],
             ),
             actions: const [
