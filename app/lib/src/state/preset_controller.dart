@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../data/preset_repository.dart';
 import '../models/effect_block.dart';
 import '../models/rig_preset.dart';
+import '../models/rig_grid.dart';
 
 class PresetController extends ChangeNotifier {
   PresetController(this._repository);
@@ -58,7 +59,8 @@ class PresetController extends ChangeNotifier {
 
   Future<void> createPreset({String? name}) async {
     final now = DateTime.now().toUtc();
-    final activeBlocks = activePreset?.blocks ?? EffectBlock.demoChain();
+    final active = activePreset;
+    final activeBlocks = active?.blocks ?? EffectBlock.demoChain();
     final preset = RigPreset(
       id: _newId('preset'),
       name: (name ?? 'New Preset').trim(),
@@ -66,6 +68,7 @@ class PresetController extends ChangeNotifier {
       createdAt: now,
       updatedAt: now,
       blocks: List<EffectBlock>.from(activeBlocks),
+      grid: active?.grid ?? RigGrid.fromBlockIds(activeBlocks.map((block) => block.id)),
     );
     await _commit([..._presets, preset], activeId: preset.id);
   }
@@ -82,6 +85,7 @@ class PresetController extends ChangeNotifier {
       updatedAt: now,
       blocks: List<EffectBlock>.from(source.blocks),
       scenes: List<RigScene>.from(source.scenes),
+      grid: source.grid,
       target: source.target,
     );
     await _commit([..._presets, copy], activeId: copy.id);
@@ -115,7 +119,7 @@ class PresetController extends ChangeNotifier {
     await _commit(next, activeId: nextActive);
   }
 
-  Future<void> addBlock(EffectFamily family) async {
+  Future<void> addBlock(EffectFamily family, {int preferredRow = 0}) async {
     final current = activePreset;
     if (current == null) return;
     if (current.blocks.length >= maximumPresetBlocks) {
@@ -128,7 +132,40 @@ class PresetController extends ChangeNotifier {
       family: family,
     );
     final nextBlocks = [...current.blocks, block];
-    await _replaceActiveBlocks(nextBlocks);
+    await _replaceActivePreset(
+      current.copyWith(
+        blocks: nextBlocks,
+        grid: current.grid.withAddedBlock(block.id, preferredRow: preferredRow),
+      ),
+    );
+  }
+
+  Future<void> moveBlockToSlot(String blockId, int row, int column) async {
+    final current = activePreset;
+    if (current == null) return;
+    final nextGrid = current.grid.moveBlockToSlot(blockId, row, column);
+    await _replaceActivePreset(current.copyWith(grid: nextGrid));
+  }
+
+  Future<void> removeBlock(String blockId) async {
+    final current = activePreset;
+    if (current == null) return;
+    final nextBlocks = current.blocks.where((block) => block.id != blockId).toList();
+    if (nextBlocks.length == current.blocks.length) return;
+    final nextScenes = current.scenes.map((scene) {
+      final sceneBlocks = scene.blocks.where((block) => block.id != blockId).toList();
+      return scene.copyWith(
+        blocks: sceneBlocks,
+        grid: scene.grid.withoutBlock(blockId),
+      );
+    }).toList();
+    await _replaceActivePreset(
+      current.copyWith(
+        blocks: nextBlocks,
+        scenes: nextScenes,
+        grid: current.grid.withoutBlock(blockId),
+      ),
+    );
   }
 
   Future<void> updateBlock(EffectBlock updatedBlock) async {
@@ -180,6 +217,7 @@ class PresetController extends ChangeNotifier {
             ),
           )
           .toList(),
+      grid: current.grid,
     );
     await _replaceActiveScenes([...current.scenes, snapshot]);
   }
@@ -203,7 +241,9 @@ class PresetController extends ChangeNotifier {
           ),
         )
         .toList();
-    await _replaceActiveBlocks(restoredBlocks);
+    await _replaceActivePreset(
+      current.copyWith(blocks: restoredBlocks, grid: selected.grid),
+    );
   }
 
   Future<void> deleteScene(String sceneId) async {
@@ -233,17 +273,17 @@ class PresetController extends ChangeNotifier {
     return PresetCodec.encode(current);
   }
 
+  Future<void> _replaceActivePreset(RigPreset updatedPreset) async {
+    final next = _presets
+        .map((preset) => preset.id == updatedPreset.id ? updatedPreset : preset)
+        .toList();
+    await _commit(next, activeId: updatedPreset.id);
+  }
+
   Future<void> _replaceActiveBlocks(List<EffectBlock> blocks) async {
     final current = activePreset;
     if (current == null) return;
-    final next = _presets
-        .map(
-          (preset) => preset.id == current.id
-              ? preset.copyWith(blocks: blocks)
-              : preset,
-        )
-        .toList();
-    await _commit(next, activeId: current.id);
+    await _replaceActivePreset(current.copyWith(blocks: blocks));
   }
 
   Future<void> _replaceActiveScenes(List<RigScene> scenes) async {
