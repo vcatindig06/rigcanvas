@@ -218,6 +218,92 @@ void main() {
     expect(find.text('GRID WORKSPACE'), findsOneWidget);
   });
 
+  testWidgets('adds a fixed catalog model from the searchable picker', (tester) async {
+    final repository = MemoryPresetRepository();
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: repository,
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Add block'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add block').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add effect block'), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-family-filter')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-search')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('effect-family-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Drive').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('effect-model-search')),
+      'Mid-Hump Overdrive',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mid-Hump Overdrive').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mid-Hump Overdrive'), findsOneWidget);
+    final added = repository.stored.single.blocks.singleWhere(
+      (block) => block.modelId == 'drive.mid_hump',
+    );
+    expect(added.name, 'Mid-Hump Overdrive');
+    expect(added.model.source, EffectModelSource.rigcanvasExpanded);
+  });
+
+  testWidgets('edits an effect by selecting a model instead of custom naming', (tester) async {
+    final repository = MemoryPresetRepository();
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: repository,
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('British Stack'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('British Stack'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('effect-model-dropdown')), findsOneWidget);
+    expect(find.text('Block name'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('effect-model-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('British Modern Stack').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('British Modern Stack'), findsOneWidget);
+    final amplifier = repository.stored.single.blocks.singleWhere(
+      (block) => block.family == EffectFamily.amplifier,
+    );
+    expect(amplifier.modelId, 'amp.british_modern');
+  });
+
   testWidgets('opens the local preset library', (tester) async {
     await tester.pumpWidget(
       RigCanvasApp(
