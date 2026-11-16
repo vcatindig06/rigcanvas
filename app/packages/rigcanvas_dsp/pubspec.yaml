@@ -1,0 +1,13 @@
+name: rigcanvas_dsp
+description: Shared native C++ DSP core for RigCanvas on Android and Windows.
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  code_assets: ^2.0.0
+  hooks: ^2.2.0
+  logging: ^1.3.0
+  native_toolchain_c: ^0.19.6
