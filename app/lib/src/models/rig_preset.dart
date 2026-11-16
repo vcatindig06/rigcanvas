@@ -77,7 +77,7 @@ class RigPreset {
       throw const FormatException('Preset name cannot be empty.');
     }
     if (rawBlocks is! List || rawBlocks.length > maximumPresetBlocks) {
-      throw FormatException(
+      throw const FormatException(
         'Preset blocks must be a list of up to $maximumPresetBlocks items.',
       );
     }
