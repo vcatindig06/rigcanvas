@@ -589,7 +589,7 @@ class _GridSlot extends StatelessWidget {
           onRemove: () => onRemove(block!),
         );
         if (!editable) return card;
-        return LongPressDraggable<String>(
+        return Draggable<String>(
           data: block!.id,
           dragAnchorStrategy: pointerDragAnchorStrategy,
           feedback: Material(
