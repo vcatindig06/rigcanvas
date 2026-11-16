@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
-import 'rigcanvas_dsp_bindings.dart' as native;
+import 'package:rigcanvas_dsp/src/rigcanvas_dsp_bindings.dart' as native;
 
 enum DspNodeType {
   dynamics(1),
