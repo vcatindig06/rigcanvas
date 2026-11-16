@@ -1,9 +1,10 @@
 import 'dart:typed_data';
+import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart' show ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart'
-    show FilledButton, MaterialApp, Scaffold, Scrollable, TextField, TextFormField;
+    show FilledButton, MaterialApp, NavigationBar, NavigationRail, Scaffold, Scrollable, TextField, TextFormField;
 import 'package:rigcanvas/src/app.dart';
 import 'package:rigcanvas/src/data/asset_repository.dart';
 import 'package:rigcanvas/src/state/asset_controller.dart';
@@ -62,6 +63,73 @@ class MemoryAssetRepository implements AssetRepository {
 }
 
 void main() {
+  testWidgets('keeps the same features available in compact and wide layouts', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    expect(find.text('Signal Workspace'), findsOneWidget);
+
+    await tester.tap(find.text('Assets'));
+    await tester.pumpAndSettle();
+    expect(find.text('Asset Library'), findsOneWidget);
+
+    await tester.tap(find.text('Presets'));
+    await tester.pumpAndSettle();
+    expect(find.text('Preset Library'), findsOneWidget);
+
+    await tester.tap(find.text('Gig'));
+    await tester.pumpAndSettle();
+    expect(find.text('Gig View'), findsOneWidget);
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Connection preferences, audio settings, appearance, and diagnostics will live here.'), findsOneWidget);
+
+    tester.view.physicalSize = const Size(1280, 900);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    expect(find.text('Signal Workspace'), findsOneWidget);
+
+    await tester.tap(find.text('Assets'));
+    await tester.pumpAndSettle();
+    expect(find.text('Asset Library'), findsOneWidget);
+
+    await tester.tap(find.text('Presets'));
+    await tester.pumpAndSettle();
+    expect(find.text('Preset Library'), findsOneWidget);
+
+    await tester.tap(find.text('Gig'));
+    await tester.pumpAndSettle();
+    expect(find.text('Gig View'), findsOneWidget);
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Connection preferences, audio settings, appearance, and diagnostics will live here.'), findsOneWidget);
+
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
   testWidgets('shows the RigCanvas local simulation workspace', (tester) async {
     await tester.pumpWidget(
       RigCanvasApp(
