@@ -1,0 +1,44 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Generated Android / Windows build output
+android/.gradle/
+android/local.properties
+android/key.properties
+windows/flutter/ephemeral/
+windows/runner/Debug/
+windows/runner/Release/
+windows/runner/x64/
+windows/runner/arm64/
+
+# Native build output
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+*.user
+*.suo
+
+# Local capture files and device dumps — do not commit user data
+local-captures/
+device-dumps/
+*.pcap
+*.pcapng
+*.bin
+*.hex
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
