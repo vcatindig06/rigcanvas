@@ -166,7 +166,7 @@ A milestone is not complete because the UI exists. It must include:
 
 ### DSP foundation implementation log — 2026-11-16
 
-- Started a shared C++17 DSP core under app/native, compiled for target platforms via app/hook/build.dart.
+- Started a shared C++17 DSP core under app/packages/rigcanvas_dsp/src, compiled for target platforms via app/packages/rigcanvas_dsp/hook/build.dart.
 - Added Dart FFI bindings and a wrapper using the native-assets API rather than separate Android and Windows DSP implementations.
 - Added initial Dynamics (gate/compressor), Drive (soft clipping), Amplifier (preamp/tone shaping), and Cabinet (mono FIR buffer) nodes.
 - Added an Audio page that applies the supported enabled blocks in Grid order to an internal 440 Hz test signal and displays input/output RMS, peak, frame, and node metrics.
