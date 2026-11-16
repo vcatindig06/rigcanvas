@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show ValueKey;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart' show TextField, TextFormField;
 import 'package:rigcanvas/src/app.dart';
 import 'package:rigcanvas/src/data/preset_repository.dart';
 import 'package:rigcanvas/src/data/setlist_repository.dart';
