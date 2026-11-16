@@ -191,11 +191,12 @@ void main() {
     );
     expect(saveBeforeAcknowledgement.onPressed, isNull);
 
-    await tester.tap(
-      find.text(
-        'I understand playback and device compatibility are unverified and this only saves a local reference.',
-      ),
+    final acknowledgement = find.text(
+      'I understand playback and device compatibility are unverified and this only saves a local reference.',
     );
+    await tester.ensureVisible(acknowledgement);
+    await tester.pumpAndSettle();
+    await tester.tap(acknowledgement);
     await tester.pumpAndSettle();
 
     final saveAfterAcknowledgement = tester.widget<FilledButton>(
@@ -279,11 +280,12 @@ void main() {
     );
     expect(saveBeforeAcknowledgement.onPressed, isNull);
 
-    await tester.tap(
-      find.text(
-        'I understand playback and device compatibility are unverified and this only saves a local reference.',
-      ),
+    final acknowledgement = find.text(
+      'I understand playback and device compatibility are unverified and this only saves a local reference.',
     );
+    await tester.ensureVisible(acknowledgement);
+    await tester.pumpAndSettle();
+    await tester.tap(acknowledgement);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
