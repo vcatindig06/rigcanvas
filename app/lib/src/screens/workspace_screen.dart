@@ -321,7 +321,7 @@ class _WorkspaceHeader extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         _InfoPill(label: '${preset.blocks.length} BLOCKS'),
-        _InfoPill(label: '\$activeBlocks ACTIVE'),
+        _InfoPill(label: '$activeBlocks ACTIVE'),
         _InfoPill(label: '${preset.scenes.length} SCENES'),
         const _SimulationPill(),
         PopupMenuButton<String>(
@@ -622,7 +622,7 @@ class _EmptySlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      key: ValueKey('grid-slot-\$row-\$column'),
+      key: ValueKey('grid-slot-$row-$column'),
       margin: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: highlighted ? const Color(0xFF263B32) : const Color(0xFF171D24),
@@ -912,7 +912,7 @@ class _ScenePad extends StatelessWidget {
                   Text(letter, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
                   Text(scene?.name ?? 'Capture', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9)),
                   if (scene != null)
-                    Text('\$activeCount active', style: const TextStyle(fontSize: 8, color: Color(0xFFB5C5BC))),
+                    Text('$activeCount active', style: const TextStyle(fontSize: 8, color: Color(0xFFB5C5BC))),
                 ],
               ),
             ),
