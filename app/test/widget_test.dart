@@ -3,9 +3,12 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart'
-    show FilledButton, Scrollable, TextField, TextFormField;
+    show FilledButton, MaterialApp, Scaffold, Scrollable, TextField, TextFormField;
 import 'package:rigcanvas/src/app.dart';
 import 'package:rigcanvas/src/data/asset_repository.dart';
+import 'package:rigcanvas/src/state/asset_controller.dart';
+import 'package:rigcanvas/src/state/preset_controller.dart';
+import 'package:rigcanvas/src/screens/workspace_screen.dart';
 import 'package:rigcanvas/src/data/preset_repository.dart';
 import 'package:rigcanvas/src/data/setlist_repository.dart';
 import 'package:rigcanvas/src/models/effect_block.dart';
@@ -144,23 +147,33 @@ void main() {
       formatSummary: 'NAM JSON structure checked.',
     );
     final presetRepository = MemoryPresetRepository();
+    final presetController = PresetController(presetRepository);
+    final assetController = AssetController(
+      MemoryAssetRepository(assets: [capture]),
+    );
+    await presetController.initialize();
+    await assetController.initialize();
+    addTearDown(presetController.dispose);
+    addTearDown(assetController.dispose);
 
     await tester.pumpWidget(
-      RigCanvasApp(
-        repository: presetRepository,
-        setlistRepository: MemorySetlistRepository(),
-        assetRepository: MemoryAssetRepository(assets: [capture]),
+      MaterialApp(
+        home: Scaffold(
+          body: WorkspaceScreen(
+            controller: presetController,
+            assetController: assetController,
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Workspace'));
-    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('British Stack'),
       250,
       scrollable: find.byType(Scrollable).last,
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('British Stack'));
     await tester.pumpAndSettle();
 
@@ -171,10 +184,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('File structure checked'), findsOneWidget);
-    expect(
-      find.textContaining('This does not prove'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('This does not prove'), findsOneWidget);
 
     final saveBeforeAcknowledgement = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Save changes'),
