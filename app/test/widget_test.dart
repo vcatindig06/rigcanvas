@@ -193,7 +193,7 @@ void main() {
 
     await tester.tap(
       find.text(
-        'I understand this is a local reference only, not verified for playback or KPT Pro.',
+        'I understand playback and device compatibility are unverified and this only saves a local reference.',
       ),
     );
     await tester.pumpAndSettle();
@@ -211,6 +211,173 @@ void main() {
     );
     expect(amplifier.assetId, 'asset-clean-capture');
     expect(find.textContaining('Capture: Sunday Clean Capture'), findsOneWidget);
+  });
+
+
+  testWidgets('assigns a cabinet IR to a cabinet block with a warning', (
+    tester,
+  ) async {
+    final cabinetIr = RigAsset(
+      id: 'asset-v30-ir',
+      title: 'Vintage 30 Close Mic',
+      kind: RigAssetKind.cabinetIr,
+      originalFilename: 'v30.wav',
+      storedFilename: 'asset-v30-ir.wav',
+      extension: '.wav',
+      fileSizeBytes: 512,
+      importedAt: DateTime.utc(2026, 11, 16),
+      validation: RigAssetValidation.validated,
+      formatSummary: 'WAV PCM · mono · 48000 Hz · 24-bit · 0.25 ms',
+      sampleRateHz: 48000,
+      channelCount: 1,
+      bitDepth: 24,
+    );
+    final presetRepository = MemoryPresetRepository();
+    final presetController = PresetController(presetRepository);
+    final assetController = AssetController(
+      MemoryAssetRepository(assets: [cabinetIr]),
+    );
+    await presetController.initialize();
+    await assetController.initialize();
+    addTearDown(presetController.dispose);
+    addTearDown(assetController.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkspaceScreen(
+            controller: presetController,
+            assetController: assetController,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('4×12 Cabinet'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4×12 Cabinet'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('asset-link-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Vintage 30 Close Mic').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('WAV metadata detected: WAV PCM'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('no audio engine yet'), findsOneWidget);
+
+    final saveBeforeAcknowledgement = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Save changes'),
+    );
+    expect(saveBeforeAcknowledgement.onPressed, isNull);
+
+    await tester.tap(
+      find.text(
+        'I understand playback and device compatibility are unverified and this only saves a local reference.',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+
+    final savedBlocks = presetRepository.stored.single.blocks;
+    final cabinet = savedBlocks.singleWhere(
+      (block) => block.family == EffectFamily.cabinet,
+    );
+    final amplifier = savedBlocks.singleWhere(
+      (block) => block.family == EffectFamily.amplifier,
+    );
+    expect(cabinet.assetId, 'asset-v30-ir');
+    expect(amplifier.assetId, isNull);
+  });
+
+  testWidgets('requires clearing a missing or wrong-family asset reference', (
+    tester,
+  ) async {
+    final wrongFamilyIr = RigAsset(
+      id: 'asset-cabinet-ir',
+      title: 'Cabinet IR Not For Amp',
+      kind: RigAssetKind.cabinetIr,
+      originalFilename: 'cabinet.wav',
+      storedFilename: 'asset-cabinet-ir.wav',
+      extension: '.wav',
+      fileSizeBytes: 512,
+      importedAt: DateTime.utc(2026, 11, 16),
+      validation: RigAssetValidation.validated,
+      formatSummary: 'WAV PCM · mono · 48000 Hz · 24-bit',
+      sampleRateHz: 48000,
+      channelCount: 1,
+      bitDepth: 24,
+    );
+    final presetRepository = MemoryPresetRepository();
+    final presetController = PresetController(presetRepository);
+    final assetController = AssetController(
+      MemoryAssetRepository(assets: [wrongFamilyIr]),
+    );
+    await presetController.initialize();
+    await assetController.initialize();
+    addTearDown(presetController.dispose);
+    addTearDown(assetController.dispose);
+
+    final amplifier = presetController.activePreset!.blocks.singleWhere(
+      (block) => block.family == EffectFamily.amplifier,
+    );
+    await presetController.updateBlock(
+      amplifier.copyWith(assetId: wrongFamilyIr.id),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkspaceScreen(
+            controller: presetController,
+            assetController: assetController,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('British Stack'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('British Stack'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Missing asset reference'), findsOneWidget);
+    final saveWithInvalidReference = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Save changes'),
+    );
+    expect(saveWithInvalidReference.onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('asset-link-dropdown')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Cabinet IR Not For Amp'), findsNothing);
+    await tester.tap(find.text('No asset linked').last);
+    await tester.pumpAndSettle();
+
+    final saveAfterClearing = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Save changes'),
+    );
+    expect(saveAfterClearing.onPressed, isNotNull);
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+
+    final savedAmplifier = presetRepository.stored.single.blocks.singleWhere(
+      (block) => block.family == EffectFamily.amplifier,
+    );
+    expect(savedAmplifier.assetId, isNull);
   });
 
   testWidgets('opens the functional local asset library', (tester) async {
