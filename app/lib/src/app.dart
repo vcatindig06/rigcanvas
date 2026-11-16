@@ -188,17 +188,15 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
 
         return Scaffold(
           appBar: AppBar(
-            titleSpacing: 20,
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.graphic_eq, color: Color(0xFFFF7956)),
-                const SizedBox(width: 10),
-                const Text(
-                  'RigCanvas',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ],
+            leadingWidth: 44,
+            leading: const Padding(
+              padding: EdgeInsets.only(left: 20),
+              child: Icon(Icons.graphic_eq, color: Color(0xFFFF7956)),
+            ),
+            titleSpacing: 8,
+            title: const Text(
+              'RigCanvas',
+              style: TextStyle(fontWeight: FontWeight.w700),
             ),
             actions: const [
               Padding(
