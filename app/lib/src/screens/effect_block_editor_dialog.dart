@@ -52,6 +52,10 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
   bool get _requiresAcknowledgement =>
       _assetId != null && _assetId != widget.block.assetId;
 
+  bool get _canSave =>
+      !_hasMissingLink &&
+      (!_requiresAcknowledgement || _assetLinkAcknowledged);
+
   @override
   void initState() {
     super.initState();
@@ -165,7 +169,7 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                         );
                       },
                       title: const Text(
-                        'I understand this is a local reference only, not verified for playback or KPT Pro.',
+                        'I understand playback and device compatibility are unverified and this only saves a local reference.',
                         style: TextStyle(fontSize: 12, height: 1.35),
                       ),
                     ),
@@ -228,9 +232,8 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _requiresAcknowledgement && !_assetLinkAcknowledged
-              ? null
-              : () {
+          onPressed: _canSave
+              ? () {
                   final name = _nameController.text.trim();
                   if (name.isEmpty) return;
                   Navigator.of(context).pop(
@@ -241,7 +244,8 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                       clearAssetId: _assetId == null,
                     ),
                   );
-                },
+                }
+              : null,
           child: const Text('Save changes'),
         ),
       ],
@@ -258,6 +262,11 @@ class _AssetAssignmentNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     final structureChecked =
         asset.validation == RigAssetValidation.validated;
+    final compatibilityDetail = asset.kind == RigAssetKind.ampCapture
+        ? asset.extension == '.nam'
+            ? 'NAM JSON structure checked. Supported model architecture, version, and playback-runtime compatibility are not confirmed.'
+            : 'AM2/AMP capture bytes are stored unchanged. Their internal structure and playback-runtime compatibility are not confirmed.'
+        : 'WAV metadata detected: ${asset.formatSummary}. The app has no audio engine yet to confirm that it can render this sample rate, channel layout, or bit depth.';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(11),
@@ -303,6 +312,15 @@ class _AssetAssignmentNotice extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
+          Text(
+            compatibilityDetail,
+            style: const TextStyle(
+              color: Color(0xFFE3B8A9),
+              fontSize: 11,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 6),
           const Text(
             'Assignment saves a local library reference only. It does not process audio or write to hardware.',
             style: TextStyle(
@@ -331,7 +349,7 @@ class _MissingAssetNotice extends StatelessWidget {
         border: Border.all(color: const Color(0xFF5B3B30)),
       ),
       child: const Text(
-        'This block points to an asset that is no longer available in the local library. Choose another asset or select “No asset linked”.',
+        'This block points to an asset that is missing or has the wrong asset type. Choose a matching asset or select “No asset linked”.',
         style: TextStyle(
           color: Color(0xFFE3B8A9),
           fontSize: 11,

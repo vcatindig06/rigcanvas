@@ -1,13 +1,14 @@
 # Architecture overview
 
-## Product split
+## One product, two target operating systems
 
-RigCanvas has two related but deliberately separate products:
+RigCanvas is one application delivered for Android and Windows. Both builds must have the same user-facing feature set, navigation destinations, workflows, preset and scene behavior, asset management, and performance tools.
 
-1. **RigCanvas Controller** — a Windows/Android editor, preset library, and performance controller for a supported physical device.
-2. **RigCanvas Desktop Rack** — an independent Windows software audio processor. It may eventually host original effects, amp models, cabinet processing, neural capture playback, and VST3 plugins.
+The Flutter UI, domain models, validation rules, preset codecs, and application state are shared. Responsive navigation may adapt to screen width (bottom navigation on compact layouts, a navigation rail on wide layouts), but this must not remove or hide a product feature on either platform.
 
-The Controller must not imply that a feature is available inside the KPT Pro unless the firmware and communication protocol prove it. The Desktop Rack can provide advanced processing independently of pedal firmware.
+Operating-system-specific code is limited to adapters for native capabilities such as audio I/O, file access, USB, and Bluetooth. A feature that depends on a native capability must still have an equivalent workflow on both targets before release. If equivalent support is not practical, defer that feature on both rather than shipping a Windows-only feature.
+
+The app must not imply that a software feature is available inside the KPT Pro unless the exact firmware and communication protocol prove it. The shared software workspace remains separate from physical-pedal capabilities.
 
 ## High-level layers
 
@@ -21,12 +22,12 @@ Flutter UI
          ├── KPT Pro USB adapter (not implemented)
          └── KPT Pro wireless adapter (not implemented)
 
-Optional Windows audio process
-  ├── Audio I/O and device selection
-  ├── DSP graph and routing
-  ├── Effect / amp / cabinet nodes
-  ├── Neural capture runtime
-  └── VST3 host
+Shared native audio engine (Android + Windows)
+  ├── Common DSP graph, nodes, and routing
+  ├── Shared amp-capture and cabinet processing
+  └── Platform audio I/O adapters
+         ├── Android audio backend
+         └── Windows audio backend
 ```
 
 ## Boundaries
@@ -36,7 +37,9 @@ Optional Windows audio process
 - Preset files are versioned and validated before import.
 - Hardware writes require a verified backup and an explicit user action.
 - The mock gateway is the default until device compatibility is demonstrated.
-- The future audio engine runs outside Flutter's UI thread and must not allocate or block in its real-time callback.
+- The shared audio engine runs outside Flutter's UI thread and must not allocate or block in its real-time callback.
+- The same audio/DSP capabilities and parameter behavior must be available on Android and Windows; only the low-level device I/O adapters may differ.
+- Do not ship Windows-exclusive app features. Defer features that cannot be delivered equivalently on both target operating systems.
 
 ## Target-aware graphs
 

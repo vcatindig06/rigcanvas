@@ -28,10 +28,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   AssetController get assetController => widget.assetController;
   WorkspaceMode _mode = WorkspaceMode.preset;
 
-  RigAsset? _assetFor(String? assetId) {
+  RigAssetKind? _expectedAssetKind(EffectFamily family) {
+    switch (family) {
+      case EffectFamily.amplifier:
+        return RigAssetKind.ampCapture;
+      case EffectFamily.cabinet:
+        return RigAssetKind.cabinetIr;
+      default:
+        return null;
+    }
+  }
+
+  RigAsset? _assetFor(String? assetId, EffectFamily family) {
     if (assetId == null) return null;
+    final expectedKind = _expectedAssetKind(family);
+    if (expectedKind == null) return null;
     for (final asset in assetController.assets) {
-      if (asset.id == assetId) return asset;
+      if (asset.id == assetId && asset.kind == expectedKind) return asset;
     }
     return null;
   }
@@ -310,7 +323,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                             key: ValueKey(block.id),
                             index: index,
                             block: block,
-                            linkedAsset: _assetFor(block.assetId),
+                            linkedAsset: _assetFor(block.assetId, block.family),
                             canReorder: _mode != WorkspaceMode.stomp,
                             onTap: () => _editBlock(block),
                             onToggle: (enabled) => _runMutation(
@@ -493,7 +506,7 @@ class _EffectBlockTile extends StatelessWidget {
     }).join('  ·  ');
 
     final linkedAssetSummary = linkedAsset == null
-        ? (block.assetId == null ? null : 'Linked asset missing from library')
+        ? (block.assetId == null ? null : 'Linked asset missing or incompatible with this block')
         : '${block.family == EffectFamily.amplifier ? 'Capture' : 'Cabinet IR'}: '
             '${linkedAsset!.title} · '
             '${linkedAsset!.validation == RigAssetValidation.validated ? 'format checked' : 'format unverified'}';

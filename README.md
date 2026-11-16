@@ -6,10 +6,11 @@ RigCanvas is an independent Windows and Android guitar-rig editor and processing
 
 ## Product direction
 
-1. **RigCanvas Controller** — cross-platform editor, preset library, asset manager, setlists, and performance controller for verified hardware capabilities.
-2. **RigCanvas Desktop Rack** — optional Windows software audio engine for original DSP, stereo/parallel routing, neural capture playback, cabinet processing, and VST3 hosting.
+RigCanvas is one cross-platform application for Android and Windows. Both builds must expose the same user-facing features, workflows, preset formats, asset management, and performance tools. Only responsive layout and operating-system integrations (such as audio-device and USB/Bluetooth access) may differ.
 
-The Controller and Desktop Rack are separate capability targets. Software-only blocks must never be sent to a physical pedal that cannot execute them.
+Future software audio processing is part of this same product and must be implemented for both Android and Windows before it is released on either platform. A Windows-only feature is not considered part of the shared RigCanvas feature set. If a capability cannot be delivered equivalently on both platforms, defer it or provide a documented equivalent before release.
+
+Software-only blocks must never be sent to a physical pedal that cannot execute them.
 
 ## Repository layout
 
@@ -27,8 +28,8 @@ The Controller and Desktop Rack are separate capability targets. Software-only b
 - Local-first preset, setlist, and asset persistence in app-private storage.
 - Kotlin and Android USB/Bluetooth APIs for Android-specific communication.
 - Native Windows USB APIs behind a Windows adapter.
-- Separate native C++ engine for real-time Windows audio processing.
-- VST3 hosting only after SDK and licensing review.
+- Shared native C++ audio/DSP engine for Android and Windows, with thin operating-system-specific audio I/O adapters.
+- Plugin hosting only after a format/runtime with equivalent Android and Windows support has been selected and licensing reviewed.
 
 Flutter 3.50.0 is the current pinned CI toolchain at project initialization.
 

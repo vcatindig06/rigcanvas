@@ -5,6 +5,8 @@
 - [x] Establish architecture and device safety boundary.
 - [x] Record initial KPT Pro documentation findings.
 - [x] Create Flutter Windows/Android application shell.
+- [x] Keep one shared RigCanvas feature set across Android and Windows; responsive navigation may differ, but product workflows and destinations remain available on both.
+- [x] Verify compact and wide layouts expose the same Gig, Workspace, Presets, Assets, and Settings destinations.
 - [x] Create local simulation workspace with reorderable effect blocks.
 - [x] Run Flutter format, analyze, tests, and platform builds in CI.
 - [x] Confirm first CI run is green.
@@ -16,7 +18,10 @@
 - [x] RigCanvas-native JSON export/import.
 - [ ] Undo/redo and preset version history.
 - [x] IR/AM2 asset library with metadata and conservative format checks.
-- [x] Link local amp captures to Amplifier blocks and cabinet IRs to Cabinet blocks, with explicit compatibility warnings and preset/scene persistence.
+- [x] Link local amp captures only to Amplifier blocks and cabinet IRs only to Cabinet blocks, with a warning acknowledgement before new assignment and preset/scene persistence.
+- [x] Prevent saving a missing or wrong-family asset reference until the link is replaced or cleared.
+- [x] Show format-specific limitations: NAM structure checks do not confirm model/runtime support; AM2/AMP files remain unverified; WAV metadata checks do not confirm audio-engine or KPT Pro acceptance.
+- [x] Cover both Amp and Cabinet assignment plus wrong-family reference recovery in widget tests.
 - [x] Search, tags, favorites, and setlists.
 
 ## Milestone 2 — hardware discovery
@@ -46,23 +51,42 @@
 - [x] Local Gig View with persistent setlists, song order, key/BPM/notes, and per-song preset/scene assignments.
 - [ ] External MIDI support where target OS/hardware expose it.
 
-## Milestone 5 — Windows Desktop Rack
+## Milestone 5 — Cross-platform Software Audio Engine (Android + Windows)
 
-- [ ] Audio device selection and monitoring.
-- [ ] Low-latency audio graph.
-- [ ] Original drive, modulation, delay, and reverb DSP.
-- [ ] Amp and cabinet processing.
-- [ ] Stereo routing and parallel branches.
-- [ ] Sidechain and envelope/follow-input nodes.
-- [ ] Delay/reverb tail management.
-- [ ] VST3 hosting after licensing and compatibility review.
-- [ ] Neural capture runtime after format and model-runtime licensing review.
+- [ ] Build one shared DSP graph and node API used by both operating systems.
+- [ ] Add audio-device selection, input/output routing, and monitoring with equivalent user controls on Android and Windows.
+- [ ] Implement the shared drive, modulation, delay, and reverb blocks with matching parameters and preset behavior.
+- [ ] Add amp-capture playback using a model format and runtime that work on both platforms.
+- [ ] Add cabinet IR convolution with matching format support and parameters on both platforms.
+- [ ] Add stereo routing and parallel branches on both platforms.
+- [ ] Add sidechain and envelope/follow-input nodes on both platforms.
+- [ ] Add delay/reverb tail management on both platforms.
+- [ ] Consider plugin hosting only after a plugin format and runtime with equivalent Android and Windows support has been verified and licensing reviewed; do not ship Windows-only plugin hosting.
+
+**Parity gate:** a software-engine feature is not complete until the same capability, controls, preset serialization, and supported asset formats work on both Android and Windows. Use thin native audio I/O adapters where the operating systems require different low-level APIs.
+
+## Weekly roadmap review
+
+- **Cadence:** Every Monday (Asia/Manila).
+- Compare roadmap checkboxes against source code, automated tests, and the latest GitHub Actions results; do not treat a UI-only placeholder as a completed capability.
+- Record the review date, completed work, blockers, and the next highest-value milestone.
+- Keep KPT Pro protocol work read-only until exact model, firmware, official application, and transport behavior have been verified. Never infer KPT Pro support from Tank-G/Tank-B documentation.
+
+### Review log — 2026-11-16
+
+- Verified the Workspace editor exposes local amp-capture references for Amplifier blocks and cabinet IR references for Cabinet blocks; preset and scene serialization retain asset IDs.
+- Strengthened assignment safety: missing or wrong-family references must be cleared or replaced, and new assignments require an explicit warning acknowledgement.
+- Added dedicated test coverage for cabinet IR assignment and invalid-reference recovery alongside the existing amplifier-capture assignment test.
+- Confirmed feature-parity rule: the same Gig, Workspace, Presets, Assets, and Settings destinations are covered in compact and wide layout tests; Android APK and Windows desktop builds are both required in CI.
+- **Next focus:** Milestone 2 — collect the exact KPT Pro hardware/firmware and official M-EFCS versions, then perform read-only USB enumeration. Do not implement undocumented device writes.
 
 ## Release gates
 
 A milestone is not complete because the UI exists. It must include:
 - Automated tests for core logic.
 - Manual verification on each target OS.
+- Android and Windows must ship the same user-facing feature set; platform-specific UI layout or native I/O adapters must not remove product workflows.
+- CI must build and upload an installable Android APK alongside the Windows desktop package for the same source revision.
 - Documented supported hardware/firmware combinations.
 - Clear unsupported-feature messaging.
 - No destructive device operation without a tested backup/recovery workflow.
