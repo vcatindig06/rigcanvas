@@ -314,7 +314,7 @@ class _WorkspaceHeader extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Signal Grid', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+            const Text('Signal Workspace', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
             const SizedBox(height: 3),
             Text(preset.name, style: const TextStyle(color: Color(0xFF9AA4B2))),
           ],
@@ -774,7 +774,9 @@ class _GridEffectCard extends StatelessWidget {
             ),
             if (asset != null)
               Text(
-                block.family == EffectFamily.amplifier ? 'CAPTURE LINKED' : 'IR LINKED',
+                block.family == EffectFamily.amplifier
+                    ? 'Capture: ${asset!.title}'
+                    : 'Cabinet IR: ${asset!.title}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Color(0xFFB7C4D1), fontSize: 7),
