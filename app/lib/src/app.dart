@@ -6,6 +6,7 @@ import 'data/asset_repository.dart';
 import 'data/preset_repository.dart';
 import 'data/setlist_repository.dart';
 import 'screens/asset_library_screen.dart';
+import 'screens/audio_engine_screen.dart';
 import 'screens/feature_placeholder_screen.dart';
 import 'screens/gig_view_screen.dart';
 import 'screens/preset_library_screen.dart';
@@ -139,6 +140,11 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
       label: 'Assets',
     ),
     NavigationDestination(
+      icon: Icon(Icons.graphic_eq_outlined),
+      selectedIcon: Icon(Icons.graphic_eq),
+      label: 'Audio',
+    ),
+    NavigationDestination(
       icon: Icon(Icons.settings_outlined),
       selectedIcon: Icon(Icons.settings),
       label: 'Settings',
@@ -168,6 +174,11 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
         return AssetLibraryScreen(
           key: const ValueKey('assets'),
           controller: widget.assetController,
+        );
+      case 4:
+        return AudioEngineScreen(
+          key: const ValueKey('audio-engine'),
+          controller: widget.presetController,
         );
       default:
         return const FeaturePlaceholderScreen(
