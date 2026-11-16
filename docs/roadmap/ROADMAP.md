@@ -152,12 +152,12 @@ A milestone is not complete because the UI exists. It must include:
 - [x] Expose a bounded C ABI and Dart FFI wrapper for engine lifecycle, node configuration, processing, and metrics.
 - [x] Implement generic linked-stereo noise gate and compressor modes.
 - [x] Implement generic soft-clipping overdrive and an amp preamp / tone-shaping stage.
-- [x] Add FIR cabinet convolution for an explicitly supplied mono float IR buffer (up to 4096 taps).
+- [x] Add FIR cabinet convolution for supplied mono or stereo float IR buffers (up to 4096 frames per channel).
 - [x] Process the active preset's enabled supported nodes in saved Grid row/slot order.
-- [x] Add an internal 440 Hz offline test signal and input/output RMS / peak reporting.
+- [x] Add an internal 440 Hz offline test signal (500 ms on the Audio page) and input/output RMS / peak reporting.
 - [x] Keep unsupported block families visible as skipped and avoid implying a physical guitar or speaker path.
 - [x] Decode supported WAV IR files, resample to the offline DSP rate, preserve mono/stereo, and load verified samples from the Asset Library (PCM 8/16/24/32-bit and IEEE float 32/64-bit; 4096 frames/channel ceiling).
-- [x] Add native engine unit coverage for graph processing, FIR IR-buffer copy, offline buffer shape, invalid formats, and engine disposal. (69 total Flutter unit/widget tests pass in CI.)
+- [x] Add native engine unit coverage for graph processing, FIR IR-buffer copy, offline buffer shape, invalid formats, and engine disposal. (80 total Flutter unit/widget tests pass in CI run #90.)
 - [ ] Add deeper DSP validation: impulse-response and frequency-response references, distortion/noise measurements, parameter-boundary tests, and performance benchmarks.
 - [ ] Manually build and smoke-test the Audio page on physical Android hardware and a Windows PC.
 - [ ] Add production-safe real-time audio callback and device abstractions only after profiling and lifecycle design.
@@ -185,7 +185,7 @@ A milestone is not complete because the UI exists. It must include:
 - [x] Implement generic chorus/vibrato/flanger/tremolo, standard/ping-pong delay, room-style reverb, and four-band EQ nodes in the shared C++ engine.
 - [x] Connect these supported block families to the Audio test in Grid row/slot order.
 - [x] Keep specialized/unsupported phaser, wah, rotary, pitch, and delay/reverb variants explicitly skipped.
-- [x] Add tests for PCM24, stereo preservation, sample-rate conversion, maximum IR length, malformed files, non-finite float samples, native DSP nodes, and asset-byte reads.
+- [x] Add tests for PCM24, stereo preservation, sample-rate conversion, maximum IR length, malformed files, non-finite float samples, native DSP nodes, asset-byte reads, and a widget-level linked-IR load.
 - [ ] Improve the linear-interpolation resampler with an anti-aliasing/reference-tested resampling method.
 - [ ] Benchmark direct FIR convolution and design partitioned convolution for longer responses.
 - [ ] Add impulse/frequency-response and distortion/noise reference tests plus CPU/memory profiling.
@@ -196,8 +196,8 @@ A milestone is not complete because the UI exists. It must include:
 ### DSP expansion implementation log — 2026-11-16
 
 - Added WAV PCM/IEEE-float decoding and strict RIFF validation in the shared Dart layer.
-- Connected AssetRepository and AssetController file reads to the Audio screen so a linked CAB WAV is actually retrieved and decoded for offline testing.
+- Connected AssetRepository and AssetController file reads to the Audio screen so a linked CAB WAV is retrieved, decoded and loaded for offline testing.
 - Extended the native C ABI to version 2 with mono/stereo cabinet IR transfer and independent stereo FIR response data.
-- Added generic modulation, delay, reverb, and EQ processing nodes to the shared C++ core.
+- Added generic modulation, delay, reverb, and EQ processing nodes to the shared C++ core; specialized unsupported variants remain explicitly skipped.
 - Updated UI messaging to distinguish loaded CAB WAVs, generic processing, and still-unavailable live audio/KPT Pro functionality.
-- Automated tests and Android/Windows CI verification for this milestone are pending.
+- GitHub Actions run [#90](https://github.com/vcatindig06/rigcanvas/actions/runs/43833693025) passed static analysis and all 80 Flutter tests, built and uploaded the Android APK with SHA-256 verification, and built and uploaded the Windows release. Manual Android/Windows smoke tests, DSP quality/performance tests, and live audio I/O remain outstanding.
