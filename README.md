@@ -2,7 +2,7 @@
 
 RigCanvas is an independent Windows and Android guitar-rig editor and processing workspace. Development starts with a safe, local editor prototype and KPT Pro compatibility research.
 
-> **Current status:** local-first editor prototype with persistent presets, Grid layout, scene snapshots, Gig View setlists, and an Asset Library for amp captures and cabinet impulse responses. The Grid Workspace v1 implementation is under review; it remains a local simulation. KPT Pro communication remains disabled: no device protocol has been confirmed or implemented.
+> **Current status:** local-first editor with persistent presets, Grid layout, scene snapshots, Gig View setlists, an Asset Library, and the first offline native DSP core. Live audio-device I/O and KPT Pro communication remain disabled; no device protocol has been confirmed or implemented.
 
 ## Product direction
 
@@ -28,7 +28,7 @@ Software-only blocks must never be sent to a physical pedal that cannot execute 
 - Local-first preset, setlist, and asset persistence in app-private storage.
 - Kotlin and Android USB/Bluetooth APIs for Android-specific communication.
 - Native Windows USB APIs behind a Windows adapter.
-- Shared native C++ audio/DSP engine for Android and Windows, with thin operating-system-specific audio I/O adapters.
+- Shared native C++ audio/DSP engine for Android and Windows, with thin operating-system-specific audio I/O adapters. The first offline DSP foundation is implemented through Flutter native-assets FFI; real-time I/O is a later milestone.
 - Plugin hosting only after a format/runtime with equivalent Android and Windows support has been selected and licensing reviewed.
 
 Flutter 3.50.0 is the current pinned CI toolchain at project initialization.
@@ -102,3 +102,10 @@ The catalog distinguishes two sources:
 - **RigCanvas Library:** additional generic amp, cabinet, drive, dynamics, modulation, delay, reverb, EQ, pitch, and expression archetypes informed by the broad block families of leading processors. These are not KPT Pro factory models.
 
 The current catalog is selection metadata only. It does not implement the DSP, load a virtual amp/cab model for playback, or send model/parameter values to the KPT Pro. See [Effect Model Catalog research](docs/research/EFFECT_MODEL_CATALOG.md) for the source distinctions, manual discrepancies, and next validation requirements.
+
+
+## Offline DSP foundation
+
+The Audio page can run an internally generated 440 Hz test tone through the active preset's supported Dynamics, Drive, Amplifier, and Cabinet nodes. The shared C++ core includes generic gate/compressor, overdrive, amp preamp/tone shaping, and a mono FIR cabinet-IR interface. It reports input/output RMS and peaks without using a microphone or playing through speakers.
+
+These are generic RigCanvas prototype algorithms, **not** emulations of KPT Pro factory models or other manufacturers' DSP. KPT Pro catalog entries currently remain selectable names/metadata. Imported WAV IRs are not yet decoded and loaded into the core, and NAM captures are not executed. Live audio input/output, monitoring, device routing, and the remaining DSP families are future work. See [DSP engine architecture](docs/architecture/DSP_ENGINE.md).
