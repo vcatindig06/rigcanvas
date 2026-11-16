@@ -179,6 +179,7 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
         return AudioEngineScreen(
           key: const ValueKey('audio-engine'),
           controller: widget.presetController,
+          assetController: widget.assetController,
         );
       default:
         return const FeaturePlaceholderScreen(

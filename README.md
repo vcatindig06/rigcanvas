@@ -2,7 +2,7 @@
 
 RigCanvas is an independent Windows and Android guitar-rig editor and processing workspace. Development starts with a safe, local editor prototype and KPT Pro compatibility research.
 
-> **Current status:** local-first editor with persistent presets, Grid layout, scene snapshots, Gig View setlists, an Asset Library, and the first offline native DSP core. Live audio-device I/O and KPT Pro communication remain disabled; no device protocol has been confirmed or implemented.
+> **Current status:** local-first editor with persistent presets, Grid layout, scene snapshots, Gig View setlists, an Asset Library, and an expanded offline native DSP prototype. Live audio-device I/O and KPT Pro communication remain disabled; no device protocol has been confirmed or implemented.
 
 ## Product direction
 
@@ -87,9 +87,9 @@ Preset, Scene, Stomp, and Hybrid are control modes for the same active preset:
 - **Stomp:** A–H toggle the first eight blocks in preset order.
 - **Hybrid:** A–D recall scenes, while E–H toggle the first four blocks in preset order.
 
-The current v1 layout treats each row as an independent local lane. It does not yet model splitters, mixers, cross-lane routing, custom multi-block footswitch assignments, or audio processing. The input/output labels are local editor lane endpoints, not verified KPT Pro ports.
+The current v1 layout treats each row as an independent local lane. It does not yet model splitters, mixers, cross-lane routing, or custom multi-block footswitch assignments. The input/output labels are local editor lane endpoints, not verified KPT Pro ports.
 
-Android and Windows use the same Flutter workspace and preset schema. This UI does not send data to hardware, process audio, or imply that imported capture/IR files are playback-compatible.
+Android and Windows use the same Flutter workspace and preset schema. The Audio page can process a generated test signal offline using the shared native DSP core; the Workspace is not a live audio path and does not send data to hardware.
 
 
 ## Fixed effect-model catalog
@@ -106,6 +106,10 @@ The current catalog is selection metadata only. It does not implement the DSP, l
 
 ## Offline DSP foundation
 
-The Audio page can run an internally generated 440 Hz test tone through the active preset's supported Dynamics, Drive, Amplifier, and Cabinet nodes. The shared C++ core includes generic gate/compressor, overdrive, amp preamp/tone shaping, and a mono FIR cabinet-IR interface. It reports input/output RMS and peaks without using a microphone or playing through speakers.
+The Audio page processes an internally generated 440 Hz / 48 kHz / 500 ms test signal through the active preset's supported enabled blocks in Grid order. The shared C++ core has generic dynamics (gate/compressor), soft-clipping drive, amplifier preamp/tone shaping, cabinet FIR, chorus/vibrato/flanger/tremolo, standard/ping-pong delay, a room-style reverb, and four-band EQ.
 
-These are generic RigCanvas prototype algorithms, **not** emulations of KPT Pro factory models or other manufacturers' DSP. KPT Pro catalog entries currently remain selectable names/metadata. Imported WAV IRs are not yet decoded and loaded into the core, and NAM captures are not executed. Live audio input/output, monitoring, device routing, and the remaining DSP families are future work. See [DSP engine architecture](docs/architecture/DSP_ENGINE.md).
+Linked cabinet WAVs are loaded from the Asset Library for the offline test. The shared WAV decoder validates RIFF/WAVE structure, accepts PCM 8/16/24/32-bit and IEEE float 32/64-bit mono/stereo files, resamples to 48 kHz, and caps the loaded IR at 4,096 frames per channel. The Audio test reports resampling and truncation. The original imported file is preserved.
+
+These are generic RigCanvas prototypes, **not** emulations of KPT Pro factory algorithms or other manufacturers' DSP. Catalog names remain labels; some specialized types (including phaser, wah/autofilter, rotary, pitch, ducking/reverse/tape/lo-fi delay, and spring/shimmer/cloud reverb) remain unsupported and are explicitly skipped. The current linear-interpolation resampler and direct FIR convolution are not production-grade live-audio implementations.
+
+The engine is still offline: it does not capture a guitar or microphone, open an audio interface, or play through speakers/headphones. NAM/AM2 capture execution and KPT Pro device control remain unimplemented. See [DSP engine architecture](docs/architecture/DSP_ENGINE.md).

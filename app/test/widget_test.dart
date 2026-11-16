@@ -14,6 +14,7 @@ import 'package:rigcanvas/src/data/preset_repository.dart';
 import 'package:rigcanvas/src/data/setlist_repository.dart';
 import 'package:rigcanvas/src/models/effect_block.dart';
 import 'package:rigcanvas/src/models/rig_asset.dart';
+import 'package:rigcanvas/src/models/rig_grid.dart';
 import 'package:rigcanvas/src/models/rig_preset.dart';
 import 'package:rigcanvas/src/models/rig_setlist.dart';
 
@@ -46,6 +47,7 @@ class MemoryAssetRepository implements AssetRepository {
     : stored = List.of(assets);
 
   List<RigAsset> stored;
+  final Map<String, Uint8List> storedFiles = <String, Uint8List>{};
 
   @override
   Future<List<RigAsset>> loadAssets() async => List.of(stored);
@@ -56,10 +58,21 @@ class MemoryAssetRepository implements AssetRepository {
   }
 
   @override
-  Future<void> storeAssetFile(String filename, Uint8List bytes) async {}
+  Future<void> storeAssetFile(String filename, Uint8List bytes) async {
+    storedFiles[filename] = Uint8List.fromList(bytes);
+  }
 
   @override
-  Future<void> deleteAssetFile(String filename) async {}
+  Future<Uint8List> readAssetFile(String filename) async {
+    final bytes = storedFiles[filename];
+    if (bytes == null) throw const FormatException('Missing asset file.');
+    return Uint8List.fromList(bytes);
+  }
+
+  @override
+  Future<void> deleteAssetFile(String filename) async {
+    storedFiles.remove(filename);
+  }
 }
 
 void main() {
@@ -633,4 +646,103 @@ void main() {
     expect(find.textContaining('DSP test failed'), findsNothing);
   });
 
+
+  testWidgets('loads a linked cabinet WAV through the Audio offline test', (
+    tester,
+  ) async {
+    final wavBytes = _testCabinetWav();
+    const assetId = 'asset-test-cabinet-ir';
+    const storedFilename = 'asset-test-cabinet-ir.wav';
+    final asset = RigAsset(
+      id: assetId,
+      title: 'Test Cabinet IR',
+      kind: RigAssetKind.cabinetIr,
+      originalFilename: 'test-cabinet.wav',
+      storedFilename: storedFilename,
+      extension: '.wav',
+      fileSizeBytes: wavBytes.length,
+      importedAt: DateTime.utc(2026, 11, 16),
+      validation: RigAssetValidation.validated,
+      formatSummary: 'WAV PCM · mono · 48000 Hz · 16-bit',
+      sampleRateHz: 48000,
+      channelCount: 1,
+      bitDepth: 16,
+    );
+    final assetRepository = MemoryAssetRepository(assets: [asset])
+      ..storedFiles[storedFilename] = Uint8List.fromList(wavBytes);
+    final cabinet = EffectBlock.create(
+      id: 'test-cabinet-block',
+      family: EffectFamily.cabinet,
+      modelId: 'cab.4x12_vintage',
+    ).copyWith(assetId: assetId);
+    final now = DateTime.utc(2026, 11, 16);
+    final preset = RigPreset(
+      id: 'preset-cabinet-ir-test',
+      name: 'CAB IR Loading Test',
+      description: 'Tests the linked WAV read and DSP loading path.',
+      createdAt: now,
+      updatedAt: now,
+      blocks: [cabinet],
+      grid: RigGrid.fromBlockIds([cabinet.id]),
+    );
+
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository()..stored = [preset],
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: assetRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+    final runButton = find.byKey(const ValueKey('run-dsp-test'));
+    await tester.ensureVisible(runButton);
+    await tester.pumpAndSettle();
+    await tester.tap(runButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('DSP TEST COMPLETE'), findsOneWidget);
+    expect(find.text('CABINET IR STATUS'), findsOneWidget);
+    expect(find.textContaining('MONO IR loaded'), findsOneWidget);
+    expect(find.textContaining('IR could not be loaded'), findsNothing);
+    expect(find.textContaining('DSP test failed'), findsNothing);
+  });
+
+}
+
+
+Uint8List _testCabinetWav() {
+  const channels = 1;
+  const sampleRate = 48000;
+  const bitDepth = 16;
+  const blockAlign = channels * (bitDepth ~/ 8);
+  const dataLength = 8;
+  final bytes = Uint8List(44 + dataLength);
+  final data = ByteData.sublistView(bytes);
+  void writeText(int offset, String value) {
+    for (var index = 0; index < value.length; index++) {
+      bytes[offset + index] = value.codeUnitAt(index);
+    }
+  }
+
+  writeText(0, 'RIFF');
+  data.setUint32(4, 36 + dataLength, Endian.little);
+  writeText(8, 'WAVE');
+  writeText(12, 'fmt ');
+  data.setUint32(16, 16, Endian.little);
+  data.setUint16(20, 1, Endian.little);
+  data.setUint16(22, channels, Endian.little);
+  data.setUint32(24, sampleRate, Endian.little);
+  data.setUint32(28, sampleRate * blockAlign, Endian.little);
+  data.setUint16(32, blockAlign, Endian.little);
+  data.setUint16(34, bitDepth, Endian.little);
+  writeText(36, 'data');
+  data.setUint32(40, dataLength, Endian.little);
+  data.setInt16(44, 32767, Endian.little);
+  data.setInt16(46, 8192, Endian.little);
+  data.setInt16(48, -4096, Endian.little);
+  data.setInt16(50, 0, Endian.little);
+  return bytes;
 }

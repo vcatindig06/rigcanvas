@@ -543,7 +543,7 @@ const Map<EffectFamily, List<EffectParameterSpec>> effectParameterSpecs = {
     EffectParameterSpec(key: 'mix', label: 'Mix', minimum: 0, maximum: 100, initial: 25, unit: '%'),
   ],
   EffectFamily.delay: [
-    EffectParameterSpec(key: 'time', label: 'Time', minimum: 1, maximum: 8000, initial: 480, unit: 'ms'),
+    EffectParameterSpec(key: 'time', label: 'Time', minimum: 1, maximum: 2000, initial: 480, unit: 'ms'),
     EffectParameterSpec(key: 'feedback', label: 'Feedback', minimum: 0, maximum: 100, initial: 32, unit: '%'),
     EffectParameterSpec(key: 'highCut', label: 'High Cut', minimum: 1000, maximum: 20000, initial: 9000, unit: 'Hz'),
     EffectParameterSpec(key: 'mix', label: 'Mix', minimum: 0, maximum: 100, initial: 24, unit: '%'),

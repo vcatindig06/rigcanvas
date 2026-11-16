@@ -14,7 +14,7 @@ RIGCANVAS_DSP_API void* rg_engine_create(uint32_t sample_rate, uint32_t channels
 RIGCANVAS_DSP_API void rg_engine_destroy(void* handle);
 RIGCANVAS_DSP_API int32_t rg_engine_add_node(void* handle, int32_t node_type, int32_t mode, int32_t enabled);
 RIGCANVAS_DSP_API int32_t rg_engine_set_parameter(void* handle, uint32_t node_index, uint32_t parameter_index, float value);
-RIGCANVAS_DSP_API int32_t rg_engine_set_cabinet_ir(void* handle, uint32_t node_index, const float* samples, uint32_t sample_count);
+RIGCANVAS_DSP_API int32_t rg_engine_set_cabinet_ir(void* handle, uint32_t node_index, const float* interleaved_samples, uint32_t frame_count, uint32_t ir_channels);
 RIGCANVAS_DSP_API int32_t rg_engine_process(void* handle, float* interleaved, uint32_t frame_count);
 RIGCANVAS_DSP_API int32_t rg_engine_run_test_tone(void* handle, float frequency_hz, uint32_t duration_ms);
 RIGCANVAS_DSP_API double rg_engine_input_rms_db(void* handle);

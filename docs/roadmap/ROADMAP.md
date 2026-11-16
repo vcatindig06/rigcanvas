@@ -156,14 +156,14 @@ A milestone is not complete because the UI exists. It must include:
 - [x] Process the active preset's enabled supported nodes in saved Grid row/slot order.
 - [x] Add an internal 440 Hz offline test signal and input/output RMS / peak reporting.
 - [x] Keep unsupported block families visible as skipped and avoid implying a physical guitar or speaker path.
-- [ ] Decode imported WAV IR files, resample as required, and load the verified samples from the Asset Library.
+- [x] Decode supported WAV IR files, resample to the offline DSP rate, preserve mono/stereo, and load verified samples from the Asset Library (PCM 8/16/24/32-bit and IEEE float 32/64-bit; 4096 frames/channel ceiling).
 - [x] Add native engine unit coverage for graph processing, FIR IR-buffer copy, offline buffer shape, invalid formats, and engine disposal. (69 total Flutter unit/widget tests pass in CI.)
 - [ ] Add deeper DSP validation: impulse-response and frequency-response references, distortion/noise measurements, parameter-boundary tests, and performance benchmarks.
 - [ ] Manually build and smoke-test the Audio page on physical Android hardware and a Windows PC.
 - [ ] Add production-safe real-time audio callback and device abstractions only after profiling and lifecycle design.
 - [ ] Implement Android and Windows capture/playback adapters with equivalent device controls and routing.
 
-**Milestone 5.1 boundary:** this is offline/block DSP only. It is not a low-latency live guitar processor. Current gate/compressor/drive/amp algorithms are generic prototypes, not manufacturer-model simulations. Cabinet FIR is usable only when sample buffers are supplied directly; imported WAV decoding and auto-loading are not yet connected. See [DSP engine architecture](../architecture/DSP_ENGINE.md).
+**Milestone 5.1 boundary:** this is offline/block DSP only. It is not a low-latency live guitar processor. Current algorithms are generic prototypes, not manufacturer-model simulations. The WAV decoder uses linear interpolation and cabinet convolution is direct FIR, so both need further quality and performance validation before live use. See [DSP engine architecture](../architecture/DSP_ENGINE.md).
 
 ### DSP foundation implementation log — 2026-11-16
 
@@ -173,3 +173,31 @@ A milestone is not complete because the UI exists. It must include:
 - Added an Audio page that applies the supported enabled blocks in Grid order to an internal 440 Hz test signal and displays input/output RMS, peak, frame, and node metrics.
 - Unsupported families, missing live audio I/O, amp-capture playback, and unconnected WAV IR imports are disclosed in the app.
 - GitHub Actions run [#87](https://github.com/vcatindig06/rigcanvas/actions/runs/43824897566) passed Flutter static analysis and all 69 unit/widget tests, built the Android APK with SHA-256 verification, and built the Windows release package. Both artifacts uploaded successfully. Physical Android and Windows smoke tests remain.
+
+
+## Milestone 5.2 — cabinet WAV loading and expanded offline DSP
+
+- [x] Add a shared RIFF/WAVE decoder for PCM 8/16/24/32-bit and IEEE-float 32/64-bit mono/stereo files.
+- [x] Validate WAV chunk boundaries, byte rate, block alignment, sample rate, channel count, and finite float samples.
+- [x] Resample imported cabinet IRs to the shared 48 kHz offline engine rate and cap the response at 4096 frames per channel.
+- [x] Read stored cabinet WAV bytes through the Asset Library repository/controller instead of treating an asset ID as a loaded sound.
+- [x] Load mono IRs into both output channels and stereo IRs into independent left/right FIR responses.
+- [x] Implement generic chorus/vibrato/flanger/tremolo, standard/ping-pong delay, room-style reverb, and four-band EQ nodes in the shared C++ engine.
+- [x] Connect these supported block families to the Audio test in Grid row/slot order.
+- [x] Keep specialized/unsupported phaser, wah, rotary, pitch, and delay/reverb variants explicitly skipped.
+- [x] Add tests for PCM24, stereo preservation, sample-rate conversion, maximum IR length, malformed files, non-finite float samples, native DSP nodes, and asset-byte reads.
+- [ ] Improve the linear-interpolation resampler with an anti-aliasing/reference-tested resampling method.
+- [ ] Benchmark direct FIR convolution and design partitioned convolution for longer responses.
+- [ ] Add impulse/frequency-response and distortion/noise reference tests plus CPU/memory profiling.
+- [ ] Manually test WAV import, CAB assignment, and Audio offline test on a physical Android device and Windows PC.
+
+**Milestone 5.2 boundary:** the added modulation/delay/reverb/EQ algorithms are generic offline DSP prototypes. They do not recreate KPT Pro factory models. The WAV decoder and CAB path do not provide real-time monitoring or guarantee that every manufacturer's IR file is supported. Live device I/O remains a separate milestone.
+
+### DSP expansion implementation log — 2026-11-16
+
+- Added WAV PCM/IEEE-float decoding and strict RIFF validation in the shared Dart layer.
+- Connected AssetRepository and AssetController file reads to the Audio screen so a linked CAB WAV is actually retrieved and decoded for offline testing.
+- Extended the native C ABI to version 2 with mono/stereo cabinet IR transfer and independent stereo FIR response data.
+- Added generic modulation, delay, reverb, and EQ processing nodes to the shared C++ core.
+- Updated UI messaging to distinguish loaded CAB WAVs, generic processing, and still-unavailable live audio/KPT Pro functionality.
+- Automated tests and Android/Windows CI verification for this milestone are pending.

@@ -1,14 +1,21 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../audio/rigcanvas_dsp_engine.dart';
+import '../audio/wav_ir_decoder.dart';
 import '../models/effect_block.dart';
 import '../models/rig_preset.dart';
+import '../state/asset_controller.dart';
 import '../state/preset_controller.dart';
 
 class AudioEngineScreen extends StatefulWidget {
-  const AudioEngineScreen({required this.controller, super.key});
+  const AudioEngineScreen({
+    required this.controller,
+    required this.assetController,
+    super.key,
+  });
 
   final PresetController controller;
+  final AssetController assetController;
 
   @override
   State<AudioEngineScreen> createState() => _AudioEngineScreenState();
@@ -20,6 +27,7 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
   String? _error;
   String? _testedPresetId;
   List<String> _skippedBlocks = const [];
+  List<String> _assetNotes = const [];
 
   List<EffectBlock> _orderedBlocks(RigPreset preset) {
     final byId = {for (final block in preset.blocks) block.id: block};
@@ -36,12 +44,52 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
     return result;
   }
 
-  DspProcessMetrics _processPreset(RigPreset preset) {
+  bool _supportsModel(EffectBlock block) {
+    switch (block.family) {
+      case EffectFamily.gate:
+      case EffectFamily.drive:
+      case EffectFamily.amplifier:
+      case EffectFamily.cabinet:
+      case EffectFamily.reverb:
+      case EffectFamily.eq:
+        return true;
+      case EffectFamily.modulation:
+        return ![
+          'phaser',
+          'autofilter',
+          'wah',
+          'univibe',
+          'rotary',
+          'ring_mod',
+          'micro_pitch',
+        ].any((fragment) => block.modelId.contains(fragment));
+      case EffectFamily.delay:
+        return ![
+          'duck',
+          'reverse',
+          'tape',
+          'lofi',
+          'multi_tap',
+          'dual',
+          'granular',
+        ].any((fragment) => block.modelId.contains(fragment));
+      case EffectFamily.pitch:
+      case EffectFamily.expression:
+        return false;
+    }
+  }
+
+  Future<DspProcessMetrics> _processPreset(RigPreset preset) async {
     final engine = RigCanvasDspEngine();
     final skipped = <String>[];
+    final assetNotes = <String>[];
     try {
       for (final block in _orderedBlocks(preset)) {
         if (!block.enabled) continue;
+        if (!_supportsModel(block)) {
+          skipped.add(block.name);
+          continue;
+        }
 
         switch (block.family) {
           case EffectFamily.gate:
@@ -50,31 +98,52 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
                 block.modelId == 'kpt.fx.ai_gate';
             final node = engine.addNode(
               DspNodeType.dynamics,
-              dynamicsMode: isGate
-                  ? DspDynamicsMode.gate
-                  : DspDynamicsMode.compressor,
+              dynamicsMode:
+                  isGate ? DspDynamicsMode.gate : DspDynamicsMode.compressor,
             );
             engine.setParameter(node, 0, block.parameters['threshold'] ?? -48);
             engine.setParameter(node, 1, block.parameters['ratio'] ?? 3);
             engine.setParameter(node, 2, block.parameters['attack'] ?? 10);
             engine.setParameter(node, 3, block.parameters['release'] ?? 120);
             engine.setParameter(node, 4, block.parameters['makeup'] ?? 0);
-            engine.setParameter(node, 5, (block.parameters['mix'] ?? 100) / 100);
+            engine.setParameter(
+              node,
+              5,
+              (block.parameters['mix'] ?? 100) / 100,
+            );
             break;
+
           case EffectFamily.drive:
             final node = engine.addNode(DspNodeType.drive);
-            engine.setParameter(node, 0, (block.parameters['gain'] ?? 35) * 0.24);
-            engine.setParameter(node, 1, (block.parameters['tone'] ?? 55) / 100);
+            engine.setParameter(
+              node,
+              0,
+              (block.parameters['gain'] ?? 35) * 0.24,
+            );
+            engine.setParameter(
+              node,
+              1,
+              (block.parameters['tone'] ?? 55) / 100,
+            );
             engine.setParameter(
               node,
               2,
               ((block.parameters['level'] ?? 65) - 50) * 0.24,
             );
-            engine.setParameter(node, 3, (block.parameters['blend'] ?? 100) / 100);
+            engine.setParameter(
+              node,
+              3,
+              (block.parameters['blend'] ?? 100) / 100,
+            );
             break;
+
           case EffectFamily.amplifier:
             final node = engine.addNode(DspNodeType.amplifier);
-            engine.setParameter(node, 0, (block.parameters['gain'] ?? 48) * 0.24);
+            engine.setParameter(
+              node,
+              0,
+              (block.parameters['gain'] ?? 48) * 0.24,
+            );
             engine.setParameter(
               node,
               1,
@@ -101,17 +170,132 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
               ((block.parameters['master'] ?? 70) - 50) * 0.24,
             );
             break;
+
           case EffectFamily.cabinet:
             final node = engine.addNode(DspNodeType.cabinet);
-            // The assigned WAV file is not decoded or loaded yet. Keep this
-            // node transparent instead of pretending its local IR is active.
-            engine.setParameter(node, 0, 0);
+            engine.setParameter(
+              node,
+              0,
+              block.assetId == null ? 0 : 1,
+            );
             engine.setParameter(node, 1, block.parameters['level'] ?? 0);
+            engine.setParameter(node, 2, block.parameters['lowCut'] ?? 80);
+            engine.setParameter(node, 3, block.parameters['highCut'] ?? 11000);
+
+            final assetId = block.assetId;
+            if (assetId == null) {
+              assetNotes.add(
+                '${block.name}: no IR is linked; cabinet filtering and level only.',
+              );
+              break;
+            }
+            try {
+              final bytes = await widget.assetController.readAssetBytes(assetId);
+              final decoded = WavIrDecoder.decode(
+                bytes,
+                targetSampleRateHz: engine.sampleRate,
+              );
+              engine.setCabinetImpulseResponse(
+                node,
+                decoded.samplesInterleaved,
+                irChannels: decoded.channelCount,
+              );
+              final channelLabel =
+                  decoded.channelCount == 1 ? 'mono' : 'stereo';
+              final resampleLabel = decoded.wasResampled
+                  ? ' · resampled ${decoded.sourceSampleRateHz}→${decoded.sampleRateHz} Hz'
+                  : '';
+              final trimLabel = decoded.wasTrimmed
+                  ? ' · trimmed to ${decoded.framesUsed} frames/channel'
+                  : '';
+              assetNotes.add(
+                '${block.name}: ${channelLabel.toUpperCase()} IR loaded · ${decoded.framesUsed} frames/channel$resampleLabel$trimLabel.',
+              );
+            } catch (error) {
+              assetNotes.add('${block.name}: linked IR could not be loaded — $error');
+              skipped.add('${block.name} cabinet IR');
+              engine.setParameter(node, 0, 0);
+            }
             break;
+
           case EffectFamily.modulation:
+            final modelId = block.modelId;
+            final modulationMode = modelId.contains('tremolo')
+                ? DspModulationMode.tremolo
+                : modelId.contains('flanger')
+                ? DspModulationMode.flanger
+                : modelId.contains('vibrato')
+                ? DspModulationMode.vibrato
+                : DspModulationMode.chorus;
+            final node = engine.addNode(
+              DspNodeType.modulation,
+              modulationMode: modulationMode,
+            );
+            engine.setParameter(node, 0, block.parameters['rate'] ?? 1.2);
+            engine.setParameter(node, 1, block.parameters['depth'] ?? 45);
+            engine.setParameter(node, 2, block.parameters['tone'] ?? 55);
+            engine.setParameter(node, 3, block.parameters['mix'] ?? 25);
+            break;
+
           case EffectFamily.delay:
+            final delayMode = block.modelId == 'delay.ping_pong'
+                ? DspDelayMode.pingPong
+                : DspDelayMode.standard;
+            final node = engine.addNode(
+              DspNodeType.delay,
+              delayMode: delayMode,
+            );
+            engine.setParameter(node, 0, block.parameters['time'] ?? 480);
+            engine.setParameter(
+              node,
+              1,
+              block.parameters['feedback'] ?? 32,
+            );
+            engine.setParameter(
+              node,
+              2,
+              block.parameters['highCut'] ?? 9000,
+            );
+            engine.setParameter(node, 3, block.parameters['mix'] ?? 24);
+            break;
+
           case EffectFamily.reverb:
+            final node = engine.addNode(DspNodeType.reverb);
+            engine.setParameter(node, 0, block.parameters['decay'] ?? 5.5);
+            engine.setParameter(
+              node,
+              1,
+              block.parameters['predelay'] ?? 25,
+            );
+            engine.setParameter(node, 2, block.parameters['tone'] ?? 55);
+            engine.setParameter(node, 3, block.parameters['mix'] ?? 30);
+            break;
+
           case EffectFamily.eq:
+            final node = engine.addNode(DspNodeType.equalizer);
+            engine.setParameter(
+              node,
+              0,
+              block.parameters['lowGain'] ?? 0,
+            );
+            engine.setParameter(
+              node,
+              1,
+              block.parameters['lowMidGain'] ?? 0,
+            );
+            engine.setParameter(
+              node,
+              2,
+              block.parameters['highMidGain'] ?? 0,
+            );
+            engine.setParameter(
+              node,
+              3,
+              block.parameters['highGain'] ?? 0,
+            );
+            engine.setParameter(node, 4, block.parameters['output'] ?? 0);
+            break;
+
           case EffectFamily.pitch:
           case EffectFamily.expression:
             skipped.add(block.name);
@@ -119,8 +303,9 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
         }
       }
 
-      final metrics = engine.runTestTone();
+      final metrics = engine.runTestTone(durationMilliseconds: 500);
       _skippedBlocks = List.unmodifiable(skipped);
+      _assetNotes = List.unmodifiable(assetNotes);
       return metrics;
     } finally {
       engine.dispose();
@@ -140,10 +325,11 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
       _metrics = null;
       _testedPresetId = preset.id;
       _skippedBlocks = const [];
+      _assetNotes = const [];
     });
 
     try {
-      final result = _processPreset(preset);
+      final result = await _processPreset(preset);
       if (!mounted) return;
       setState(() => _metrics = result);
     } catch (error) {
@@ -164,15 +350,7 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
         final preset = widget.controller.activePreset;
         final ordered = preset == null ? <EffectBlock>[] : _orderedBlocks(preset);
         final enabled = ordered.where((block) => block.enabled).toList();
-        final supported = enabled.where((block) {
-          return switch (block.family) {
-            EffectFamily.gate ||
-            EffectFamily.drive ||
-            EffectFamily.amplifier ||
-            EffectFamily.cabinet => true,
-            _ => false,
-          };
-        }).length;
+        final supported = enabled.where(_supportsModel).length;
         final testedPresetChanged =
             _testedPresetId != null && preset?.id != _testedPresetId;
 
@@ -250,12 +428,25 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
                               Chip(label: Text('Compressor')),
                               Chip(label: Text('Overdrive')),
                               Chip(label: Text('Amp preamp / tone stack')),
-                              Chip(label: Text('FIR cabinet convolution')),
+                              Chip(label: Text('Mono / stereo FIR cabinet')),
+                              Chip(label: Text('Chorus / tremolo / flanger')),
+                              Chip(label: Text('Stereo / ping-pong delay')),
+                              Chip(label: Text('Room-style reverb')),
+                              Chip(label: Text('Four-band EQ')),
                             ],
                           ),
                           const SizedBox(height: 7),
                           const Text(
-                            'Cabinet convolution accepts mono IR sample buffers, but imported WAV files are not yet decoded and loaded into the engine.',
+                            'These are generic RigCanvas prototypes, not exact KPT Pro, Fractal, Quad Cortex, Helix, or Kemper algorithms. Manufacturer-specific model names remain catalog labels. Cabinet mic-distance metadata is not applied by this FIR prototype.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFFFB08E),
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          const Text(
+                            'Imported PCM / IEEE-float mono or stereo WAV IRs are decoded, resampled to 48 kHz, and loaded into the FIR cabinet node. Each IR is limited to 4,096 frames per channel for this offline prototype.',
                             style: TextStyle(
                               fontSize: 12,
                               color: Color(0xFF9AA4B2),
@@ -320,7 +511,7 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'The test tone is generated inside the engine (48 kHz stereo, 250 ms). It is not captured from your guitar or microphone and is not played through your speakers.',
+                            'The test tone is generated inside the engine (48 kHz stereo, 500 ms). It is not captured from your guitar or microphone and is not played through your speakers.',
                             style: TextStyle(
                               color: Color(0xFF9AA4B2),
                               fontSize: 12,
@@ -366,6 +557,26 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
                                 'Active DSP nodes': '${_metrics!.enabledNodeCount}',
                               },
                             ),
+                            if (_assetNotes.isNotEmpty) ...[
+                              const SizedBox(height: 13),
+                              const Text(
+                                'CABINET IR STATUS',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF9CC8B0),
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                _assetNotes.join('\n'),
+                                style: const TextStyle(
+                                  color: Color(0xFFB5BEC9),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
                             if (_skippedBlocks.isNotEmpty) ...[
                               const SizedBox(height: 13),
                               const Text(
@@ -423,8 +634,7 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
                           _NotReadyLine('Real-time speaker / headphone output'),
                           _NotReadyLine('Low-latency monitoring and routing'),
                           _NotReadyLine('NAM amp-capture playback'),
-                          _NotReadyLine('Automatic loading of imported WAV IRs'),
-                          _NotReadyLine('Modulation, delay, reverb, pitch and EQ DSP'),
+                          _NotReadyLine('Phaser, wah, rotary, pitch and expression DSP'),
                           _NotReadyLine('KPT Pro control or preset writes'),
                         ],
                       ),

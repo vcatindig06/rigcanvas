@@ -25,6 +25,13 @@ class MemoryAssetRepository implements AssetRepository {
   }
 
   @override
+  Future<Uint8List> readAssetFile(String filename) async {
+    final bytes = storedFiles[filename];
+    if (bytes == null) throw const FormatException('Missing asset file.');
+    return Uint8List.fromList(bytes);
+  }
+
+  @override
   Future<void> deleteAssetFile(String filename) async {
     storedFiles.remove(filename);
   }
@@ -113,4 +120,36 @@ void main() {
     expect(controller.assets, isEmpty);
     controller.dispose();
   });
+
+  test('reads the original file bytes for a linked cabinet IR', () async {
+    final bytes = Uint8List.fromList([1, 2, 3, 4, 5, 6]);
+    final asset = RigAsset(
+      id: 'asset-cab-ir',
+      title: 'Stereo Cabinet IR',
+      kind: RigAssetKind.cabinetIr,
+      originalFilename: 'stereo.wav',
+      storedFilename: 'asset-cab-ir.wav',
+      extension: '.wav',
+      fileSizeBytes: bytes.length,
+      importedAt: DateTime.utc(2026, 11, 16),
+      validation: RigAssetValidation.validated,
+      formatSummary: 'WAV PCM · stereo · 48000 Hz · 16-bit',
+      sampleRateHz: 48000,
+      channelCount: 2,
+      bitDepth: 16,
+    );
+    final repository = MemoryAssetRepository()
+      ..storedAssets = [asset]
+      ..storedFiles[asset.storedFilename] = Uint8List.fromList(bytes);
+    final controller = AssetController(repository);
+    await controller.initialize();
+
+    expect(await controller.readAssetBytes(asset.id), bytes);
+    await expectLater(
+      controller.readAssetBytes('missing-asset'),
+      throwsFormatException,
+    );
+    controller.dispose();
+  });
+
 }

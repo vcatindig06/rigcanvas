@@ -276,7 +276,7 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                 ],
               ],
               const Text(
-                'Model selection is a local catalog choice. Parameters are editor metadata only; no audio DSP or KPT Pro control is active yet.',
+                'Model selection chooses a catalog label and generic family DSP for the offline Audio test. It does not emulate the named factory algorithm or control the KPT Pro.',
                 style: TextStyle(
                   color: Color(0xFF9AA4B2),
                   fontSize: 11,
@@ -328,7 +328,7 @@ class _AssetAssignmentNotice extends StatelessWidget {
         ? asset.extension == '.nam'
             ? 'NAM JSON structure checked. Supported model architecture, version, and playback-runtime compatibility are not confirmed.'
             : 'AM2/AMP capture bytes are stored unchanged. Their internal structure and playback-runtime compatibility are not confirmed.'
-        : 'WAV metadata detected: ${asset.formatSummary}. The app has no audio engine yet to confirm that it can render this sample rate, channel layout, or bit depth.';
+        : 'WAV metadata detected: ${asset.formatSummary}. The offline Audio test decodes supported PCM / IEEE-float mono or stereo WAV and resamples it to 48 kHz, but this does not establish manufacturer-model accuracy or KPT Pro compatibility.';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(11),
@@ -365,7 +365,7 @@ class _AssetAssignmentNotice extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             structureChecked
-                ? 'The file passed a basic structure check. This does not prove that an audio engine can render it or that the KPT Pro supports it.'
+                ? 'The file passed a format check. The offline DSP test can load supported PCM / IEEE-float mono or stereo IRs, but that does not prove accurate cabinet modeling or KPT Pro support.'
                 : 'This capture is stored unchanged. Its internal format has not been verified, so it must not be treated as loadable or compatible.',
             style: const TextStyle(
               color: Color(0xFFE3B8A9),
@@ -384,7 +384,7 @@ class _AssetAssignmentNotice extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Assignment saves a local library reference only. It does not process audio or write to hardware.',
+            'Assignment saves a local library reference. The Audio page can use a compatible Cabinet WAV in an offline test; live audio and hardware writes remain disabled.',
             style: TextStyle(
               color: Color(0xFFE3B8A9),
               fontSize: 11,
