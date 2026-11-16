@@ -4,7 +4,7 @@ import 'package:rigcanvas/src/models/effect_block.dart';
 void main() {
   group('EffectModelCatalog', () {
     test('contains the complete documented KPT Pro factory catalog count', () {
-      expect(EffectModelCatalog.kptProFactoryCount, 151);
+      expect(EffectModelCatalog.kptProFactoryCount, 152);
     });
 
     test('contains all documented KPT Pro factory model groups', () {
@@ -35,6 +35,10 @@ void main() {
       expect(
         factoryModels.where((model) => model.family == EffectFamily.expression),
         hasLength(5),
+      );
+      expect(
+        factoryModels.where((model) => model.family == EffectFamily.eq),
+        hasLength(1),
       );
       expect(
         factoryModels.where((model) => model.family == EffectFamily.gate),
