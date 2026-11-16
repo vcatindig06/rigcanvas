@@ -54,14 +54,14 @@ class RigCanvasDspEngine {
   RigCanvasDspEngine({
     this.sampleRate = 48000,
     this.channels = 2,
-  }) : _handle = native.rg_engine_create(sampleRate, channels) {
+  }) : _handle = native.rgEngineCreate(sampleRate, channels) {
     if (_handle == nullptr) {
       throw ArgumentError(
         'Unsupported DSP engine format: $sampleRate Hz, $channels channels.',
       );
     }
-    if (native.rg_engine_abi_version() != 1) {
-      native.rg_engine_destroy(_handle);
+    if (native.rgEngineAbiVersion() != 1) {
+      native.rgEngineDestroy(_handle);
       _handle = nullptr;
       throw StateError('RigCanvas DSP native API version mismatch.');
     }
@@ -77,7 +77,7 @@ class RigCanvasDspEngine {
     bool enabled = true,
   }) {
     _ensureAlive();
-    final result = native.rg_engine_add_node(
+    final result = native.rgEngineAddNode(
       _handle,
       type.nativeValue,
       dynamicsMode.nativeValue,
@@ -94,7 +94,7 @@ class RigCanvasDspEngine {
     if (!value.isFinite) {
       throw ArgumentError.value(value, 'value', 'Must be finite.');
     }
-    final result = native.rg_engine_set_parameter(
+    final result = native.rgEngineSetParameter(
       _handle,
       nodeIndex,
       parameterIndex,
@@ -125,7 +125,7 @@ class RigCanvasDspEngine {
     final pointer = calloc<Float>(samples.length);
     try {
       pointer.asTypedList(samples.length).setAll(0, samples);
-      final result = native.rg_engine_set_cabinet_ir(
+      final result = native.rgEngineSetCabinetIr(
         _handle,
         nodeIndex,
         pointer,
@@ -156,7 +156,7 @@ class RigCanvasDspEngine {
     final pointer = calloc<Float>(samples.length);
     try {
       pointer.asTypedList(samples.length).setAll(0, samples);
-      final result = native.rg_engine_process(_handle, pointer, frameCount);
+      final result = native.rgEngineProcess(_handle, pointer, frameCount);
       if (result != 0) {
         throw StateError('Native DSP processing failed ($result).');
       }
@@ -171,7 +171,7 @@ class RigCanvasDspEngine {
     int durationMilliseconds = 250,
   }) {
     _ensureAlive();
-    final result = native.rg_engine_run_test_tone(
+    final result = native.rgEngineRunTestTone(
       _handle,
       frequencyHz,
       durationMilliseconds,
@@ -182,18 +182,18 @@ class RigCanvasDspEngine {
     return DspProcessMetrics(
       sampleRate: sampleRate,
       channels: channels,
-      processedFrames: native.rg_engine_processed_frames(_handle),
-      enabledNodeCount: native.rg_engine_enabled_node_count(_handle),
-      inputRmsDb: native.rg_engine_input_rms_db(_handle),
-      outputRmsDb: native.rg_engine_output_rms_db(_handle),
-      inputPeakDb: native.rg_engine_input_peak_db(_handle),
-      outputPeakDb: native.rg_engine_output_peak_db(_handle),
+      processedFrames: native.rgEngineProcessed_frames(_handle),
+      enabledNodeCount: native.rgEngineEnabledNodeCount(_handle),
+      inputRmsDb: native.rgEngineInputRmsDb(_handle),
+      outputRmsDb: native.rgEngineOutputRmsDb(_handle),
+      inputPeakDb: native.rgEngineInputPeakDb(_handle),
+      outputPeakDb: native.rgEngineOutputPeakDb(_handle),
     );
   }
 
   void dispose() {
     if (_handle == nullptr) return;
-    native.rg_engine_destroy(_handle);
+    native.rgEngineDestroy(_handle);
     _handle = nullptr;
   }
 
