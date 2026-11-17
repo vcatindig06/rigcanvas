@@ -57,6 +57,11 @@ void main() {
     );
 
     expect(inventory.calls, 0);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('scan-usb-devices')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.byKey(const ValueKey('scan-usb-devices')));
     await tester.pumpAndSettle();
 
@@ -78,6 +83,11 @@ void main() {
       ),
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('scan-usb-devices')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.byKey(const ValueKey('scan-usb-devices')));
     await tester.pumpAndSettle();
 
