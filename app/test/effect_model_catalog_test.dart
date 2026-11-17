@@ -191,7 +191,7 @@ void main() {
       expect(firstBassCab.description, contains('not been confirmed'));
     });
 
-    test('classifies the owner's AMP prefixes as Clean, Overdrive, and Distortion', () {
+    test("classifies the owner's AMP prefixes as Clean, Overdrive, and Distortion", () {
       final clean = EffectModelCatalog.byId('kpt.amp.guitar.0')!;
       final overdrive = EffectModelCatalog.byId('kpt.amp.guitar.2')!;
       final distortion = EffectModelCatalog.byId('kpt.amp.guitar.4')!;
