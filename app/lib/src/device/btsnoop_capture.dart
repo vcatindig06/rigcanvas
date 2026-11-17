@@ -814,7 +814,7 @@ String _uuid16(int value) =>
 
 String _uuid128LittleEndian(List<int> bytes, int offset) {
   final reversed = List<int>.generate(16, (index) => bytes[offset + 15 - index]);
-  final hex = reversed.map(_hexByte).join();
+  final hex = reversed.map(_hexByte).join().toLowerCase();
   return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}'.toLowerCase();
 }
 
