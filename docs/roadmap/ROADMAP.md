@@ -80,7 +80,8 @@
 - Confirmed feature-parity rule: the same Gig, Workspace, Presets, Assets, and Settings destinations are covered in compact and wide layout tests; Android APK and Windows desktop builds are both required in CI.
 - Expanded the KPT Pro catalogue from available manual evidence: FX, AMP, MOD, DLY, REV, CAB, and EXT families are recorded separately; unsupported individual amp/cab names and parameter ranges are explicitly not invented.
 - Recorded the vendor download-page discrepancy: M-EFCS is listed for TANK-G/TANK-B, while a KPT Pro manual describes M-EFCS control. KPT Pro compatibility remains unverified; Tank-G protocol assumptions are prohibited.
-- **Next focus:** obtain the user's exact KPT Pro firmware version and M-EFCS app version/device-list result, then capture read-only USB descriptors. Do not implement undocumented device writes or mark the catalogue as verified device capability.
+- User reports the physical KPT Pro is running firmware **v15**. Recorded as a user-reported baseline, not independently device-verified; the official download page does not expose a visible version-to-package mapping in its page text, so v15 must not be equated with the manual mirror's KPTPRO007 label.
+- **Next focus:** obtain the exact M-EFCS app version and whether KPT Pro appears in its device selector; then capture read-only USB descriptors on Windows. Do not implement undocumented device writes or mark the catalogue as verified device capability.
 
 ## Release gates
 
