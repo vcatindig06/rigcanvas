@@ -118,6 +118,8 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
         .length;
     final attErrors =
         selectedEvents.where((event) => event.opcode == 0x01).length;
+    final mtuRequests =
+        selectedEvents.where((event) => event.opcode == 0x02).length;
     final hasCharacteristicMap = selectedSession != null &&
         (capture?.characteristicDiscoveryBySession[selectedSession.id]?.isNotEmpty ??
             false);
@@ -226,8 +228,17 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
                       _CaptureMetric('$reads', 'Value reads'),
                       _CaptureMetric('$discovery', 'GATT discovery'),
                       _CaptureMetric('$attErrors', 'ATT errors'),
+                      _CaptureMetric('$mtuRequests', 'MTU requests'),
                       _CaptureMetric('${selectedEvents.length}', 'Selected events'),
                     ],
+                  ),
+                if (selectedSession != null && mtuRequests > 1)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 9),
+                    child: _CaptureNotice(
+                      color: Color(0xFFFFC078),
+                      text: 'Multiple ATT MTU Exchange Requests were captured for this connection. The client normally sends this request once per connection; verify the capture lifecycle before interpreting the MTU values.',
+                    ),
                   ),
                 if (selectedSession != null &&
                     discovery > 0 &&
