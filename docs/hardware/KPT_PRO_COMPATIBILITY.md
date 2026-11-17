@@ -14,7 +14,6 @@
 | BLE identity | `KPTPRO_BLE` advertisement; RSSI -54 dBm at capture | User-provided read-only report, 2026-11-17 |
 | BLE-MIDI profile | Service `03B80E5A-EDE8-4B33-A751-6CE34EC4C700`; characteristic `7772E5DB-3868-4112-A1A9-F2669D106BF3` | Exact standard BLE-MIDI UUID pair; GATT reports write-without-response and notify |
 | Vendor BLE service | `0000AE40-0000-1000-8000-00805F9B34FB`; TX `AE41`; RX `AE42` | UUIDs/properties observed; application payload protocol unknown |
-| M-EFCS application | Not recorded | Pending exact app version/build and actual device-recognition result |
 | Transport protocol | BLE GATT with BLE-MIDI service and AE40 vendor service | GATT profile captured; MIDI/vendor command semantics remain unknown |
 
 The firmware string is retained exactly as reported: v8. It must not be reinterpreted as 0.8, a build number, or another version format.
