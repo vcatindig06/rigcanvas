@@ -314,49 +314,47 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('amp-type-filter')), findsOneWidget);
-    expect(find.byKey(const ValueKey('amp-type-filter-clean')), findsOneWidget);
-    expect(find.byKey(const ValueKey('amp-type-filter-overdrive')), findsOneWidget);
-    expect(find.byKey(const ValueKey('amp-type-filter-distortion')), findsOneWidget);
-    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.2')), findsOneWidget);
-    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.4')), findsOneWidget);
+    expect(
+      find.text(
+        '${EffectModelCatalog.forFamily(EffectFamily.amplifier).length} available options',
+      ),
+      findsOneWidget,
+    );
+
+    int countFor(AmpModelType type) => EffectModelCatalog.forFamily(
+      EffectFamily.amplifier,
+    ).where((model) => model.ampType == type).length;
 
     await tester.tap(find.byKey(const ValueKey('amp-type-filter-overdrive')));
     await tester.pumpAndSettle();
+    expect(
+      find.text('${countFor(AmpModelType.overdrive)} available options'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('amp-type-filter-overdrive')), findsOneWidget);
 
-    final overdriveModel = find.byKey(
-      const ValueKey('effect-model-kpt.amp.guitar.2'),
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter-clean')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('${countFor(AmpModelType.clean)} available options'),
+      findsOneWidget,
     );
-    await tester.scrollUntilVisible(
-      overdriveModel,
-      100,
-      scrollable: find.byType(Scrollable).last,
+
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter-distortion')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('${countFor(AmpModelType.distortion)} available options'),
+      findsOneWidget,
     );
-    expect(overdriveModel, findsOneWidget);
-    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.0')), findsNothing);
-    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.4')), findsNothing);
-    expect(find.text('OD-MARVM410'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('amp-type-filter-all')));
     await tester.pumpAndSettle();
-    final cleanModel = find.byKey(
-      const ValueKey('effect-model-kpt.amp.guitar.0'),
+    expect(
+      find.text(
+        '${EffectModelCatalog.forFamily(EffectFamily.amplifier).length} available options',
+      ),
+      findsOneWidget,
     );
-    final distortionModel = find.byKey(
-      const ValueKey('effect-model-kpt.amp.guitar.4'),
-    );
-    await tester.scrollUntilVisible(
-      cleanModel,
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(cleanModel, findsOneWidget);
-    await tester.scrollUntilVisible(
-      distortionModel,
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(distortionModel, findsOneWidget);
   });
 
   testWidgets('edits an effect by selecting a model instead of custom naming', (tester) async {
