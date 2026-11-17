@@ -17,11 +17,11 @@
 | M-EFCS application | Not recorded | Pending exact app version/build and actual device-recognition result |
 | Transport protocol | BLE GATT with BLE-MIDI service and AE40 vendor service | GATT profile captured; MIDI/vendor command semantics remain unknown |
 
-The firmware string is retained exactly as reported: v15. It must not be reinterpreted as 1.5, 0.15, build 15, or another version format.
+The firmware string is retained exactly as reported: v8. It must not be reinterpreted as 0.8, a build number, or another version format.
 
 ## Official firmware and software download evidence
 
-The [TankPedal official download page](https://tankpedal.com/pages/download) currently exposes a KPT Pro firmware download labelled KPT PRO-011. The page does not provide a version-history table or a public mapping between that archive label and a pedal-displayed v15 value. RigCanvas must not assume that v15 equals KPT PRO-011 or recommend flashing that archive to the user's unit.
+The [TankPedal official download page](https://tankpedal.com/pages/download) currently exposes a KPT Pro firmware download labelled KPT PRO-011. The page does not provide a version-history table or a public mapping between that archive label and a pedal-displayed v8 value. RigCanvas must not assume that v15 equals KPT PRO-011 or recommend flashing that archive to the user's unit.
 
 The same official page states that:
 - M-EFCS PC software for Windows/macOS supports TANK-G and TANK-B and connects by USB.
@@ -69,11 +69,11 @@ These remain manual-level claims, not observations from the user's firmware-v8 u
 | Module / category | Manual inventory | RigCanvas treatment |
 |---|---|---|
 | FX | AI Gate, Compress, F Compress, A Boost, B Boost, Boost OD; the manual also describes gate/boost/compressor combinations | Fixed catalogue entries; exact combination and slot rules await device verification |
-| AMP | 60 slots: guitar 1–50, bass 51–60 | Numbered factory slots; no invented amp names |
-| MOD | Nine named entries: Chorus, Phaser, Tremolo, Flanger, Vibrato, Univibe, Autofilter, Wah-Wah, Sense-Wah | All nine detailed-list entries shown; overview/FAQ says eight, so v15 count is pending |
+| AMP | 60 slots in the manual: guitar 1–50, bass 51–60 | 50 owner-provided named entries; 10 additional manual-listed bass slots remain unverified on firmware v8 |
+| MOD | Nine named entries: Chorus, Phaser, Tremolo, Flanger, Vibrato, Univibe, Autofilter, Wah-Wah, Sense-Wah | All nine detailed-list entries shown; overview/FAQ says eight, so firmware-v8 count is pending |
 | DLY | Analog, Duck, dTape, Dual, Lofi | Fixed catalogue entries |
 | REV | Room, Hall, Swell, Spring, Shimmer, Cloud | Fixed catalogue entries |
-| CAB | 60 slots: guitar 1–50, bass 51–60 | Numbered factory slots; no invented cabinet names |
+| CAB | 60 slots in the manual: guitar 1–50, bass 51–60 | 50 owner-provided named entries; 10 additional manual-listed bass slots remain unverified on firmware v8 |
 | EXT | VOL, X-Wah, Funk-Wah, Slide-Wah, Cry-Wah | External-control options; not treated as standalone DSP blocks without device evidence |
 | EQ | Overview mentions a 3-band EQ, but its position in the movable chain is unclear | Separately labelled overview-level option; not assumed to consume an extra module slot |
 
@@ -96,7 +96,7 @@ The `AE40/AE41/AE42` topology resembles a generic BLE UART/data-tunnel layout se
 
 The inspection did not read vendor characteristics, subscribe to notifications, or send GATT writes. Standard Device Information service `180A` was absent, so manufacturer/model/firmware/hardware identity values were not available from the standard allowlist. The BLE peripheral name is not proof of hardware revision or firmware version.
 
-**Next evidence:** obtain the exact M-EFCS app version/build and confirm that it recognizes this physical KPT Pro. Then, if supported, capture a private Bluetooth trace of an ordinary read-only refresh and separately identify any BLE-MIDI performance messages. Do not share serial numbers, personal preset content, or unredacted private captures in the public repository.
+**Next evidence:** record the pedal hardware revision, then—using the owner-reported working M-EFCS v3.10.2311 pairing—capture a private Bluetooth trace of an ordinary read-only refresh and separately identify any BLE-MIDI performance messages. Do not share serial numbers, personal preset content, or unredacted private captures in the public repository.
 
 ## RigCanvas read-only USB discovery
 
@@ -111,7 +111,7 @@ The shared Devices screen collects local USB inventory only:
 
 1. Run RigCanvas → Devices → Scan USB devices while the KPT Pro is connected with a known data-capable USB cable.
 2. Copy the inventory report and identify the KPT Pro record. Do not share device serial numbers.
-3. Record the exact M-EFCS app name, version/build, operating system, and whether its device list actually shows KPT Pro.
+3. Preserve the owner-reported M-EFCS v3.10.2311 version and working KPT Pro pairing as the baseline; record the operating system and app connection steps.
 4. Record the hardware revision printed on the pedal label or shown in its system information, if available.
 5. Compare the physical firmware-v8 unit's AMP/CAB slot counts, MOD count, REV choices, and effect-slot behavior against the manual.
 6. Capture full Windows USB configuration/interface/endpoint descriptors separately if Windows is the test platform.
@@ -121,8 +121,8 @@ The shared Devices screen collects local USB inventory only:
 
 Before enabling a KPT Pro device profile or preset operation, record and verify:
 1. Exact model label and hardware revision.
-2. Firmware version as displayed on the physical unit.
-3. Official editor/app version and actual device-recognition result.
+2. Firmware version as displayed on the physical unit (owner-reported v8; direct RigCanvas readback not available yet).
+3. Official editor/app version and actual device-recognition result (owner-reported M-EFCS v3.10.2311 working with KPT Pro).
 4. USB VID/PID, interface descriptors, endpoints, and OS descriptors.
 5. Wireless transport type and service/profile details, if applicable.
 6. Read-only identity exchange and response format.
