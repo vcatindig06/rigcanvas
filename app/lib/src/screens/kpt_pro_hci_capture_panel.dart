@@ -107,8 +107,20 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
     final notifications =
         selectedEvents.where((event) => event.isNotification).length;
     final reads = selectedEvents
-        .where((event) => event.opcode == 0x0A || event.opcode == 0x0B)
+        .where((event) => const [
+          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+        ].contains(event.opcode))
         .length;
+    final discovery = selectedEvents
+        .where((event) => const [
+          0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
+        ].contains(event.opcode))
+        .length;
+    final attErrors =
+        selectedEvents.where((event) => event.opcode == 0x01).length;
+    final hasCharacteristicMap = selectedSession != null &&
+        (capture?.characteristicDiscoveryBySession[selectedSession.id]?.isNotEmpty ??
+            false);
 
     return Card(
       child: Padding(
@@ -211,9 +223,21 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
                     children: [
                       _CaptureMetric('$writes', 'ATT writes'),
                       _CaptureMetric('$notifications', 'Notifications'),
-                      _CaptureMetric('$reads', 'ATT reads'),
+                      _CaptureMetric('$reads', 'Value reads'),
+                      _CaptureMetric('$discovery', 'GATT discovery'),
+                      _CaptureMetric('$attErrors', 'ATT errors'),
                       _CaptureMetric('${selectedEvents.length}', 'Selected events'),
                     ],
+                  ),
+                if (selectedSession != null &&
+                    discovery > 0 &&
+                    !hasCharacteristicMap)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 9),
+                    child: _CaptureNotice(
+                      color: Color(0xFFFFC078),
+                      text: 'GATT discovery traffic is present, but no successful service/characteristic declaration map was captured. Attribute handles remain unmapped; capture the connection from before discovery or use a fresh GATT discovery session.',
+                    ),
                   ),
                 if (selectedSession != null && !selectedSession.looksLikeKptPro)
                   const Padding(
