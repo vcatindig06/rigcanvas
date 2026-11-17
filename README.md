@@ -24,6 +24,8 @@ Software-only blocks must never be sent to a physical pedal that cannot execute 
 ## Technology direction
 
 - Flutter / Dart for the shared Controller UI.
+- Separate model catalogues for documented KPT PRO factory entries and RigCanvas software-only templates.
+- New Workspace blocks are selected from named catalogue entries, with catalogue source and model ID preserved in preset files.
 - Narrow device gateway abstraction between UI and platform BLE adapters.
 - Scan-only BLE advertisement discovery on Android and Windows.
 - Local-first preset, setlist, and asset persistence in app-private storage.
@@ -51,7 +53,7 @@ For Android, connect a developer-enabled device and run:
     cd app
     flutter run
 
-The Workspace remains local simulation. The Settings destination provides scan-only BLE discovery on Android and Windows; it does not connect to or control a pedal.
+The Workspace remains local simulation. Add block opens a named model catalogue with separate RigCanvas software and manual-documented KPT PRO sections. Settings provides scan-only BLE discovery on Android and Windows; no pedal control is enabled yet.
 
 ## Asset Library
 

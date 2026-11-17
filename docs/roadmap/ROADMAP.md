@@ -23,6 +23,8 @@
 - [x] Show format-specific limitations: NAM structure checks do not confirm model/runtime support; AM2/AMP files remain unverified; WAV metadata checks do not confirm audio-engine or KPT Pro acceptance.
 - [x] Cover both Amp and Cabinet assignment plus wrong-family reference recovery in widget tests.
 - [x] Search, tags, favorites, and setlists.
+- [x] Replace family-only block creation with selectable model catalogues; persist the RigCanvas versus KPT PRO manual source IDs.
+- [x] Lock catalogue-bound block names to their selected model entry instead of creating custom placeholder blocks.
 
 ## Milestone 2 — hardware discovery
 
@@ -81,7 +83,7 @@
 - Expanded the KPT Pro catalogue from available manual evidence: FX, AMP, MOD, DLY, REV, CAB, and EXT families are recorded separately; unsupported individual amp/cab names and parameter ranges are explicitly not invented.
 - Recorded the vendor download-page discrepancy: M-EFCS is listed for TANK-G/TANK-B, while a KPT Pro manual describes M-EFCS control. KPT Pro compatibility remains unverified; Tank-G protocol assumptions are prohibited.
 - User reports the physical KPT Pro is running firmware **v15**. Recorded as a user-reported baseline, not independently device-verified; the official download page does not expose a visible version-to-package mapping in its page text, so v15 must not be equated with the manual mirror's KPTPRO007 label.
-- **Next focus:** run RigCanvas BLE advertisement discovery with the physical KPT PRO on Android and Windows, record its advertised name/identifier/service UUIDs, and establish whether M-EFCS uses BLE or Bluetooth Classic. Capture the exact M-EFCS build. Do not connect to unknown services or implement device writes.
+- **Next focus:** physical pedal testing can happen later. Meanwhile keep the Windows toolchain green, verify catalogue ID round-tripping through preset import/export, and define DSP parameter schemas without claiming audio playback or KPT PRO control.
 
 ## Release gates
 
@@ -101,3 +103,12 @@ A milestone is not complete because the UI exists. It must include:
 - Added a shared Android/Windows BLE advertisement scan workflow. It displays advertised names where supported, peripheral identifiers, RSSI, and advertised service UUIDs.
 - Kept the hardware safety boundary: this milestone does not connect, enumerate GATT characteristics, read/write preset data, or send pedal commands.
 - Next: scan with the physical pedal and compare results with M-EFCS's device selector. If no BLE advertisement appears, investigate Bluetooth Classic or the actual transport used by M-EFCS before changing the adapter.
+
+
+### Review log — 2026-11-17 (continued)
+
+- Added selectable model catalogues across dynamics, drives, amps, cabinets, modulation, delay, and reverb.
+- Separated manual-listed KPT PRO FX/MOD/DLY/REV/EXT entries from RigCanvas software archetypes. Individual KPT PRO AMP/CAB names remain absent until verifiable source data is available.
+- Saved catalogue ID and source with each selected block while preserving older schema-1 preset compatibility.
+- Made catalogue-bound model names read-only; changing a model now requires selecting another named catalogue entry.
+- Added the MSVC 14.51 legacy-coroutine compatibility flag to the Windows CI build step. Final Windows build verification is pending.

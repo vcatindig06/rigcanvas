@@ -52,6 +52,13 @@ Source: [KPT Pro Multi-Effects Pedal manual mirror](https://manuals.plus/ae/1005
 5. Preserve the distinction between a factory model, an imported AM2 capture, and a third-party cabinet IR.
 6. Keep the same catalogue and user-facing workflows on Android and Windows.
 
+## RigCanvas catalogue status
+
+- The app includes the manual-listed KPT PRO FX, MOD, DLY, REV, and EXT names as a separate factory catalogue.
+- The manual reports 50 guitar + 10 bass AMP and CAB models but does not publish their individual names in the reviewed list; those model lists remain unpopulated until verified from M-EFCS/device evidence.
+- Factory catalogue identity is persisted with local presets. This does not mean a model has been selected on or written to the pedal.
+- A separate RigCanvas software catalogue contains original archetype templates. These are not KPT PRO effects and do not render audio until the shared software engine is implemented.
+
 ## Compatibility conclusion
 
 There is a documentation discrepancy:
@@ -84,7 +91,7 @@ Do not assume Tank-G packets, firmware, preset files, or bootloader behavior are
 - **Device firmware:** v15 (reported by the user on 2026-11-17).
 - **Verification status:** user-reported; not independently read from the physical device by RigCanvas.
 - **Firmware package mapping:** unresolved. The official download page provides a KPT PRO firmware-upgrade download but does not publish a visible version mapping in the page text. Do not equate the user's display value `v15` with the separate manual mirror's `KPTPRO007` label without confirming the device's About/System screen and the firmware package metadata.
-- **Next hardware discovery:** identify the exact M-EFCS application version and confirm whether it lists/connects to KPT PRO; then capture USB descriptors from the user's Windows PC. The official TankPedal download page currently labels the listed M-EFCS PC and mobile builds as supporting TANK-G/TANK-B, and says PC uses USB while mobile uses wireless. This support-list limitation must be resolved for KPT PRO before using M-EFCS as a protocol oracle.
+- **Next hardware discovery:** record the exact M-EFCS version/build, then compare RigCanvas BLE scan observations with the device M-EFCS identifies. The user has confirmed the latest installed M-EFCS works with KPT PRO, despite the official download page's generic TANK-G/TANK-B support labels. Do not treat that documentation discrepancy as evidence that the user's confirmed setup is unsupported.
 
 Official vendor source: [TankPedal download page](https://tankpedal.com/en-asia/pages/download). The page separately lists a KPT PRO firmware upgrade and KPT PRO manual, but its M-EFCS PC/mobile support labels name TANK-G and TANK-B. This is a documented discrepancy, not proof of incompatibility.
 

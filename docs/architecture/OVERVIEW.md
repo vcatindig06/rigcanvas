@@ -55,6 +55,13 @@ A preset should eventually contain:
 
 The local software workspace can represent richer graphs than the physical device. Every graph must declare its target: `softwareRack` or a verified hardware capability profile.
 
+## Effect model catalogues
+
+- RigCanvas software templates and KPT PRO manual-listed factory names are distinct sources.
+- Each selected model stores a stable catalogue ID and source in RigCanvas preset JSON; older schema-1 presets without these optional fields remain readable.
+- The reviewed KPT PRO manual reports 50 guitar + 10 bass AMP and CAB models but does not publish individual names there, so RigCanvas does not invent labels.
+- RigCanvas templates are metadata-only until the shared audio engine is implemented. KPT PRO manual entries are not declared firmware-v15 verified and cannot be sent to the device.
+
 ## Persistence
 
 Start local-first. Preset drafts and setlists should work offline. Device synchronization is a separate operation with visible read/write status. SQLite is the current candidate for structured metadata; larger IR/capture assets should remain file-backed and be referenced by checksum.
