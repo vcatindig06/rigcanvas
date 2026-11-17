@@ -132,7 +132,11 @@ class KptBleConnectionSession {
     required this.peerAddressType,
     required this.deviceName,
     required this.startFrame,
+    required this.startTimestampMicros,
     this.endFrame,
+    this.endTimestampMicros,
+    this.disconnectStatus,
+    this.disconnectReason,
     required this.attEventCount,
   });
 
@@ -142,7 +146,11 @@ class KptBleConnectionSession {
   final int peerAddressType;
   final String? deviceName;
   final int startFrame;
+  final int startTimestampMicros;
   final int? endFrame;
+  final int? endTimestampMicros;
+  final int? disconnectStatus;
+  final int? disconnectReason;
   final int attEventCount;
 
   bool get looksLikeKptPro =>
@@ -159,7 +167,16 @@ class KptBleConnectionSession {
     'deviceName': deviceName,
     'peerAddress': maskedAddress,
     'startFrame': startFrame,
+    'startTimeFromCaptureStartMicros': startTimestampMicros,
     'endFrame': endFrame,
+    'endTimeFromCaptureStartMicros': endTimestampMicros,
+    'disconnectStatus': disconnectStatus,
+    'disconnectReason': disconnectReason == null
+        ? null
+        : '0x${disconnectReason!.toRadixString(16).padLeft(2, '0')}',
+    'disconnectReasonName': disconnectReason == null
+        ? null
+        : _hciDisconnectReasonName(disconnectReason!),
     'attEventCount': attEventCount,
     'identifiedAsKptProByAdvertisementName': looksLikeKptPro,
   };
@@ -234,6 +251,7 @@ class KptProHciCapture {
     required this.peripherals,
     required this.attEvents,
     required this.characteristicDiscoveryBySession,
+    required this.descriptorDiscoveryBySession,
     required this.malformedHciPacketCount,
     required this.nonAttAclPacketCount,
   });
@@ -245,6 +263,7 @@ class KptProHciCapture {
   final List<KptBlePeripheralObservation> peripherals;
   final List<KptBleAttEvent> attEvents;
   final Map<int, Map<String, Object?>> characteristicDiscoveryBySession;
+  final Map<int, Map<String, Object?>> descriptorDiscoveryBySession;
   final int malformedHciPacketCount;
   final int nonAttAclPacketCount;
 
@@ -305,6 +324,11 @@ class KptProHciCapture {
           (event) => const [0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11].contains(event.opcode),
         ).length,
         'attErrorResponses': events.where((event) => event.opcode == 0x01).length,
+        'findInformationRequestsAndResponses': events.where(
+          (event) => event.opcode == 0x04 || event.opcode == 0x05,
+        ).length,
+        'descriptorDiscoveryEntries':
+            _descriptorMapForSession(sessionId).length,
         // Retained for compatibility with earlier report readers; this counts
         // only simple Read Request/Read Response pairs, not GATT discovery.
         'readRequestsAndResponses': events.where(
@@ -316,6 +340,7 @@ class KptProHciCapture {
           'Multiple ATT Exchange MTU Requests were captured for one selected connection. Verify the HCI connection lifecycle and raw event sequence before interpreting MTU negotiation.',
       ],
       'characteristicDiscovery': _characteristicMapForSession(sessionId),
+      'descriptorDiscovery': _descriptorMapForSession(sessionId),
       'attEvents': events.map(
         (event) => event.toJson(includePayload: includePayload),
       ).toList(growable: false),
@@ -329,6 +354,9 @@ class KptProHciCapture {
 
   Map<String, Object?> _characteristicMapForSession(int sessionId) =>
       characteristicDiscoveryBySession[sessionId] ?? const {};
+
+  Map<String, Object?> _descriptorMapForSession(int sessionId) =>
+      descriptorDiscoveryBySession[sessionId] ?? const {};
 }
 
 class _BtsnoopParserState {
@@ -361,7 +389,7 @@ class _BtsnoopParserState {
         _consumeAcl(packet, frameNumber, relativeTimestampMicros, direction);
         break;
       case 0x04:
-        _consumeEvent(packet, frameNumber);
+        _consumeEvent(packet, frameNumber, relativeTimestampMicros);
         break;
       default:
         // HCI commands and unrelated packet types are intentionally not
@@ -370,7 +398,11 @@ class _BtsnoopParserState {
     }
   }
 
-  void _consumeEvent(Uint8List packet, int frameNumber) {
+  void _consumeEvent(
+    Uint8List packet,
+    int frameNumber,
+    int relativeTimestampMicros,
+  ) {
     if (packet.length < 3 || packet[2] != packet.length - 3) {
       malformedHciPacketCount++;
       return;
@@ -381,10 +413,19 @@ class _BtsnoopParserState {
         malformedHciPacketCount++;
         return;
       }
+      final status = packet[3];
+      if (status != 0) return;
       final handle = _u16le(packet, 4) & 0x0FFF;
+      final reason = packet[6];
       final session = _activeSessions.remove(handle);
-      if (session != null) session.endFrame = frameNumber;
+      if (session != null) {
+        session.endFrame = frameNumber;
+        session.endTimestampMicros = relativeTimestampMicros;
+        session.disconnectStatus = status;
+        session.disconnectReason = reason;
+      }
       _attributeTables.remove(handle);
+      _clearPendingL2capForHandle(handle);
       return;
     }
     if (eventCode != 0x3E || packet.length < 5) return;
@@ -393,7 +434,7 @@ class _BtsnoopParserState {
     if (subevent == 0x02) {
       _consumeAdvertisingReports(packet);
     } else if (subevent == 0x01 || subevent == 0x0A) {
-      _consumeConnectionComplete(packet, frameNumber);
+      _consumeConnectionComplete(packet, frameNumber, relativeTimestampMicros);
     }
   }
 
@@ -431,7 +472,11 @@ class _BtsnoopParserState {
     }
   }
 
-  void _consumeConnectionComplete(Uint8List packet, int frameNumber) {
+  void _consumeConnectionComplete(
+    Uint8List packet,
+    int frameNumber,
+    int relativeTimestampMicros,
+  ) {
     if (packet.length < 15) {
       malformedHciPacketCount++;
       return;
@@ -443,7 +488,11 @@ class _BtsnoopParserState {
     final address = _addressFromLittleEndian(packet, 9);
     final observation = _peripherals[address];
     final oldSession = _activeSessions.remove(handle);
-    if (oldSession != null) oldSession.endFrame = frameNumber;
+    if (oldSession != null) {
+      oldSession.endFrame = frameNumber;
+      oldSession.endTimestampMicros = relativeTimestampMicros;
+    }
+    _clearPendingL2capForHandle(handle);
     final session = _MutableSession(
       id: _sessions.length,
       connectionHandle: handle,
@@ -451,12 +500,18 @@ class _BtsnoopParserState {
       peerAddressType: addressType,
       deviceName: observation?.name,
       startFrame: frameNumber,
+      startTimestampMicros: relativeTimestampMicros,
     );
     _sessions.add(session);
     final table = _ConnectionAttributeTable();
     _attributeTables[handle] = table;
     _sessionAttributeTables[session.id] = table;
     _activeSessions[handle] = session;
+  }
+
+  void _clearPendingL2capForHandle(int handle) {
+    final prefix = '$handle:';
+    _pendingL2cap.removeWhere((key, _) => key.startsWith(prefix));
   }
 
   void _consumeAcl(
@@ -543,6 +598,8 @@ class _BtsnoopParserState {
       table.readServiceDeclarations(pdu);
     } else if (opcode == 0x09) {
       table.readCharacteristicDeclarations(pdu);
+    } else if (opcode == 0x05) {
+      table.readFindInformationResponse(pdu);
     }
     final attributeHandle = switch (opcode) {
       0x12 || 0x52 || 0x1B || 0x1D || 0x0A || 0x0C || 0x0E || 0x16 =>
@@ -586,6 +643,10 @@ class _BtsnoopParserState {
       for (final session in sessions)
         session.id: _sessionAttributeTables[session.id]?.toJson() ?? const {},
     };
+    final descriptorDiscoveryBySession = <int, Map<String, Object?>>{
+      for (final session in sessions)
+        session.id: _sessionAttributeTables[session.id]?.descriptorJson() ?? const {},
+    };
     final peripherals = _peripherals.values.toList(growable: false)
       ..sort((a, b) => (a.name ?? a.address).compareTo(b.name ?? b.address));
     return KptProHciCapture(
@@ -597,6 +658,9 @@ class _BtsnoopParserState {
       attEvents: List.unmodifiable(_attEvents),
       characteristicDiscoveryBySession: Map.unmodifiable(
         characteristicDiscoveryBySession,
+      ),
+      descriptorDiscoveryBySession: Map.unmodifiable(
+        descriptorDiscoveryBySession,
       ),
       malformedHciPacketCount: malformedHciPacketCount,
       nonAttAclPacketCount: nonAttAclPacketCount,
@@ -662,6 +726,30 @@ class _GattCharacteristicMetadata {
 class _ConnectionAttributeTable {
   final List<_GattServiceRange> services = [];
   final Map<int, _GattCharacteristicMetadata> characteristicsByValueHandle = {};
+  final Map<int, String> attributesByHandle = {};
+
+  /// ATT Find Information Response. Entries identify attribute UUIDs but are
+  /// only classified as descriptors when their handles fall after a known
+  /// characteristic value and before the next characteristic/service boundary.
+  void readFindInformationResponse(Uint8List pdu) {
+    if (pdu.length < 2) return;
+    final format = pdu[1];
+    final entryLength = switch (format) {
+      0x01 => 4,
+      0x02 => 18,
+      _ => 0,
+    };
+    if (entryLength == 0 || (pdu.length - 2) % entryLength != 0) return;
+    var offset = 2;
+    while (offset + entryLength <= pdu.length) {
+      final handle = _u16le(pdu, offset);
+      final uuid = format == 0x01
+          ? _uuid16(_u16le(pdu, offset + 2))
+          : _uuid128LittleEndian(pdu, offset + 2);
+      if (handle != 0) attributesByHandle[handle] = uuid;
+      offset += entryLength;
+    }
+  }
 
   /// ATT Read By Group Type Response for primary/secondary service declarations.
   /// Entries are 6 bytes for 16-bit UUIDs or 20 bytes for 128-bit UUIDs.
@@ -724,6 +812,50 @@ class _ConnectionAttributeTable {
     }
     return Map.unmodifiable(result);
   }
+
+  Map<String, Object?> descriptorJson() {
+    final result = <String, Object?>{};
+    final characteristics = characteristicsByValueHandle.values.toList()
+      ..sort((a, b) => a.declarationHandle.compareTo(b.declarationHandle));
+    final attributes = attributesByHandle.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    for (final attribute in attributes) {
+      _GattCharacteristicMetadata? parent;
+      for (final characteristic in characteristics) {
+        if (attribute.key <= characteristic.valueHandle) continue;
+        final service = services.where((item) =>
+            characteristic.declarationHandle >= item.startHandle &&
+            characteristic.declarationHandle <= item.endHandle).firstOrNull;
+        final nextCharacteristic = characteristics.where((other) {
+          if (other.declarationHandle <= characteristic.declarationHandle) {
+            return false;
+          }
+          if (service == null) return true;
+          return other.declarationHandle >= service.startHandle &&
+              other.declarationHandle <= service.endHandle;
+        }).firstOrNull;
+        final endHandle = nextCharacteristic != null
+            ? nextCharacteristic.declarationHandle - 1
+            : service?.endHandle ?? 0xFFFF;
+        if (attribute.key <= endHandle) {
+          parent = characteristic;
+          break;
+        }
+      }
+      if (parent == null) continue;
+      final uuid = attribute.value;
+      result['0x${attribute.key.toRadixString(16).padLeft(4, '0')}'] = {
+        'uuid': uuid,
+        'descriptorType': _gattDescriptorTypeName(uuid),
+        'serviceUuid': parent.serviceUuid(services),
+        'characteristicValueHandle':
+            '0x${parent.valueHandle.toRadixString(16).padLeft(4, '0')}',
+        'characteristicUuid': parent.uuid,
+      };
+    }
+    return Map.unmodifiable(result);
+  }
 }
 
 class _MutableSession {
@@ -734,6 +866,7 @@ class _MutableSession {
     required this.peerAddressType,
     required this.deviceName,
     required this.startFrame,
+    required this.startTimestampMicros,
   });
 
   final int id;
@@ -742,7 +875,11 @@ class _MutableSession {
   final int peerAddressType;
   final String? deviceName;
   final int startFrame;
+  final int startTimestampMicros;
   int? endFrame;
+  int? endTimestampMicros;
+  int? disconnectStatus;
+  int? disconnectReason;
   int attEventCount = 0;
 
   KptBleConnectionSession freeze() => KptBleConnectionSession(
@@ -752,7 +889,11 @@ class _MutableSession {
     peerAddressType: peerAddressType,
     deviceName: deviceName,
     startFrame: startFrame,
+    startTimestampMicros: startTimestampMicros,
     endFrame: endFrame,
+    endTimestampMicros: endTimestampMicros,
+    disconnectStatus: disconnectStatus,
+    disconnectReason: disconnectReason,
     attEventCount: attEventCount,
   );
 }
@@ -800,6 +941,58 @@ Map<String, Object?>? _attProtocolDetails(Uint8List pdu) {
   if (pdu.isEmpty) return null;
   final opcode = pdu[0];
   switch (opcode) {
+    case 0x04: // Find Information Request.
+      if (pdu.length != 5) {
+        return {
+          'malformedPdu': true,
+          'expectedLength': 5,
+          'actualLength': pdu.length,
+        };
+      }
+      return {
+        'startHandle': '0x${_u16le(pdu, 1).toRadixString(16).padLeft(4, '0')}',
+        'endHandle': '0x${_u16le(pdu, 3).toRadixString(16).padLeft(4, '0')}',
+      };
+    case 0x05: // Find Information Response.
+      if (pdu.length < 2) {
+        return {
+          'malformedPdu': true,
+          'expectedMinimumLength': 2,
+          'actualLength': pdu.length,
+        };
+      }
+      final format = pdu[1];
+      final entryLength = switch (format) {
+        0x01 => 4,
+        0x02 => 18,
+        _ => 0,
+      };
+      if (entryLength == 0 || (pdu.length - 2) % entryLength != 0) {
+        return {
+          'malformedPdu': true,
+          'format': format,
+          'actualLength': pdu.length,
+        };
+      }
+      final entries = <Map<String, Object?>>[];
+      var offset = 2;
+      while (offset + entryLength <= pdu.length) {
+        final handle = _u16le(pdu, offset);
+        final uuid = format == 0x01
+            ? _uuid16(_u16le(pdu, offset + 2))
+            : _uuid128LittleEndian(pdu, offset + 2);
+        entries.add({
+          'handle': '0x${handle.toRadixString(16).padLeft(4, '0')}',
+          'uuid': uuid,
+          'descriptorType': _gattDescriptorTypeName(uuid),
+        });
+        offset += entryLength;
+      }
+      return {
+        'format': format,
+        'entryCount': entries.length,
+        'entries': entries,
+      };
     case 0x01: // Error Response.
       if (pdu.length < 5) {
         return {
@@ -850,6 +1043,27 @@ Map<String, Object?>? _attProtocolDetails(Uint8List pdu) {
       return null;
   }
 }
+
+String _gattDescriptorTypeName(String uuid) => switch (uuid.toLowerCase()) {
+  '00002900-0000-1000-8000-00805f9b34fb' => 'Characteristic Extended Properties',
+  '00002901-0000-1000-8000-00805f9b34fb' => 'Characteristic User Description',
+  '00002902-0000-1000-8000-00805f9b34fb' => 'Client Characteristic Configuration',
+  '00002903-0000-1000-8000-00805f9b34fb' => 'Server Characteristic Configuration',
+  '00002904-0000-1000-8000-00805f9b34fb' => 'Characteristic Presentation Format',
+  '00002905-0000-1000-8000-00805f9b34fb' => 'Characteristic Aggregate Format',
+  _ => 'Unknown or vendor-specific descriptor',
+};
+
+String _hciDisconnectReasonName(int reason) => switch (reason) {
+  0x08 => 'Connection Timeout',
+  0x13 => 'Remote User Terminated Connection',
+  0x14 => 'Remote Device Terminated Connection due to Low Resources',
+  0x15 => 'Remote Device Terminated Connection due to Power Off',
+  0x16 => 'Connection Terminated by Local Host',
+  0x22 => 'LMP Response Timeout',
+  0x3B => 'Unacceptable Connection Parameters',
+  _ => 'Unknown or other HCI disconnect reason',
+};
 
 String _attErrorName(int code) => switch (code) {
   0x01 => 'Invalid Handle',
