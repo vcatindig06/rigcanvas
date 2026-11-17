@@ -126,12 +126,12 @@ void main() {
 }
 
 Uint8List _capture(
-  List<Uint8List> records, {
+  List<_BtsnoopRecord> records, {
   int dataLinkType = 1002,
 }) {
   final length = 16 + records.fold<int>(
     0,
-    (sum, record) => sum + 24 + record.length,
+    (sum, record) => sum + 24 + record.packet.length,
   );
   final bytes = Uint8List(length);
   const magic = [0x62, 0x74, 0x73, 0x6E, 0x6F, 0x6F, 0x70, 0x00];
@@ -141,12 +141,13 @@ Uint8List _capture(
   data.setUint32(12, dataLinkType, Endian.big);
   var offset = 16;
   for (var index = 0; index < records.length; index++) {
-    final packet = records[index];
+    final record = records[index];
+    final packet = record.packet;
     data.setUint32(offset, packet.length, Endian.big);
     data.setUint32(offset + 4, packet.length, Endian.big);
-    data.setUint32(offset + 8, index == 0 ? 1 : 0, Endian.big);
+    data.setUint32(offset + 8, record.flags, Endian.big);
     data.setUint32(offset + 12, 0, Endian.big);
-    data.setUint64(offset + 16, 1000 + index * 100, Endian.big);
+    data.setUint64(offset + 16, record.timestamp, Endian.big);
     offset += 24;
     bytes.setRange(offset, offset + packet.length, packet);
     offset += packet.length;
@@ -154,18 +155,18 @@ Uint8List _capture(
   return bytes;
 }
 
-Uint8List _record(
+class _BtsnoopRecord {
+  const _BtsnoopRecord(this.packet, this.flags, this.timestamp);
+  final Uint8List packet;
+  final int flags;
+  final int timestamp;
+}
+
+_BtsnoopRecord _record(
   List<int> packet, {
   required int flags,
   required int timestamp,
-}) {
-  final unused = timestamp;
-  final result = Uint8List.fromList(packet);
-  // The timestamp parameter is retained to make the synthetic sequence easy
-  // to read; _capture writes monotonically increasing BTSnoop timestamps.
-  if (unused < 0) throw ArgumentError.value(timestamp, 'timestamp');
-  return result;
-}
+}) => _BtsnoopRecord(Uint8List.fromList(packet), flags, timestamp);
 
 Uint8List _advertisement() {
   final name = utf8.encode('KPTPRO_BLE');
