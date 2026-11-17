@@ -6,6 +6,7 @@ import 'package:rigcanvas_usb_inventory/rigcanvas_usb_inventory.dart';
 
 import '../device/kpt_pro_ble_gateway.dart';
 import 'kpt_pro_connection_panel.dart';
+import 'kpt_pro_hci_capture_panel.dart';
 
 class DeviceDiscoveryScreen extends StatefulWidget {
   const DeviceDiscoveryScreen({
@@ -88,6 +89,8 @@ class _DeviceDiscoveryScreenState extends State<DeviceDiscoveryScreen> {
               ),
               const SizedBox(height: 18),
               KptProConnectionPanel(gateway: widget.hardwareGateway),
+              const SizedBox(height: 14),
+              const KptProHciCapturePanel(),
               const SizedBox(height: 14),
               Container(
                 width: double.infinity,
