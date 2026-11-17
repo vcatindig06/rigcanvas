@@ -59,6 +59,7 @@
 
 - [x] Scan and connect to the physical BLE peripheral; capture its GATT service/characteristic UUIDs and properties without sending writes.
 - [x] Identify the standard BLE-MIDI service/characteristic UUID pair from the physical report.
+- [x] Add a local Android BTSnoop HCI/H4 importer with ATT event decoding, LE connection-session filtering, address masking, and payload-off-by-default export.
 - [ ] Capture and document KPT Pro-specific MIDI messages or vendor-tunnel framing from an authorized official-app trace; do not infer commands from UUIDs alone.
 - [x] Record the owner's M-EFCS v3.10.2311 version and reported working pairing with KPT Pro.
 
@@ -128,7 +129,10 @@
 - Added visible AMP type filter chips and tests covering All / CL / OD / DS result counts.
 - Recorded public M-EFCS App Store release-note evidence for KPT Pro A2 support in the 3.10 series, without treating that as a published BLE command protocol.
 - GitHub Actions run [#125](https://github.com/vcatindig06/rigcanvas/actions/runs/44069719859) passed Flutter analysis, all 90 automated tests, Android APK build/package verification, and Windows desktop build. Both artifacts uploaded successfully.
-- **Next focus:** continue read-only KPT Pro protocol investigation using the exact v8 / M-EFCS v3.10.2311 baseline. Capture an authorized M-EFCS interaction trace before implementing any proprietary parameter or preset commands.
+- Added the offline Android HCI/BTSnoop capture importer and ATT analyzer to Devices. It filters by one LE connection, identifies the `KPTPRO_BLE` advertised name when present, maps characteristic declaration UUIDs, masks peer addresses, and excludes payload bytes by default.
+- Added unit coverage for advertising/connection correlation, characteristic UUID mapping, ATT writes/notifications, connection filtering, payload redaction, and ACL fragmentation.
+- Documented the Samsung Android 12 HCI snoop capture process. Waiting for the owner to import a real M-EFCS v3.10.2311 / KPT Pro firmware-v8 capture; no physical pedal writes are implemented.
+- **Next focus:** analyze the private Android HCI snoop capture from M-EFCS v3.10.2311 / KPT Pro firmware v8. Capture a normal connection and preset-list refresh first; only after that read exchange is understood should a controlled test-preset parameter change be considered.
 
 ## Release gates
 
