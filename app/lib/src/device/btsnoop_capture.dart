@@ -426,8 +426,6 @@ class _BtsnoopParserState {
     final observation = _peripherals[address];
     final oldSession = _activeSessions.remove(handle);
     if (oldSession != null) oldSession.endFrame = frameNumber;
-    _attributeTables[handle] = _ConnectionAttributeTable();
-
     final session = _MutableSession(
       id: _sessions.length,
       connectionHandle: handle,
