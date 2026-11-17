@@ -40,6 +40,8 @@ The owner supplied a filtered BTSnoop report associated with the M-EFCS / KPT Pr
 
 The trace shows repeated phone Write Commands to handle `0x0062`, pedal Handle Value Notifications from `0x0064`, and one acknowledged Write Request to `0x0065`. It also shows a Read By Type Request followed by an ATT Error Response and two MTU request/response pairs. ATT payload bytes were excluded and the characteristic-discovery map was empty.
 
+The two MTU request/response pairs are an unresolved anomaly: Bluetooth Core ATT §3.4.2.1 says the client sends the MTU request only once per connection. This needs raw timestamp and connection-lifecycle review; it is not evidence of a KPT Pro defect by itself. [Bluetooth Core ATT §3.4.2](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-61/out/en/host/attribute-protocol--att-.html).
+
 These handle patterns are consistent with the previously inspected AE41 write-without-response and AE42 notify roles, but they do not prove the mapping in this connection. The `0x0065` request may be a CCCD write, but its value was not included. Application command framing, preset-list semantics, firmware identity, and safe write behavior remain unverified.
 
 See [the detailed trace analysis](../device-discovery/TRACE_ANALYSIS_2026-11-17.md). RigCanvas has added privacy-safe metadata decoding for Read By Type queries, ATT errors, and MTU values. The next required evidence is a short selected-connection payload-enabled trace of M-EFCS's normal list/current-preset refresh, after reviewing the privacy implications.
