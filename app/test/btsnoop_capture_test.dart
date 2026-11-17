@@ -123,6 +123,8 @@ void main() {
         ]), flags: 1, timestamp: 1300),
         _record(_aclPacket([0x02, 0xF7, 0x00]), flags: 0, timestamp: 1400),
         _record(_aclPacket([0x03, 0xF7, 0x00]), flags: 1, timestamp: 1500),
+        _record(_aclPacket([0x02, 0xF7, 0x00]), flags: 0, timestamp: 1600),
+        _record(_aclPacket([0x03, 0xF7, 0x00]), flags: 1, timestamp: 1700),
       ]));
 
       final session = capture.connectionSessions.single;
@@ -156,6 +158,10 @@ void main() {
       expect(summary['gattDiscoveryRequestsAndResponses'], 1);
       expect(summary['attErrorResponses'], 1);
       expect(summary['readRequestsAndResponses'], 0);
+      expect(summary['mtuExchangeRequests'], 2);
+      expect(summary['mtuExchangeResponses'], 2);
+      expect(report['protocolWarnings'], hasLength(1));
+      expect((report['protocolWarnings'] as List).single, contains('Multiple ATT Exchange MTU Requests'));
       expect(request.containsKey('attPduHex'), isFalse);
       expect(error.containsKey('valueHex'), isFalse);
     });
