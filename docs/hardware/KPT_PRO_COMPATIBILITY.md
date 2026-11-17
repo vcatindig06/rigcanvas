@@ -1,6 +1,21 @@
 # KPT Pro compatibility notes
 
-**Status: research in progress. Hardware protocol and firmware-specific support are not verified.**
+**Status:** KPT Pro firmware v8 and M-EFCS v3.10.2311 have been reported by the user. The user also reports that M-EFCS works with the KPT Pro. RigCanvas has not yet independently enumerated the device or verified its communication protocol.
+
+## User-reported test baseline — 2026-11-17
+
+| Item | Value | Evidence |
+|---|---|---|
+| Device | KPT Pro | User-reported |
+| Firmware | v8 | User-reported |
+| Official M-EFCS build | v3.10.2311 | User-reported |
+| Official M-EFCS operation | Works with KPT Pro | User-reported; not a RigCanvas protocol trace |
+| Hardware revision | Not recorded | Unknown |
+| USB VID/PID | Not captured | Unknown |
+| USB interfaces/endpoints | Not captured | Unknown |
+| Wireless transport | Not identified | Unknown |
+
+These values establish the baseline for further testing; they are not a claim that RigCanvas can connect to or control the pedal.
 
 ## Documentation findings
 
@@ -23,7 +38,7 @@ There is a documentation discrepancy:
 - The KPT Pro manual describes M-EFCS control for KPT Pro.
 - The vendor's general download page labels its M-EFCS binaries as supporting Tank-G and Tank-B.
 
-This does **not** prove that KPT Pro is incompatible with M-EFCS. It means the exact KPT Pro firmware, M-EFCS build, and transport protocol must be identified before writing a KPT Pro adapter.
+The user's successful M-EFCS v3.10.2311 / KPT Pro firmware v8 test is positive device-specific evidence that the official application works with this setup. It does **not** establish the USB message format, Bluetooth transport, public protocol availability, or permission to reuse Tank-G/Tank-B packet definitions.
 
 Do not assume Tank-G packets, firmware, preset files, or bootloader behavior are compatible with KPT Pro.
 
@@ -33,7 +48,7 @@ Do not assume Tank-G packets, firmware, preset files, or bootloader behavior are
 |---|---|---|
 | USB-C | USB audio / PC connection described | Manual-level evidence |
 | Wireless | Mobile app connection described | Transport still unknown |
-| M-EFCS editor | Computer control described in KPT Pro manual | Needs app/version confirmation |
+| M-EFCS editor | User reports M-EFCS v3.10.2311 works with KPT Pro | User-reported device test |
 | Presets | 120 slots / 40 banks × 3 | Manual-level evidence |
 | Signal chain | Seven effect modules can be selected and reordered | Manual-level evidence |
 | AM2 | KPT Pro manual describes importing AM2 captures | Manual-level evidence |
@@ -54,4 +69,4 @@ Before enabling a KPT Pro device profile, record and verify:
 7. A known-good preset export/import format and checksum behavior.
 8. Whether read and write operations are distinct and whether writes can be safely verified.
 
-A capability is not supported until it is tested on the physical KPT Pro and documented with firmware/app versions.
+A capability is not supported until it is tested on the physical KPT Pro and documented with firmware/app versions and repeatable evidence. See the [USB descriptor capture checklist](../device-discovery/USB_DESCRIPTOR_CAPTURE.md) for the next safe collection step.
