@@ -62,6 +62,9 @@ Observed handles and traffic:
 - An ATT Read By Type Request (`0x08`) is followed by an ATT Error Response (`0x01`).
 - Two Exchange MTU Request/Response pairs are visible.
 
+**MTU-exchange anomaly:** the report lists two client-to-server Exchange MTU Requests and two responses for the same selected connection. Bluetooth Core ATT §3.4.2.1 says the client sends ATT_EXCHANGE_MTU_REQ only once during a connection, and §3.4.2.2 defines the server response. This makes the second pair worth checking against raw timestamps and the HCI connection lifecycle. Do not assume it is valid renegotiation or a pedal defect: the payload-free report cannot distinguish repeated stack traffic, an underlying session/bearer boundary issue, or a capture/parser artifact. See the [Bluetooth Core Specification, Attribute Protocol §3.4.2](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-61/out/en/host/attribute-protocol--att-.html).
+
+
 A prior separate GATT inspection found AE40 / AE41 (write-without-response) / AE42 (notify). The new handles and directions are consistent with those roles, but this trace has no successful service/characteristic declaration responses and therefore does not prove that `0x0062 = AE41`, `0x0064 = AE42`, or `0x0065` is the notification CCCD. Treat these as hypotheses only.
 
 The empty characteristic map is expected when the selected trace contains no successful Read By Group Type Response (`0x11`) or Read By Type Response (`0x09`) declarations. The visible Read By Type Request and Error Response are insufficient to build the map. The legacy summary's `readRequestsAndResponses: 0` counts simple Read Request/Response traffic, not GATT discovery requests; the analyzer now reports discovery, attribute-value reads, and ATT errors separately.
