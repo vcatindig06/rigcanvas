@@ -48,7 +48,8 @@
 - [x] Remove free-text custom block naming; add and edit blocks through the same model picker.
 - [x] Add unit, migration, controller and cross-platform widget tests for catalog selection and source separation (63 tests passed).
 - [x] Pass Android installable APK and Windows release CI builds for the same revision.
-- [ ] Verify the numbered KPT Pro AMP/CAB slots and exact MOD/REV choices against the user's physical pedal, firmware and M-EFCS.
+- [x] Record the owner's 50 named AMP and 50 named CAB entries for firmware v8; show CL/OD/DS as structured amp types.
+- [ ] Verify the exact AMP/CAB order and the MOD/REV choices on the physical v8 pedal.
 - [ ] Manually smoke-test model selection and preset migration on Android and Windows.
 
 **Important boundary:** KPT Pro factory AMP/CAB names are not published in the accessible manual copy. Show numbered slots instead of guessed names. RigCanvas Library entries are generic archetypes, not clones or licensed manufacturer algorithms. The picker does not mean audio rendering or KPT Pro protocol support exists.
@@ -58,17 +59,18 @@
 - [x] Scan and connect to the physical BLE peripheral; capture its GATT service/characteristic UUIDs and properties without sending writes.
 - [x] Identify the standard BLE-MIDI service/characteristic UUID pair from the physical report.
 - [ ] Capture and document KPT Pro-specific MIDI messages or vendor-tunnel framing from an authorized official-app trace; do not infer commands from UUIDs alone.
-- [ ] Confirm the exact M-EFCS version/build and whether it recognizes the KPT Pro.
+- [x] Record the owner's M-EFCS v3.10.2311 version and reported working pairing with KPT Pro.
 
 
-- [x] Record the owner's reported KPT Pro firmware display as v15 (reported 2026-11-17; direct device verification remains pending).
+- [x] Record the owner's reported KPT Pro firmware display as v8 and M-EFCS v3.10.2311 (reported 2026-11-17; firmware is not independently read by RigCanvas).
 - [x] Add a shared Devices screen for Android and Windows with read-only USB inventory.
 - [x] Add Android USB Host enumeration for attached device VID/PID, interfaces, and endpoints without opening the USB device or transferring data.
 - [x] Add Windows SetupAPI enumeration for present USB Plug-and-Play names, manufacturer, class, VID, and PID; full Windows interface/endpoint descriptor capture remains outstanding.
 - [ ] Identify the physical KPT Pro record from a scan and verify the VID/PID on the user's unit.
 - [ ] Record hardware revision and exact M-EFCS app version/build; confirm whether the app actually recognizes KPT Pro.
 - [ ] Capture full Windows USB configuration/interface/endpoint descriptors and identify the wireless transport/profile.
-- [ ] Compare the physical firmware-v15 unit's AMP/CAB slot counts, MOD/REV inventory, and module-slot behavior against the manual.
+- [x] Record the 50 named AMP and 50 named CAB entries supplied from the physical firmware-v8 menu.
+- [ ] Verify AMP/CAB ordering and compare the physical firmware-v8 unit's MOD/REV inventory and module-slot behavior against the manual.
 - [ ] Document verified protocol evidence and a capability matrix before implementing any protocol exchange.
 
 ## Milestone 3 — KPT Pro read-only editor
@@ -120,10 +122,12 @@
 
 ### Review log — 2026-11-17
 
-- Recorded the user's KPT Pro firmware display as v15 without equating it to the vendor's KPT PRO-011 downloadable archive; the official download page does not publish a version mapping.
-- Clarified the vendor documentation boundary: the current download page lists M-EFCS for TANK-G/TANK-B, while the KPT Pro manual describes PC/mobile software support. KPT Pro recognition by the current M-EFCS apps remains unverified.
+- Recorded the user's KPT Pro firmware display as v8 without equating it to the vendor's KPT PRO-011 downloadable archive; the official download page does not publish a version mapping.
+- Recorded M-EFCS v3.10.2311 as the owner's installed version and the owner's report that M-EFCS works with KPT Pro; official-device command/protocol behavior remains unverified.
 - Added a shared Devices screen and native read-only USB inventory adapters. Android reports device/interface/endpoint descriptors; Windows currently reports USB PnP names and VID/PID only.
-- **Next required evidence:** run the inventory with the KPT Pro connected and provide its copied report plus the exact M-EFCS app version and recognition result. Do not send device writes or flash firmware.
+- Recorded the physical BLE GATT report, including BLE-MIDI and the AE40 vendor service, without vendor reads or writes.
+- Added the owner's exact 50 AMP / 50 CAB menu names and structured CL/OD/DS amp type metadata.
+- **Next required evidence:** confirm model order on the physical pedal and capture an authorized official-app trace before implementing any protocol packet. Do not send guessed device writes or flash firmware.
 
 ## Release gates
 
