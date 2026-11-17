@@ -36,6 +36,7 @@ The importer:
 - Correlates ATT attribute handles with discovered 16-bit or 128-bit service and characteristic UUIDs, including characteristic property bits, within each connection handle.
 - Filters an export to one selected connection, masks the BLE peer address, and excludes all other connections.
 - Keeps ATT payload bytes off by default because they may contain user preset or proprietary data.
+- Preserves the complete discovered characteristic table for the selected connection, including declarations with no observed read/write/notify payload; the table remains available after disconnect.
 - The service/characteristic map is evidence from the captured GATT discovery exchange; it does not decode proprietary command payload semantics.
 
 The importer never replays a captured packet and never writes to the pedal. It currently accepts BTSnoop v1 / HCI UART H4 data-link type 1002. See [Android HCI capture guide](ANDROID_HCI_CAPTURE_GUIDE.md) for the Samsung Android 12 workflow.
