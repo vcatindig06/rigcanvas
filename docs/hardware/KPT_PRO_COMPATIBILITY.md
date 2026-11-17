@@ -69,6 +69,25 @@ Do not assume Tank-G packets, firmware, preset files, or bootloader behavior are
 | Arbitrary parallel routing | Not established | Unknown |
 | Native scene snapshots | Not established by sources reviewed | Unknown |
 
+
+
+## Test device baseline — user reported
+
+- **Device firmware:** v15 (reported by the user on 2026-11-17).
+- **Verification status:** user-reported; not independently read from the physical device by RigCanvas.
+- **Firmware package mapping:** unresolved. The official download page provides a KPT PRO firmware-upgrade download but does not publish a visible version mapping in the page text. Do not equate the user's display value `v15` with the separate manual mirror's `KPTPRO007` label without confirming the device's About/System screen and the firmware package metadata.
+- **Next hardware discovery:** identify the exact M-EFCS application version and confirm whether it lists/connects to KPT PRO; then capture USB descriptors from the user's Windows PC. The official TankPedal download page currently labels the listed M-EFCS PC and mobile builds as supporting TANK-G/TANK-B, and says PC uses USB while mobile uses wireless. This support-list limitation must be resolved for KPT PRO before using M-EFCS as a protocol oracle.
+
+Official vendor source: [TankPedal download page](https://tankpedal.com/en-asia/pages/download). The page separately lists a KPT PRO firmware upgrade and KPT PRO manual, but its M-EFCS PC/mobile support labels name TANK-G and TANK-B. This is a documented discrepancy, not proof of incompatibility.
+
+### Discovery task order for firmware v15
+
+1. On the pedal, photograph or transcribe the complete firmware/version screen (including any suffix/build identifier).
+2. Record the exact M-EFCS version installed and whether KPT PRO appears in its device selector.
+3. If M-EFCS recognizes the pedal, first perform a read-only connection and record the device identity; do not initiate firmware update, factory reset, preset write, or import.
+4. On Windows, capture USB VID/PID, interface descriptors, endpoints, and device strings while connecting the powered-on pedal.
+5. Compare observations only against this same firmware v15 device. Treat other KPT Pro revisions and Tank-G/Tank-B as separate profiles until proven compatible.
+
 ## Hardware compatibility gate
 
 Before enabling a KPT Pro device profile, record and verify:
