@@ -45,6 +45,31 @@ The importer never replays a captured packet and never writes to the pedal. It c
 
 **No command implementation is authorized from the GATT property list alone.** First compare the ATT sequence for discovery, notifications, and read/list refresh; identify characteristic UUIDs from the GATT discovery records; then document actual payload framing and any acknowledgement behavior. Do not replay traffic.
 
+## Phase 2.1 — first owner-provided M-EFCS ATT trace (2026-11-17)
+
+The owner supplied a filtered BTSnoop v1 / HCI UART-H4 (data-link type 1002) report for a selected BLE connection, handle `0x0200`, spanning frames 350–1,194. It contains 330 ATT events from a 1,195-packet capture. The advertisement name was absent and the report did not identify the connection as KPT Pro by name; this remains an owner-associated pedal candidate session, not independent device identity evidence.
+
+Observed report totals:
+- 158 ATT Write Requests/Commands.
+- 165 Handle Value Notifications/Indications.
+- Zero simple attribute-value Read Requests/Responses in the legacy summary.
+- Empty characteristic-discovery map.
+
+Observed handles and traffic:
+- Phone-to-pedal Write Commands (ATT opcode `0x52`) repeatedly target handle `0x0062`.
+- Pedal-to-phone Handle Value Notifications (ATT opcode `0x1B`) repeatedly target handle `0x0064`.
+- One acknowledged Write Request to handle `0x0065` is followed by a Write Response.
+- An ATT Read By Type Request (`0x08`) is followed by an ATT Error Response (`0x01`).
+- Two Exchange MTU Request/Response pairs are visible.
+
+A prior separate GATT inspection found AE40 / AE41 (write-without-response) / AE42 (notify). The new handles and directions are consistent with those roles, but this trace has no successful service/characteristic declaration responses and therefore does not prove that `0x0062 = AE41`, `0x0064 = AE42`, or `0x0065` is the notification CCCD. Treat these as hypotheses only.
+
+The empty characteristic map is expected when the selected trace contains no successful Read By Group Type Response (`0x11`) or Read By Type Response (`0x09`) declarations. The visible Read By Type Request and Error Response are insufficient to build the map. The legacy summary's `readRequestsAndResponses: 0` counts simple Read Request/Response traffic, not GATT discovery requests; the analyzer now reports discovery, attribute-value reads, and ATT errors separately.
+
+RigCanvas now exports payload-free protocol details for Read By Type/Group Type Requests (handle range and queried UUID), Error Responses (failed opcode/handle and ATT error), and MTU messages. These additions preserve privacy when payload export is off. The detailed evidence and limitations are in [TRACE_ANALYSIS_2026-11-17.md](TRACE_ANALYSIS_2026-11-17.md).
+
+**Next required evidence:** repeat a short M-EFCS connection and normal list/current-preset refresh capture, export only the selected connection, and enable ATT payload bytes after reviewing the privacy warning. Use a non-personal test preset where practical. Do not edit/save parameters or replay traffic. No command implementation is authorized from handle patterns alone.
+
 ## Phase 3 — USB enumeration (read-only)
 
 1. Connect the pedal using a known data-capable USB cable.
