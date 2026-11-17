@@ -1,21 +1,21 @@
 # KPT Pro compatibility notes
 
-**Status: physical BLE GATT profile captured; application-level KPT Pro commands and preset protocol remain unverified.**
+**Status: physical BLE GATT profile and owner-provided firmware-v8 AMP/CAB inventory captured; application-level KPT Pro commands and preset protocol remain unverified.**
 
 ## Known test-unit baseline
 
 | Field | Recorded value | Evidence / status |
 |---|---|---|
 | Device | YUIMER KPT Pro | User-confirmed target |
-| Firmware display | v15 | User-reported on 2026-11-17; not independently read by RigCanvas |
+| Firmware display | v8 | User-reported on 2026-11-17; not independently read by RigCanvas |
 | Hardware revision | Not recorded | Pending physical label / system information |
 | USB VID/PID | Not recorded | Pending read-only inventory scan |
-| M-EFCS application | Not recorded | Pending exact app version/build and actual device-recognition result |
+| M-EFCS application | v3.10.2311 | User-reported on 2026-11-17; user previously reported the app working with KPT Pro |
 | BLE identity | `KPTPRO_BLE` advertisement; RSSI -54 dBm at capture | User-provided read-only report, 2026-11-17 |
 | BLE-MIDI profile | Service `03B80E5A-EDE8-4B33-A751-6CE34EC4C700`; characteristic `7772E5DB-3868-4112-A1A9-F2669D106BF3` | Exact standard BLE-MIDI UUID pair; GATT reports write-without-response and notify |
 | Vendor BLE service | `0000AE40-0000-1000-8000-00805F9B34FB`; TX `AE41`; RX `AE42` | UUIDs/properties observed; application payload protocol unknown |
 | M-EFCS application | Not recorded | Pending exact app version/build and actual device-recognition result |
-| Transport protocol | BLE confirmed; command protocol unknown | No KPT Pro-specific parameter/preset packet captured |
+| Transport protocol | BLE GATT with BLE-MIDI service and AE40 vendor service | GATT profile captured; MIDI/vendor command semantics remain unknown |
 
 The firmware string is retained exactly as reported: v15. It must not be reinterpreted as 1.5, 0.15, build 15, or another version format.
 
@@ -31,7 +31,25 @@ The same official page states that:
 
 The [KPT Pro manual](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html) discusses PC/mobile software support for the KPT Pro, but the current official download page does not explicitly list KPT Pro among the stated M-EFCS supported devices. This is an unresolved vendor-documentation gap, not proof of incompatibility. Do not assume TANK-G/TANK-B protocol packets, preset formats, firmware images, or bootloader behavior are compatible with KPT Pro.
 
-## Manual-documented capabilities (not yet verified against firmware v15)
+## Owner-provided factory AMP/CAB inventory — firmware v8
+
+The owner supplied the following names from the physical KPT Pro menu on 2026-11-17. They are recorded exactly as supplied, including abbreviations, spacing, and spelling. These are user-provided menu observations, not a manufacturer-published parameter specification.
+
+**AMP model types:** `CL` = Clean, `OD` = Overdrive, `DS` = Distortion. RigCanvas stores that prefix as structured amp-type metadata and displays both the full type and short code in the model picker.
+
+**AMP names (50):**
+
+`CL-UWETWINS, CL-UKC30, OD-MARVM410, OD-MARVICTO, DS-BRITPLEX, DS-MARSFD100, DS-EAGLES, DS-DISELHGN, DS-PVEV5150, CL-FORTIN, CL-MESSMKT, CL-CA-TWEED, CL-BOGSV20, DS-JUICEJIM, DS-SURSL68, CL-BOGBLUE, CL-BOGSH20, DS-BOGES20, CL-MESASTAR, DS-MESADR, CL-FEN65, OD-FEN65P, CL-FENRED, OD-FENFTMAN, CL-MARJ800, OD-MARJ900, DS-MARJ2000, DS-MAR2555, OD-MARSV20, CL-OGTB50, OD-OGRK30, DS-OGOR120, OD-SURSL68, OD-SURBR35, OD-ENGPB2, DS-ENGMK60, CL-PEY6534, DS-PEY6505, OD-RLAN120, OD-SOLD100, OD-SOLDH25, OD-DIEV4C2, DS-DIEV4C3, DS-VITRYSK, CL-TWORC, OD-FMAN100, CL-GOJAX, OD-VXAC30, CL-FOTINCA, CL-MATDC30`
+
+**CAB names (50):**
+
+`EAGLPROV30S, SPERIMENTAL, JUICE4X12V30, MESS BOG, FDCHAMP, FDPRJUNIR, MAR960BV30, DIZZLV30, ELCTROVOICE, MESSRECTV30, TWINJENSENC, TWEDDLX1X12, FENDSHOWMAN, J120ROLND, AC30SILVERS, FENDELU, FENBFACE, FENMNTW, FENBMAN, FENPRIN2, FENPROJ, MESSOS, MESSBRO, MESSLM24, MESSSTDIO, MESSSTITO, MESSNOM, MAR36, MARMG15R, MARJ2000, MARMFOUR, MARPLX, MARVAL4, MARVAL2, ENG412, ENG412P, OGP212, PEY5150, PEYDEBLU, SOLDHOR, SOLDSC12, SOLDANG412, SOLDSC412, ALTON212, BOGUX, DIEV30, FIMANVT, HABTONV, VXAC15, VXAC30`
+
+RigCanvas preserves the existing `kpt.amp.guitar.0–49` and `kpt.cab.guitar.0–49` model IDs so earlier presets referencing these 50 slots continue to resolve. The previous manual's additional bass slots 51–60 are retained as manual-listed, but their availability and names have not been confirmed on this firmware-v8 unit. Do not treat those placeholder bass entries as confirmed device models.
+
+The lists establish menu names and AMP type prefixes only. They do not establish device slot numbers, parameter ranges, MIDI CC/PC/SysEx mappings, BLE AE40 packet framing, or preset-file encoding.
+
+## Manual-documented capabilities (not yet verified against firmware v8)
 
 The available manual describes:
 - Seven movable effect modules: FX, AMP, MOD, DLY, REV, CAB, and EXT.
@@ -44,7 +62,7 @@ The available manual describes:
 - 44.1 kHz / 24-bit audio specifications.
 - Bluetooth music playback and an external expression/MIDI-controller expansion option in the manual.
 
-These remain manual-level claims, not observations from the user's firmware-v15 unit. The manual's 7+1 language must not be interpreted as proof that RigCanvas can install new algorithms or arbitrary software blocks on the pedal.
+These remain manual-level claims, not observations from the user's firmware-v8 unit. The manual's 7+1 language must not be interpreted as proof that RigCanvas can install new algorithms or arbitrary software blocks on the pedal.
 
 ## Factory effect inventory reported by the manual
 
@@ -95,7 +113,7 @@ The shared Devices screen collects local USB inventory only:
 2. Copy the inventory report and identify the KPT Pro record. Do not share device serial numbers.
 3. Record the exact M-EFCS app name, version/build, operating system, and whether its device list actually shows KPT Pro.
 4. Record the hardware revision printed on the pedal label or shown in its system information, if available.
-5. Compare the physical firmware-v15 unit's AMP/CAB slot counts, MOD count, REV choices, and effect-slot behavior against the manual.
+5. Compare the physical firmware-v8 unit's AMP/CAB slot counts, MOD count, REV choices, and effect-slot behavior against the manual.
 6. Capture full Windows USB configuration/interface/endpoint descriptors separately if Windows is the test platform.
 7. Only after identity and descriptors are confirmed, document a read-only protocol exchange. Do not issue unverified commands or writes.
 
