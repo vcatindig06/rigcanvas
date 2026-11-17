@@ -51,6 +51,52 @@ void main() {
       expect(capture.notificationCount, 1);
     });
 
+    test('keeps ATT payloads from other Bluetooth devices out of the selected session', () {
+      final otherAddress = <int>[0x10, 0x20, 0x30, 0x40, 0x50, 0x60];
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(
+          _advertisement(name: 'HEADPHONES', address: otherAddress),
+          flags: 1,
+          timestamp: 1200,
+        ),
+        _record(
+          _connectionComplete(handle: 12, address: otherAddress),
+          flags: 1,
+          timestamp: 1300,
+        ),
+        _record(
+          _aclPacket([0x52, 0x25, 0x00, 0xAA], connectionHandle: 11),
+          flags: 0,
+          timestamp: 1400,
+        ),
+        _record(
+          _aclPacket([0x52, 0x26, 0x00, 0xDE, 0xAD], connectionHandle: 12),
+          flags: 0,
+          timestamp: 1500,
+        ),
+      ]));
+
+      expect(capture.connectionSessions, hasLength(2));
+      final kptSession = capture.connectionSessions.firstWhere(
+        (session) => session.looksLikeKptPro,
+      );
+      final otherSession = capture.connectionSessions.firstWhere(
+        (session) => !session.looksLikeKptPro,
+      );
+      expect(capture.eventsForSession(kptSession.id), hasLength(1));
+      expect(capture.eventsForSession(otherSession.id), hasLength(1));
+
+      final filtered = jsonEncode(capture.toJson(
+        sessionId: kptSession.id,
+        includePayload: true,
+      ));
+      expect(filtered, contains('AA'));
+      expect(filtered, isNot(contains('DE AD')));
+      expect(filtered, isNot(contains('HEADPHONES')));
+    });
+
     test('exports only the selected connection and redacts peer address', () {
       final capture = BtsnoopCaptureParser.parse(_capture([
         _record(_advertisement(), flags: 1, timestamp: 1000),
@@ -168,15 +214,18 @@ _BtsnoopRecord _record(
   required int timestamp,
 }) => _BtsnoopRecord(Uint8List.fromList(packet), flags, timestamp);
 
-Uint8List _advertisement() {
-  final name = utf8.encode('KPTPRO_BLE');
-  final ad = <int>[name.length + 1, 0x09, ...name];
+Uint8List _advertisement({
+  String name = 'KPTPRO_BLE',
+  List<int> address = const [0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1],
+}) {
+  final nameBytes = utf8.encode(name);
+  final ad = <int>[nameBytes.length + 1, 0x09, ...nameBytes];
   final params = <int>[
     0x02, // LE Advertising Report subevent.
     0x01, // One report.
     0x00, // Connectable undirected advertising.
     0x01, // Random address.
-    0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1, // Address, little-endian.
+    ...address,
     ad.length,
     ...ad,
     0xC9, // -55 dBm.
@@ -184,14 +233,18 @@ Uint8List _advertisement() {
   return Uint8List.fromList([0x04, 0x3E, params.length, ...params]);
 }
 
-Uint8List _connectionComplete() {
+Uint8List _connectionComplete({
+  int handle = 11,
+  List<int> address = const [0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1],
+}) {
   final params = <int>[
     0x01, // LE Connection Complete subevent.
     0x00, // Success.
-    0x0B, 0x00, // Connection handle.
+    handle & 0xFF,
+    (handle >> 8) & 0xFF,
     0x00, // Central role.
     0x01, // Random peer address.
-    0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1,
+    ...address,
     0x18, 0x00, // Connection interval.
     0x00, 0x00, // Peripheral latency.
     0xC8, 0x00, // Supervision timeout.
@@ -200,16 +253,21 @@ Uint8List _connectionComplete() {
   return Uint8List.fromList([0x04, 0x3E, params.length, ...params]);
 }
 
-Uint8List _aclPacket(List<int> attPdu) {
+Uint8List _aclPacket(List<int> attPdu, {int connectionHandle = 11}) {
   final l2cap = <int>[attPdu.length, 0x00, 0x04, 0x00, ...attPdu];
-  return _aclPacketRaw(l2cap, packetBoundary: 2);
+  return _aclPacketRaw(
+    l2cap,
+    packetBoundary: 2,
+    connectionHandle: connectionHandle,
+  );
 }
 
 Uint8List _aclPacketRaw(
   List<int> payload, {
   required int packetBoundary,
+  int connectionHandle = 11,
 }) {
-  final flags = 0x0B | (packetBoundary << 12);
+  final flags = (connectionHandle & 0x0FFF) | (packetBoundary << 12);
   return Uint8List.fromList([
     0x02,
     flags & 0xFF,
