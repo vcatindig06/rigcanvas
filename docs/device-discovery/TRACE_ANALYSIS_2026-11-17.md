@@ -100,7 +100,7 @@ These interpretations must be checked against payload bytes and a successful GAT
 RigCanvas now adds payload-free `protocolDetails` for:
 - Read By Type and Read By Group Type Requests: start handle, end handle, and queried 16-bit/128-bit attribute type UUID.
 - ATT Error Responses: failed request opcode, failed attribute handle, error code, and standard error name.
-- Exchange MTU Requests/Responses: the receive-MTU value carried by each message.
+- Exchange MTU Requests/Responses: the receive-MTU value carried by each message, plus request/response counts and a warning when multiple client MTU requests appear in one selected connection.
 
 The summary now separately counts GATT discovery operations, attribute-value reads, and ATT Error Responses. These decoded fields are available even when the user leaves payload export disabled. The original raw ATT PDU/value bytes remain excluded unless the owner explicitly enables payload export.
 
