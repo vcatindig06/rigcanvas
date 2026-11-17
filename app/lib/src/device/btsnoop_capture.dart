@@ -4,7 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 
 /// Parses Android BTSnoop HCI UART (H4) logs without replaying or transmitting
-/// any captured packet. Only ATT traffic is exposed in the report.
+/// any captured packet. Correlates ATT attribute handles with the GATT service
+/// and characteristic declarations observed on each individual connection.
 class BtsnoopCaptureParser {
   BtsnoopCaptureParser._();
 
