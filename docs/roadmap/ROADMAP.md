@@ -26,9 +26,9 @@
 
 ## Milestone 2 — hardware discovery
 
-- [ ] Collect exact KPT Pro firmware/app versions.
+- [x] Collect the reported KPT Pro firmware and M-EFCS versions: firmware v8 and M-EFCS v3.10.2311 (user-reported).
+- [x] Confirm whether official M-EFCS recognizes the tested KPT Pro (user reports that M-EFCS works with the device).
 - [ ] Capture USB descriptors.
-- [ ] Confirm whether official M-EFCS recognizes the tested KPT Pro.
 - [ ] Identify wireless transport and OS permissions.
 - [ ] Document protocol evidence and a capability matrix.
 - [ ] Implement safe read-only discovery only after protocol behavior is understood.
@@ -79,6 +79,13 @@
 - Added dedicated test coverage for cabinet IR assignment and invalid-reference recovery alongside the existing amplifier-capture assignment test.
 - Confirmed feature-parity rule: the same Gig, Workspace, Presets, Assets, and Settings destinations are covered in compact and wide layout tests; Android APK and Windows desktop builds are both required in CI.
 - **Next focus:** Milestone 2 — collect the exact KPT Pro hardware/firmware and official M-EFCS versions, then perform read-only USB enumeration. Do not implement undocumented device writes.
+
+### Review log — 2026-11-17
+
+- Recorded the reported hardware/software baseline: KPT Pro firmware v8 and M-EFCS v3.10.2311.
+- Recorded the user's report that M-EFCS successfully works with the KPT Pro. This confirms the reported official-app test only; it does not reveal or verify RigCanvas's USB protocol.
+- Added a Windows USB descriptor capture checklist. VID/PID, device/configuration/interface/endpoint descriptors, and wireless transport remain uncollected.
+- **Next focus:** capture a full read-only USB descriptor report from the physical KPT Pro. Do not install a generic USB transport package or send custom transfers before its interface types and driver behavior are known.
 
 ## Release gates
 
