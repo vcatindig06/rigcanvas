@@ -63,15 +63,30 @@ Extract the bug report ZIP and locate the BTSnoop log as above. Android's AOSP d
 3. Tap **Import HCI snoop log** and select the extracted `btsnoop_hci.log` file (not the ZIP).
 4. RigCanvas identifies LE connection sessions and tries to match the advertiser name `KPTPRO_BLE`.
 5. Select the KPT Pro connection if more than one session appears.
-6. Leave **Include ATT payload bytes** off initially to inspect counts without exposing packet data.
-7. When ready to share the protocol evidence, enable payload bytes and tap **Copy selected connection report**. The report masks the peer address and excludes other connections.
+6. For the next GATT declaration/descriptor capture, keep **Include ATT payload bytes** off. The parser extracts service, characteristic, and descriptor UUID metadata from successful ATT declaration and Find Information responses without exporting raw values.
+7. Tap **Copy selected connection report**. The report masks the peer address and excludes other connections. It now includes connection start/end timestamp offsets and the HCI disconnect reason when those lifecycle events are present.
+8. Only enable payload bytes in a later capture when command-value analysis is specifically needed and you are comfortable sharing possible preset names/settings.
 8. Paste the filtered report into the RigCanvas development conversation. Do not commit raw traces to the public repository.
 
 The current parser accepts BTSnoop version 1 with Android HCI UART/H4 data-link type 1002. If RigCanvas reports a different data-link type or a truncated capture, keep the file private and report the exact error. Do not convert or replay packets.
 
-## Payload-enabled follow-up capture
+## Next capture: full GATT declaration and descriptor map
 
-The first owner-provided trace showed repeated writes to ATT handle `0x0062`, notifications from `0x0064`, and one acknowledged write to `0x0065`, but its payloads were excluded and its characteristic map was empty. For the next short capture, RigCanvas can decode the Read By Type query range/UUID, ATT error details, and MTU values even with payloads disabled. Actual command framing still requires reviewing the selected connection's ATT values. Enable payload export only after considering that it may disclose preset names/settings; keep other device connections excluded and use a non-personal test preset where practical.
+The payload-enabled owner report exposed the KPTPRO_008 identifier and model-name catalogs, but it did not include successful service/characteristic declaration responses or Find Information responses. The next short capture should cover one complete connection from the LE Connection Complete event through the Disconnection Complete event:
+
+1. Start HCI snoop logging before opening the device connection in M-EFCS.
+2. Connect with M-EFCS and allow its normal device/service setup and preset-list refresh to finish. Do not edit or save parameters.
+3. Leave the app connected briefly, then disconnect normally from M-EFCS so the HCI disconnect event is included.
+4. Import the log in RigCanvas and select only the KPT Pro candidate connection.
+5. Keep ATT payload export **off** and share the filtered JSON report.
+
+The analyzer now decodes Read By Group Type/Read By Type declaration responses and Find Information Request/Response entries. It exports a separate descriptor map and can label standard descriptor UUIDs such as CCCD 0x2902. The same report includes connection start/end timestamps and disconnect reason for lifecycle correlation. Raw ATT value bytes are not required for this milestone.
+
+If the new report still has no successful declaration responses, the Android stack or M-EFCS may be using a cached GATT database, or the capture may not include the discovery phase. The report alone cannot distinguish those possibilities; do not guess handle-to-UUID mappings.
+
+## Payload-enabled command analysis (later milestone)
+
+The existing payload-enabled report shows repeated writes to ATT handle `0x0062`, notifications from `0x0064`, and an acknowledged write to `0x0065`. Actual command framing still requires examining selected-connection ATT values and correlating them with a clearly timestamped official-app action. Enable payload export only when that later command-analysis step is specifically needed; it may disclose preset names/settings. Keep other device connections excluded and use a non-personal test preset where practical.
 
 ## After capture
 
