@@ -88,13 +88,13 @@ Do not assume Tank-G packets, firmware, preset files, or bootloader behavior are
 
 Official vendor source: [TankPedal download page](https://tankpedal.com/en-asia/pages/download). The page separately lists a KPT PRO firmware upgrade and KPT PRO manual, but its M-EFCS PC/mobile support labels name TANK-G and TANK-B. This is a documented discrepancy, not proof of incompatibility.
 
-### Discovery task order for firmware v15
+### Discovery task order after M-EFCS confirmation
 
-1. On the pedal, photograph or transcribe the complete firmware/version screen (including any suffix/build identifier).
-2. Record the exact M-EFCS version installed and whether KPT PRO appears in its device selector.
-3. If M-EFCS recognizes the pedal, first perform a read-only connection and record the device identity; do not initiate firmware update, factory reset, preset write, or import.
-4. On Windows, capture USB VID/PID, interface descriptors, endpoints, and device strings while connecting the powered-on pedal.
-5. Compare observations only against this same firmware v15 device. Treat other KPT Pro revisions and Tank-G/Tank-B as separate profiles until proven compatible.
+1. Record the exact M-EFCS version/build from its About screen; the user has confirmed that the latest installed M-EFCS works with KPT PRO.
+2. With KPT PRO firmware v15 as the user-reported baseline, run RigCanvas BLE discovery on the physical pedal and record any advertised name, peripheral identifier, RSSI, and service UUIDs.
+3. Compare the result against the device shown by M-EFCS. If no BLE advertisement appears, determine whether the app uses Bluetooth Classic or another transport before drawing a conclusion.
+4. Capture Windows USB descriptors only if the Windows M-EFCS connection path uses USB for control.
+5. Observe only documented/read-only identification and preset-export behavior. Do not initiate firmware update, factory reset, preset write, or import during discovery.
 
 ## Hardware compatibility gate
 
