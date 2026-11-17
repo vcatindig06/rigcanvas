@@ -49,6 +49,7 @@
 - [x] Add unit, migration, controller and cross-platform widget tests for catalog selection and source separation (63 tests passed).
 - [x] Pass Android installable APK and Windows release CI builds for the same revision.
 - [x] Record the owner's 50 named AMP and 50 named CAB entries for firmware v8; show CL/OD/DS as structured amp types.
+- [x] Add AMP type filters for All, Clean (CL), Overdrive (OD), and Distortion (DS), with widget coverage for filtered catalog counts.
 - [ ] Verify the exact AMP/CAB order and the MOD/REV choices on the physical v8 pedal.
 - [ ] Manually smoke-test model selection and preset migration on Android and Windows.
 
@@ -122,12 +123,12 @@
 
 ### Review log — 2026-11-17
 
-- Recorded the user's KPT Pro firmware display as v8 without equating it to the vendor's KPT PRO-011 downloadable archive; the official download page does not publish a version mapping.
-- Recorded M-EFCS v3.10.2311 as the owner's installed version and the owner's report that M-EFCS works with KPT Pro; device command/protocol behavior remains unverified.
-- Added a shared Devices screen and native read-only USB inventory adapters. Android reports device/interface/endpoint descriptors; Windows currently reports USB PnP names and VID/PID only.
-- Recorded the physical BLE GATT report, including BLE-MIDI and the AE40 vendor service, without vendor reads or writes.
-- Added the owner's exact 50 AMP / 50 CAB menu names and structured CL/OD/DS amp type metadata.
-- **Next required evidence:** confirm model order on the physical pedal and capture an authorized official-app trace before implementing any protocol packet. Do not send guessed device writes or flash firmware.
+- Recorded the owner's correction: the physical KPT Pro firmware baseline is v8, not v15; M-EFCS Android version v3.10.2311 is owner-reported and the owner confirms it connects to the pedal.
+- Added 50 owner-provided AMP and 50 CAB menu names exactly as supplied. AMP model prefixes are structured Clean (CL), Overdrive (OD), or Distortion (DS) metadata; the extra manual-listed bass slots are still marked unverified for the v8 unit.
+- Added visible AMP type filter chips and tests covering All / CL / OD / DS result counts.
+- Recorded public M-EFCS App Store release-note evidence for KPT Pro A2 support in the 3.10 series, without treating that as a published BLE command protocol.
+- GitHub Actions run [#?](https://github.com/vcatindig06/rigcanvas/actions/runs/44069719859) passed Flutter analysis, all 90 automated tests, Android APK build/package verification, and Windows desktop build. Both artifacts uploaded successfully.
+- **Next focus:** continue read-only KPT Pro protocol investigation using the exact v8 / M-EFCS v3.10.2311 baseline. Capture an authorized M-EFCS interaction trace before implementing any proprietary parameter or preset commands.
 
 ## Release gates
 
