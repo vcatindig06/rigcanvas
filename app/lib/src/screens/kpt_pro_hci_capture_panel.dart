@@ -123,6 +123,11 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
     final hasCharacteristicMap = selectedSession != null &&
         (capture?.characteristicDiscoveryBySession[selectedSession.id]?.isNotEmpty ??
             false);
+    final descriptorMap = selectedSession == null
+        ? const <String, Object?>{}
+        : capture!.descriptorDiscoveryBySession[selectedSession.id] ??
+            const <String, Object?>{};
+    final descriptorCount = descriptorMap.length;
 
     return Card(
       child: Padding(
@@ -229,6 +234,17 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
                       _CaptureMetric('$discovery', 'GATT discovery'),
                       _CaptureMetric('$attErrors', 'ATT errors'),
                       _CaptureMetric('$mtuRequests', 'MTU requests'),
+                      _CaptureMetric('$descriptorCount', 'Descriptors'),
+                      _CaptureMetric(
+                        '${selectedSession.startTimestampMicros} µs',
+                        'Connection start offset',
+                      ),
+                      _CaptureMetric(
+                        selectedSession.endTimestampMicros == null
+                            ? 'Not seen'
+                            : '${selectedSession.endTimestampMicros} µs',
+                        'Connection end offset',
+                      ),
                       _CaptureMetric('${selectedEvents.length}', 'Selected events'),
                     ],
                   ),
@@ -248,6 +264,16 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
                     child: _CaptureNotice(
                       color: Color(0xFFFFC078),
                       text: 'GATT discovery traffic is present, but no successful service/characteristic declaration map was captured. Attribute handles remain unmapped; capture the connection from before discovery or use a fresh GATT discovery session.',
+                    ),
+                  ),
+                if (selectedSession != null &&
+                    hasCharacteristicMap &&
+                    descriptorCount == 0)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 9),
+                    child: _CaptureNotice(
+                      color: Color(0xFFFFC078),
+                      text: 'Characteristic declarations were found, but no descriptor map was captured. The analyzer needs successful Find Information Responses (ATT 0x05) to identify descriptor handles such as a possible notification configuration descriptor.',
                     ),
                   ),
                 if (selectedSession != null && !selectedSession.looksLikeKptPro)
