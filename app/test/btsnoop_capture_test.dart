@@ -71,7 +71,7 @@ void main() {
       expect(capture.notificationCount, 1);
     });
 
-    test('maps a 128-bit BLE-MIDI characteristic to its service', () {
+    test('maps a 128-bit BLE-MIDI characteristic to its service with canonical UUID casing', () {
       const midiService =
           '03b80e5a-ede8-4b33-a751-6ce34ec4c700';
       const midiCharacteristic =
