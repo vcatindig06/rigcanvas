@@ -73,6 +73,8 @@ RigCanvas now exports payload-free protocol details for Read By Type/Group Type 
 
 **Status at the time of this first, payload-free report:** the next evidence requested was a payload-enabled companion export. That companion has since been supplied and is documented in Phase 2.2 and [PAYLOAD_ANALYSIS_2026-11-17.md](PAYLOAD_ANALYSIS_2026-11-17.md).
 
+The analyzer has since been extended to parse ATT Find Information Request/Response traffic (0x04/0x05), retain discovered handle-to-UUID attributes, and infer descriptor-to-characteristic association from known GATT handle ranges. Standard descriptors such as CCCD UUID 0x2902 are labelled in a separate descriptorDiscovery map. Session exports also include HCI connection start/end timestamp offsets and successful disconnect status/reason. This prepares the analyzer to map a future fresh discovery capture; it does not retroactively create descriptor evidence in the current payload-enabled report.
+
 ## Phase 2.2 — payload-enabled M-EFCS ATT trace (2026-11-17)
 
 The owner supplied the payload-enabled companion export for the 330-event selected session (connection handle 0x0200, frames 350–1,194). The export contains 1 Write Request, 157 Write Commands, and 165 Handle Value Notifications. The two uploaded text files are byte-identical duplicates and are treated as one capture.
