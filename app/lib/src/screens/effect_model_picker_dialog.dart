@@ -17,6 +17,7 @@ class EffectModelPickerDialog extends StatefulWidget {
 
 class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
   late EffectFamily _family;
+  AmpModelType? _ampTypeFilter;
   late final TextEditingController _searchController;
 
   @override
@@ -35,11 +36,16 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
   List<EffectModelDefinition> get _models {
     final query = _searchController.text.trim().toLowerCase();
     return EffectModelCatalog.forFamily(_family)
-        .where((model) =>
-            query.isEmpty ||
-            model.name.toLowerCase().contains(query) ||
-            model.description.toLowerCase().contains(query) ||
-            model.source.label.toLowerCase().contains(query))
+        .where((model) {
+          final matchesAmpType = _family != EffectFamily.amplifier ||
+              _ampTypeFilter == null ||
+              model.ampType == _ampTypeFilter;
+          final matchesQuery = query.isEmpty ||
+              model.name.toLowerCase().contains(query) ||
+              model.description.toLowerCase().contains(query) ||
+              model.source.label.toLowerCase().contains(query);
+          return matchesAmpType && matchesQuery;
+        })
         .toList(growable: false);
   }
 
@@ -96,10 +102,38 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
                 if (value == null) return;
                 setState(() {
                   _family = value;
+                  _ampTypeFilter = null;
                   _searchController.clear();
                 });
               },
             ),
+            if (_family == EffectFamily.amplifier) ...[
+              const SizedBox(height: 8),
+              DropdownButtonFormField<AmpModelType?>(
+                key: const ValueKey('amp-type-filter'),
+                initialValue: _ampTypeFilter,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'AMP type',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem<AmpModelType?>(
+                    value: null,
+                    child: Text('All amp types'),
+                  ),
+                  ...AmpModelType.values.map(
+                    (type) => DropdownMenuItem<AmpModelType?>(
+                      value: type,
+                      child: Text(type.labelWithCode),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() => _ampTypeFilter = value);
+                },
+              ),
+            ],
             const SizedBox(height: 10),
             TextField(
               key: const ValueKey('effect-model-search'),
