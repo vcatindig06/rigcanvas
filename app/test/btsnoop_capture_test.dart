@@ -105,6 +105,102 @@ void main() {
       expect(event.characteristicProperties, 0x1C);
     });
 
+    test('maps a discovered CCCD descriptor to its characteristic', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([
+          0x11, 0x06,
+          0x20, 0x00,
+          0x30, 0x00,
+          0x40, 0xAE,
+        ]), flags: 1, timestamp: 1200),
+        _record(_aclPacket([
+          0x09, 0x07,
+          0x22, 0x00,
+          0x04,
+          0x25, 0x00,
+          0x41, 0xAE,
+        ]), flags: 1, timestamp: 1300),
+        _record(_aclPacket([
+          0x04, // Find Information Request.
+          0x26, 0x00, // Start handle.
+          0x30, 0x00, // End handle.
+        ]), flags: 0, timestamp: 1400),
+        _record(_aclPacket([
+          0x05, // Find Information Response.
+          0x01, // 16-bit UUID format.
+          0x26, 0x00, // Descriptor handle.
+          0x02, 0x29, // Client Characteristic Configuration UUID 0x2902.
+        ]), flags: 1, timestamp: 1500),
+        _record(_aclPacket([
+          0x12, 0x26, 0x00, 0x01, 0x00,
+        ]), flags: 0, timestamp: 1600),
+        _record(_aclPacket([0x13]), flags: 1, timestamp: 1700),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      final descriptors =
+          report['descriptorDiscovery'] as Map<String, Object?>;
+      final cccd = descriptors['0x0026'] as Map<String, Object?>;
+
+      expect(cccd['uuid'], '00002902-0000-1000-8000-00805f9b34fb');
+      expect(cccd['descriptorType'], 'Client Characteristic Configuration');
+      expect(cccd['serviceUuid'], '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(cccd['characteristicValueHandle'], '0x0025');
+      expect(cccd['characteristicUuid'],
+          '0000ae41-0000-1000-8000-00805f9b34fb');
+
+      final events = report['attEvents'] as List<Object?>;
+      final findRequest = events[2] as Map<String, Object?>;
+      final findResponse = events[3] as Map<String, Object?>;
+      expect(findRequest['protocolDetails'], {
+        'startHandle': '0x0026',
+        'endHandle': '0x0030',
+      });
+      final responseDetails =
+          findResponse['protocolDetails'] as Map<String, Object?>;
+      expect(responseDetails['entryCount'], 1);
+      expect((responseDetails['entries'] as List).single, {
+        'handle': '0x0026',
+        'uuid': '00002902-0000-1000-8000-00805f9b34fb',
+        'descriptorType': 'Client Characteristic Configuration',
+      });
+      expect((report['summary'] as Map)['descriptorDiscoveryEntries'], 1);
+    });
+
+    test('records BLE connection start and disconnect lifecycle timestamps', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([0x52, 0x25, 0x00, 0xAA]), flags: 0, timestamp: 1150),
+        _record(_disconnectionComplete(handle: 11, reason: 0x13),
+            flags: 1, timestamp: 1200),
+        _record(_connectionComplete(), flags: 1, timestamp: 1300),
+      ]));
+
+      expect(capture.connectionSessions, hasLength(2));
+      final first = capture.connectionSessions[0];
+      final second = capture.connectionSessions[1];
+      final firstJson = first.toJson();
+
+      expect(first.startTimestampMicros, 100);
+      expect(first.endTimestampMicros, 200);
+      expect(first.disconnectStatus, 0);
+      expect(first.disconnectReason, 0x13);
+      expect(firstJson['disconnectReasonName'],
+          'Remote User Terminated Connection');
+      expect(second.startTimestampMicros, 300);
+      expect(second.endFrame, isNull);
+      expect(second.endTimestampMicros, isNull);
+      expect(capture.eventsForSession(first.id), hasLength(1));
+      expect(capture.eventsForSession(second.id), isEmpty);
+    });
+
     test('exports safe ATT discovery, error and MTU metadata without payload bytes', () {
       final capture = BtsnoopCaptureParser.parse(_capture([
         _record(_advertisement(), flags: 1, timestamp: 1000),
@@ -346,6 +442,19 @@ Uint8List _advertisement({
     0xC9, // -55 dBm.
   ];
   return Uint8List.fromList([0x04, 0x3E, params.length, ...params]);
+}
+
+Uint8List _disconnectionComplete({
+  int handle = 11,
+  int reason = 0x13,
+}) {
+  final params = <int>[
+    0x00, // Successful Disconnection Complete status.
+    handle & 0xFF,
+    (handle >> 8) & 0xFF,
+    reason,
+  ];
+  return Uint8List.fromList([0x04, 0x05, params.length, ...params]);
 }
 
 Uint8List _connectionComplete({
