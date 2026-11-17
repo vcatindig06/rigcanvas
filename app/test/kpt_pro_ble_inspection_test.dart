@@ -50,7 +50,7 @@ class FakeKptGateway implements KptProHardwareGateway {
     return const KptProDeviceInformation(
       manufacturer: 'YUIMER',
       model: 'KPT PRO',
-      firmware: 'v15',
+      firmware: 'v8',
     );
   }
   @override
@@ -92,7 +92,7 @@ void main() {
 
     expect(gateway.readCalls, 1);
     expect(find.text('YUIMER'), findsOneWidget);
-    expect(find.text('v15'), findsOneWidget);
+    expect(find.text('v8'), findsOneWidget);
   });
 
   testWidgets('does not scan when Bluetooth is powered off', (tester) async {
