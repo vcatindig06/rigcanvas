@@ -131,3 +131,14 @@ The payload-enabled report should let us compare ATT values on handles `0x0062`,
 A separate export of the same 330-event selected connection (handle 0x0200, frames 350–1,194) is now available with ATT payload bytes included. It exposes the KPTPRO_008 payload string, recurring write/notification message patterns, and model-name catalogs. It does not add a successful GATT declaration map, so the handle-to-UUID mappings remain provisional. The two uploaded files were byte-identical duplicates of this payload-enabled export.
 
 See [PAYLOAD_ANALYSIS_2026-11-17.md](PAYLOAD_ANALYSIS_2026-11-17.md) for the decoded observations, exact source model-name strings, caveats, and next safe evidence milestones. The privacy-restricted analysis above remains the record of what could be concluded when ATT payload export was disabled.
+
+
+## Follow-up analyzer capability — descriptor and connection lifecycle metadata
+
+The BTSnoop parser now also decodes ATT Find Information Requests (0x04) and Responses (0x05). Successful responses are retained as handle-to-UUID evidence. Where a returned attribute handle falls after a known characteristic value and before the next characteristic or service boundary, the export identifies it as a descriptor and associates it with the owning characteristic. Standard descriptor UUIDs, including Client Characteristic Configuration (0x2902), receive readable labels. This allows a future complete discovery trace to determine whether the write to handle 0x0065 is actually a CCCD write, rather than relying on the value 01 00 alone.
+
+The report adds a separate descriptorDiscovery map and descriptor counts while preserving the existing characteristicDiscovery JSON shape. The analyzer panel now displays descriptor count and warns when characteristics were found but no descriptor map was observed.
+
+Connection sessions now export their start/end frame and timestamp offsets, plus HCI disconnection status/reason when a successful Disconnection Complete event is captured. Partial ACL/L2CAP fragments are cleared when a connection ends or a connection handle is reused, preventing fragment data from one session being carried into another.
+
+These changes do not add any BLE writes, notification subscriptions, packet replay, or vendor command support. They also do not yet parse Enhanced ATT (EATT) dynamic bearers; MTU interpretation remains restricted to the ATT fixed channel currently handled by this parser.
