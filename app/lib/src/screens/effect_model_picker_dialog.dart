@@ -2,6 +2,24 @@ import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
 
+enum _AmpTypePickerFilter { all, clean, overdrive, distortion }
+
+extension _AmpTypePickerFilterPresentation on _AmpTypePickerFilter {
+  AmpModelType? get modelType => switch (this) {
+    _AmpTypePickerFilter.all => null,
+    _AmpTypePickerFilter.clean => AmpModelType.clean,
+    _AmpTypePickerFilter.overdrive => AmpModelType.overdrive,
+    _AmpTypePickerFilter.distortion => AmpModelType.distortion,
+  };
+
+  String get label => switch (this) {
+    _AmpTypePickerFilter.all => 'All amp types',
+    _AmpTypePickerFilter.clean => 'Clean (CL)',
+    _AmpTypePickerFilter.overdrive => 'Overdrive (OD)',
+    _AmpTypePickerFilter.distortion => 'Distortion (DS)',
+  };
+}
+
 class EffectModelPickerDialog extends StatefulWidget {
   const EffectModelPickerDialog({
     this.initialFamily,
@@ -17,7 +35,7 @@ class EffectModelPickerDialog extends StatefulWidget {
 
 class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
   late EffectFamily _family;
-  AmpModelType? _ampTypeFilter;
+  _AmpTypePickerFilter _ampTypeFilter = _AmpTypePickerFilter.all;
   late final TextEditingController _searchController;
 
   @override
@@ -37,9 +55,10 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
     final query = _searchController.text.trim().toLowerCase();
     return EffectModelCatalog.forFamily(_family)
         .where((model) {
+          final selectedAmpType = _ampTypeFilter.modelType;
           final matchesAmpType = _family != EffectFamily.amplifier ||
-              _ampTypeFilter == null ||
-              model.ampType == _ampTypeFilter;
+              selectedAmpType == null ||
+              model.ampType == selectedAmpType;
           final matchesQuery = query.isEmpty ||
               model.name.toLowerCase().contains(query) ||
               model.description.toLowerCase().contains(query) ||
@@ -102,14 +121,14 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
                 if (value == null) return;
                 setState(() {
                   _family = value;
-                  _ampTypeFilter = null;
+                  _ampTypeFilter = _AmpTypePickerFilter.all;
                   _searchController.clear();
                 });
               },
             ),
             if (_family == EffectFamily.amplifier) ...[
               const SizedBox(height: 8),
-              DropdownButtonFormField<AmpModelType?>(
+              DropdownButtonFormField<_AmpTypePickerFilter>(
                 key: const ValueKey('amp-type-filter'),
                 initialValue: _ampTypeFilter,
                 isExpanded: true,
@@ -117,19 +136,16 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
                   labelText: 'AMP type',
                   border: OutlineInputBorder(),
                 ),
-                items: [
-                  const DropdownMenuItem<AmpModelType?>(
-                    value: null,
-                    child: Text('All amp types'),
-                  ),
-                  ...AmpModelType.values.map(
-                    (type) => DropdownMenuItem<AmpModelType?>(
-                      value: type,
-                      child: Text(type.labelWithCode),
-                    ),
-                  ),
-                ],
+                items: _AmpTypePickerFilter.values
+                    .map(
+                      (filter) => DropdownMenuItem<_AmpTypePickerFilter>(
+                        value: filter,
+                        child: Text(filter.label),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (value) {
+                  if (value == null) return;
                   setState(() => _ampTypeFilter = value);
                 },
               ),
