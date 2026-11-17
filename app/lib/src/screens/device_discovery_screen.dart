@@ -4,13 +4,18 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:rigcanvas_usb_inventory/rigcanvas_usb_inventory.dart';
 
+import '../device/kpt_pro_ble_gateway.dart';
+import 'kpt_pro_connection_panel.dart';
+
 class DeviceDiscoveryScreen extends StatefulWidget {
   const DeviceDiscoveryScreen({
     required this.inventory,
+    this.hardwareGateway = const SimulationKptProHardwareGateway(),
     super.key,
   });
 
   final UsbDeviceInventoryClient inventory;
+  final KptProHardwareGateway hardwareGateway;
 
   @override
   State<DeviceDiscoveryScreen> createState() => _DeviceDiscoveryScreenState();
@@ -82,6 +87,8 @@ class _DeviceDiscoveryScreenState extends State<DeviceDiscoveryScreen> {
                 style: TextStyle(color: Color(0xFF9AA4B2), height: 1.5),
               ),
               const SizedBox(height: 18),
+              KptProConnectionPanel(gateway: widget.hardwareGateway),
+              const SizedBox(height: 14),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(15),

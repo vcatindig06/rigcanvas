@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:rigcanvas_usb_inventory/rigcanvas_usb_inventory.dart';
 
+import 'device/kpt_pro_ble_gateway.dart';
+
 import 'data/asset_repository.dart';
 import 'data/preset_repository.dart';
 import 'data/setlist_repository.dart';
@@ -23,6 +25,7 @@ class RigCanvasApp extends StatefulWidget {
     this.setlistRepository,
     this.assetRepository,
     this.usbInventory = const UsbDeviceInventory(),
+    this.hardwareGateway = const SimulationKptProHardwareGateway(),
     super.key,
   });
 
@@ -30,6 +33,7 @@ class RigCanvasApp extends StatefulWidget {
   final SetlistRepository? setlistRepository;
   final AssetRepository? assetRepository;
   final UsbDeviceInventoryClient usbInventory;
+  final KptProHardwareGateway hardwareGateway;
 
   @override
   State<RigCanvasApp> createState() => _RigCanvasAppState();
@@ -59,6 +63,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
 
   @override
   void dispose() {
+    unawaited(widget.hardwareGateway.dispose());
     _presetController.dispose();
     _setlistController.dispose();
     _assetController.dispose();
@@ -99,6 +104,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
         setlistController: _setlistController,
         assetController: _assetController,
         usbInventory: widget.usbInventory,
+        hardwareGateway: widget.hardwareGateway,
       ),
     );
   }
@@ -110,6 +116,7 @@ class RigCanvasShell extends StatefulWidget {
     required this.setlistController,
     required this.assetController,
     required this.usbInventory,
+    required this.hardwareGateway,
     super.key,
   });
 
@@ -117,6 +124,7 @@ class RigCanvasShell extends StatefulWidget {
   final SetlistController setlistController;
   final AssetController assetController;
   final UsbDeviceInventoryClient usbInventory;
+  final KptProHardwareGateway hardwareGateway;
 
   @override
   State<RigCanvasShell> createState() => _RigCanvasShellState();
@@ -197,6 +205,7 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
         return DeviceDiscoveryScreen(
           key: const ValueKey('devices'),
           inventory: widget.usbInventory,
+          hardwareGateway: widget.hardwareGateway,
         );
       default:
         return const FeaturePlaceholderScreen(
