@@ -65,7 +65,7 @@ void main() {
     expect(find.textContaining('VID 1234'), findsOneWidget);
     expect(find.textContaining('PID 5678'), findsOneWidget);
     expect(find.textContaining('Interface 0'), findsOneWidget);
-    expect(find.textContaining('bulk'), findsOneWidget);
+    expect(find.textContaining('Endpoint 0x81 · in · bulk'), findsOneWidget);
     expect(find.textContaining('No USB transfers'), findsOneWidget);
   });
 
