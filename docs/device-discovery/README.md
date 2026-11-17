@@ -6,7 +6,7 @@ This milestone identifies attached USB devices without communicating with the pe
 
 ## Current known hardware baseline
 
-The project owner reports that their KPT Pro displays firmware v15. This is a user-reported baseline; RigCanvas has not read the version from the device. The official vendor download page lists a KPT Pro firmware archive labelled KPT PRO-011, but does not publish a mapping from that label to the displayed v15 string.
+The project owner reports that their KPT Pro displays firmware v8 and that M-EFCS Android v3.10.2311 connects to it. These values are user-reported; RigCanvas has not independently read the firmware version. The official vendor download page lists a KPT Pro firmware archive labelled KPT PRO-011, but does not publish a mapping from that archive label to the displayed v8 string.
 
 ## Android
 
@@ -26,7 +26,7 @@ Android enumeration uses UsbManager.deviceList and reads descriptor metadata exp
 3. Tap Scan USB devices.
 4. Review friendly name, manufacturer, VID, and PID. A composite USB device may be represented by multiple Plug-and-Play records.
 
-The first Windows adapter uses SetupAPI to enumerate present USB Plug-and-Play records. It does not yet query full USB configuration, interface, or endpoint descriptors. If endpoint-level evidence is needed, collect it separately with a read-only USB descriptor viewer and attach that report to the device discovery record.
+The first Windows adapter uses SetupAPI to enumerate present USB Plug-and-Play records. It does not yet query full USB configuration, interface, or endpoint descriptors. Use the [USB descriptor capture checklist](USB_DESCRIPTOR_CAPTURE.md) to collect the full report with a read-only viewer; this does not install a driver or send pedal commands.
 
 ## Evidence to return
 
