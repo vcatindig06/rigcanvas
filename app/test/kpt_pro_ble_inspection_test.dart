@@ -67,7 +67,7 @@ void main() {
     final gateway = FakeKptGateway();
     addTearDown(gateway.dispose);
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: KptProConnectionPanel(gateway: gateway)),
+      home: Scaffold(body: SingleChildScrollView(child: KptProConnectionPanel(gateway: gateway))),
     ));
 
     await tester.tap(find.byKey(const ValueKey('scan-kpt-ble')));
@@ -99,7 +99,7 @@ void main() {
     final gateway = FakeKptGateway()..state = KptBluetoothAdapterState.poweredOff;
     addTearDown(gateway.dispose);
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: KptProConnectionPanel(gateway: gateway)),
+      home: Scaffold(body: SingleChildScrollView(child: KptProConnectionPanel(gateway: gateway))),
     ));
 
     final button = tester.widget<FilledButton>(find.byKey(const ValueKey('scan-kpt-ble')));
