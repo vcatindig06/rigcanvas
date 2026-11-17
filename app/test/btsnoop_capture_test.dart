@@ -123,7 +123,8 @@ void main() {
       final event = capture.attEvents.last;
       expect(event.attributeUuid, midiCharacteristic);
       expect(event.serviceUuid, midiService);
-      expect(event.attributeUuid, matches(RegExp(r'^[0-9a-f-]{36}
+      expect(event.attributeUuid, matches(RegExp(r'^[0-9a-f-]{36}$')));
+    });
 
     test('keeps ATT payloads from other Bluetooth devices out of the selected session', () {
       final otherAddress = <int>[0x10, 0x20, 0x30, 0x40, 0x50, 0x60];
