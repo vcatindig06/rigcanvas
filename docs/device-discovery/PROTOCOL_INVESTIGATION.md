@@ -14,7 +14,35 @@ Collect:
 - Whether the device appears in the official application.
 - Whether USB control, wireless control, and USB audio are separate functions.
 
-## Phase 1 — BLE GATT profile capture (read-only)\n\nA user-provided RigCanvas report captured on 2026-11-17 identifies a peripheral advertising as `KPTPRO_BLE` and confirms:\n- `0000AE40-0000-1000-8000-00805F9B34FB` with `AE41` write-without-response and `AE42` notify.\n- Standard BLE-MIDI service `03B80E5A-EDE8-4B33-A751-6CE34EC4C700` and characteristic `7772E5DB-3868-4112-A1A9-F2669D106BF3`, with read, write-without-response, and notify properties.\n- No standard Device Information service `180A`.\n- No vendor reads, notification subscriptions, or writes were performed.\n\nThe BLE-MIDI UUIDs identify the standard MIDI transport only; they do not define effect-editor or preset commands. The AE40 service is a vendor data tunnel candidate, but its payload format is unknown. Similar UUID layouts in other products are not protocol evidence for KPT Pro.\n\nNext, record the exact M-EFCS version/build and confirm whether it recognizes the KPT Pro. If it does, capture a private, read-only Bluetooth trace of device discovery and preset-list refresh. Keep raw traces and preset contents private; do not replay captured traffic.\n\n## Phase 2 — USB enumeration (read-only)
+## Phase 1 — BLE GATT profile capture (read-only)
+
+A user-provided RigCanvas report captured on 2026-11-17 identifies a peripheral advertising as `KPTPRO_BLE` and confirms:
+
+- `0000AE40-0000-1000-8000-00805F9B34FB` with `AE41` write-without-response and `AE42` notify.
+- Standard BLE-MIDI service `03B80E5A-EDE8-4B33-A751-6CE34EC4C700` and characteristic `7772E5DB-3868-4112-A1A9-F2669D106BF3`, with read, write-without-response, and notify properties.
+- No standard Device Information service `180A`.
+- No vendor reads, notification subscriptions, or writes were performed.
+
+The BLE-MIDI UUIDs identify the standard MIDI transport only; they do not define effect-editor or preset commands. The AE40 service is a vendor data-tunnel candidate, but its payload format is unknown. Similar UUID layouts in other products are not protocol evidence for KPT Pro.
+
+## Phase 2 — official-app Android HCI trace
+
+The owner reports KPT Pro firmware v8 and M-EFCS Android v3.10.2311, and confirms that the official app connects to the pedal. RigCanvas now contains a local BTSnoop/HCI importer for Android HCI UART/H4 captures.
+
+The importer:
+- Recognizes BLE advertising reports and LE connection-complete/disconnection events.
+- Associates ATT events with their connection handle and observed advertiser name.
+- Parses ATT writes, reads, notifications, indications, and characteristic declarations.
+- Filters an export to one selected connection, masks the BLE peer address, and excludes all other connections.
+- Keeps ATT payload bytes off by default because they may contain user preset or proprietary data.
+
+The importer never replays a captured packet and never writes to the pedal. It currently accepts BTSnoop v1 / HCI UART H4 data-link type 1002. See [Android HCI capture guide](ANDROID_HCI_CAPTURE_GUIDE.md) for the Samsung Android 12 workflow.
+
+**Required capture:** enable full/unfiltered Bluetooth HCI snoop, restart Bluetooth, connect only M-EFCS to the KPT Pro, allow its normal preset-list/current-preset refresh to complete without editing or saving, disconnect, extract only `btsnoop_hci.log`, and import it into RigCanvas → Devices → Android Bluetooth Trace Analyzer. Share the filtered report with ATT payload bytes only when comfortable disclosing the captured pedal data. Disable HCI snoop logging after the capture.
+
+**No command implementation is authorized from the GATT property list alone.** First compare the ATT sequence for discovery, notifications, and read/list refresh; identify characteristic UUIDs from the GATT discovery records; then document actual payload framing and any acknowledgement behavior. Do not replay traffic.
+
+## Phase 2 — USB enumeration (read-only)
 
 1. Connect the pedal using a known data-capable USB cable.
 2. Record device descriptors using OS tools:
