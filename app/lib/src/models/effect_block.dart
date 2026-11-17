@@ -345,8 +345,8 @@ class EffectModelCatalog {
         'kpt.cab.bass.' + index.toString(),
         EffectFamily.cabinet,
         'Bass CAB ' + number,
-        'KPT Pro factory bass cabinet slot ' + slot.toString() +
-            '. The available manual does not publish an individual cabinet name.',
+        'Manual-listed bass CAB slot ' + slot.toString() +
+            '. Availability and model name have not been confirmed on the owner-reported firmware v8.',
         EffectModelSource.kptProFactory,
         instrument: EffectInstrument.bass,
       );
