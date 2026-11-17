@@ -169,10 +169,9 @@ These strings were transferred in notifications at frames 413, 421, 425, 433, an
 55. BassEDN300
 56. BassPeyTS
 57. BassHake
-58. BassPJ400
-59. BassOgAD
-60. BassDarkVT
-61. BassBman70
+58. BassMessRR
+59. BassOgPPC
+60. BassMaMM
 
 The numbering from 51 onward is not fully explicit at the notification boundary: “Matchless 2x1” is unnumbered in the visible bytes, while the following Bass-prefixed strings visibly begin at 52. Keep that segmentation caveat if these strings are imported into a catalog.
 
