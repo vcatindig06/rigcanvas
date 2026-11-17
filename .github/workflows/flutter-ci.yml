@@ -9,11 +9,13 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "docs/**"
       - ".github/workflows/flutter-ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "app/**"
+      - "docs/**"
       - ".github/workflows/flutter-ci.yml"
   workflow_dispatch:
 
