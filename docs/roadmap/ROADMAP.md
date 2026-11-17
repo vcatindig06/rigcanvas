@@ -55,12 +55,15 @@
  
 ## Milestone 2 — hardware discovery
 
-- [ ] Collect exact KPT Pro firmware/app versions.
-- [ ] Capture USB descriptors.
-- [ ] Confirm whether official M-EFCS recognizes the tested KPT Pro.
-- [ ] Identify wireless transport and OS permissions.
-- [ ] Document protocol evidence and a capability matrix.
-- [ ] Implement safe read-only discovery only after protocol behavior is understood.
+- [x] Record the owner's reported KPT Pro firmware display as v15 (reported 2026-11-17; direct device verification remains pending).
+- [x] Add a shared Devices screen for Android and Windows with read-only USB inventory.
+- [x] Add Android USB Host enumeration for attached device VID/PID, interfaces, and endpoints without opening the USB device or transferring data.
+- [x] Add Windows SetupAPI enumeration for present USB Plug-and-Play names, manufacturer, class, VID, and PID; full Windows interface/endpoint descriptor capture remains outstanding.
+- [ ] Identify the physical KPT Pro record from a scan and verify the VID/PID on the user's unit.
+- [ ] Record hardware revision and exact M-EFCS app version/build; confirm whether the app actually recognizes KPT Pro.
+- [ ] Capture full Windows USB configuration/interface/endpoint descriptors and identify the wireless transport/profile.
+- [ ] Compare the physical firmware-v15 unit's AMP/CAB slot counts, MOD/REV inventory, and module-slot behavior against the manual.
+- [ ] Document verified protocol evidence and a capability matrix before implementing any protocol exchange.
 
 ## Milestone 3 — KPT Pro read-only editor
 
@@ -108,6 +111,13 @@
 - Added dedicated test coverage for cabinet IR assignment and invalid-reference recovery alongside the existing amplifier-capture assignment test.
 - Confirmed feature-parity rule: the same Gig, Workspace, Presets, Assets, and Settings destinations are covered in compact and wide layout tests; Android APK and Windows desktop builds are both required in CI.
 - **Next focus:** finish and verify Grid Workspace v1 on Android and Windows. Only after this local editor milestone is stable should work return to KPT Pro discovery; start with exact device/firmware and official M-EFCS version evidence, then read-only USB enumeration.
+
+### Review log — 2026-11-17
+
+- Recorded the user's KPT Pro firmware display as v15 without equating it to the vendor's KPT PRO-011 downloadable archive; the official download page does not publish a version mapping.
+- Clarified the vendor documentation boundary: the current download page lists M-EFCS for TANK-G/TANK-B, while the KPT Pro manual describes PC/mobile software support. KPT Pro recognition by the current M-EFCS apps remains unverified.
+- Added a shared Devices screen and native read-only USB inventory adapters. Android reports device/interface/endpoint descriptors; Windows currently reports USB PnP names and VID/PID only.
+- **Next required evidence:** run the inventory with the KPT Pro connected and provide its copied report plus the exact M-EFCS app version and recognition result. Do not send device writes or flash firmware.
 
 ## Release gates
 

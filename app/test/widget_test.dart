@@ -109,6 +109,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Gig View'), findsOneWidget);
 
+    await tester.tap(find.text('Devices'));
+    await tester.pumpAndSettle();
+    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
+
+    await tester.tap(find.text('Devices'));
+    await tester.pumpAndSettle();
+    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
+
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Connection preferences, audio settings, appearance, and diagnostics will live here.'), findsOneWidget);

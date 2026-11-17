@@ -1,6 +1,6 @@
 # RigCanvas Effect Model Catalog — Research Notes
 
-**Research date:** 2026-11-16  
+**Research date:** 2026-11-17  
 **Application targets:** Android and Windows (shared Flutter catalog)  
 **Implementation branch:** `feature/grid-workspace-v1`
 
@@ -14,6 +14,10 @@ RigCanvas now uses a fixed, searchable effect-model catalog when creating or cha
 The catalog is a selection and preset-metadata layer. It does not yet implement audio DSP, load an amp model for playback, render a cabinet IR, or communicate a selected block to KPT Pro.
 
 The available KPT Pro manual is hosted by third-party manual sites rather than a manufacturer-controlled documentation portal. Its summary sections are not fully consistent. Treat exact firmware-specific availability as provisional until checked against the user's physical KPT Pro and its matching M-EFCS/app version.
+
+## User-reported firmware baseline
+
+The project owner reports that their physical KPT Pro displays firmware v15 (reported 2026-11-17). This is recorded as a user-provided baseline only; RigCanvas has not independently read the version from the pedal. The manufacturer's download page currently lists a KPT Pro firmware archive labelled KPT PRO-011, but does not publish a mapping from that archive label to the displayed v15 value. The inventory below is manual-documented and must not be described as verified for firmware v15 until the physical unit is checked.
 
 ## KPT Pro factory inventory
 
@@ -91,11 +95,12 @@ These labels describe functional archetypes, not cloned commercial models, manuf
 
 ## Next requirements before audio or hardware support
 
-1. Confirm the user's exact KPT Pro hardware/firmware and app/M-EFCS version.
+1. Record the owner's reported firmware display as v15, then verify it directly on the connected unit; record hardware revision and exact M-EFCS app version/device-recognition result.
 2. Compare the actual AMP/CAB model slots, MOD count, and REV choices on that unit against the manual.
 3. Document model-specific parameter names/ranges for every confirmed KPT Pro model.
 4. Choose or implement a shared Android/Windows DSP engine before advertising any expanded model as playable.
-5. Only map KPT model IDs to device memory/control IDs after read-only protocol discovery confirms the mapping. Never send guessed IDs or guessed parameter values to hardware.
+5. Capture the v15 unit's read-only USB inventory and full descriptors, then compare the actual AMP/CAB slots, MOD count, REV choices, and effect-slot rules against the manual.
+6. Only map KPT model IDs to device memory/control IDs after read-only protocol discovery confirms the mapping. Never send guessed IDs or guessed parameter values to hardware.
 
 ## References
 
@@ -110,6 +115,7 @@ These labels describe functional archetypes, not cloned commercial models, manuf
 - [KPT Pro manual page 30](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html?page=30) — dTape, Dual and Lofi delays.
 - [KPT Pro manual page 31](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html?page=31) — Room, Hall, Swell, Spring and Shimmer reverb controls.
 - [KPT Pro manual page 32](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html?page=32) — remaining reverb and external expression controls.
+- [TankPedal official downloads](https://tankpedal.com/pages/download) — KPT Pro firmware package label and M-EFCS PC/mobile stated support list.
 - [YUIMER KPT Pro product listing](https://www.theoriginalera.com/products/kpt-pro-multi-effects-pedal-upgraded-version-from-yuimer-factory-previously-known-as-tank-g-and-tank-b) — corroborates 50 guitar / 10 bass preamp and cabinet slot counts. This is a reseller, not a firmware reference.
 
 ### Broader multi-effects references

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:rigcanvas_usb_inventory/rigcanvas_usb_inventory.dart';
 
 import 'data/asset_repository.dart';
 import 'data/preset_repository.dart';
@@ -8,6 +9,7 @@ import 'data/setlist_repository.dart';
 import 'screens/asset_library_screen.dart';
 import 'screens/audio_engine_screen.dart';
 import 'screens/feature_placeholder_screen.dart';
+import 'screens/device_discovery_screen.dart';
 import 'screens/gig_view_screen.dart';
 import 'screens/preset_library_screen.dart';
 import 'screens/workspace_screen.dart';
@@ -20,12 +22,14 @@ class RigCanvasApp extends StatefulWidget {
     this.repository,
     this.setlistRepository,
     this.assetRepository,
+    this.usbInventory = const UsbDeviceInventory(),
     super.key,
   });
 
   final PresetRepository? repository;
   final SetlistRepository? setlistRepository;
   final AssetRepository? assetRepository;
+  final UsbDeviceInventoryClient usbInventory;
 
   @override
   State<RigCanvasApp> createState() => _RigCanvasAppState();
@@ -94,6 +98,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
         presetController: _presetController,
         setlistController: _setlistController,
         assetController: _assetController,
+        usbInventory: widget.usbInventory,
       ),
     );
   }
@@ -104,12 +109,14 @@ class RigCanvasShell extends StatefulWidget {
     required this.presetController,
     required this.setlistController,
     required this.assetController,
+    required this.usbInventory,
     super.key,
   });
 
   final PresetController presetController;
   final SetlistController setlistController;
   final AssetController assetController;
+  final UsbDeviceInventoryClient usbInventory;
 
   @override
   State<RigCanvasShell> createState() => _RigCanvasShellState();
@@ -143,6 +150,11 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
       icon: Icon(Icons.graphic_eq_outlined),
       selectedIcon: Icon(Icons.graphic_eq),
       label: 'Audio',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.usb_outlined),
+      selectedIcon: Icon(Icons.usb),
+      label: 'Devices',
     ),
     NavigationDestination(
       icon: Icon(Icons.settings_outlined),
@@ -180,6 +192,11 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
           key: const ValueKey('audio-engine'),
           controller: widget.presetController,
           assetController: widget.assetController,
+        );
+      case 5:
+        return DeviceDiscoveryScreen(
+          key: const ValueKey('devices'),
+          inventory: widget.usbInventory,
         );
       default:
         return const FeaturePlaceholderScreen(
