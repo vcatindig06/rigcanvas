@@ -824,17 +824,27 @@ class _ConnectionAttributeTable {
       _GattCharacteristicMetadata? parent;
       for (final characteristic in characteristics) {
         if (attribute.key <= characteristic.valueHandle) continue;
-        final service = services.where((item) =>
-            characteristic.declarationHandle >= item.startHandle &&
-            characteristic.declarationHandle <= item.endHandle).firstOrNull;
-        final nextCharacteristic = characteristics.where((other) {
-          if (other.declarationHandle <= characteristic.declarationHandle) {
-            return false;
+        _GattServiceRange? service;
+        for (final candidate in services) {
+          if (characteristic.declarationHandle >= candidate.startHandle &&
+              characteristic.declarationHandle <= candidate.endHandle) {
+            service = candidate;
+            break;
           }
-          if (service == null) return true;
-          return other.declarationHandle >= service.startHandle &&
-              other.declarationHandle <= service.endHandle;
-        }).firstOrNull;
+        }
+        _GattCharacteristicMetadata? nextCharacteristic;
+        for (final other in characteristics) {
+          if (other.declarationHandle <= characteristic.declarationHandle) {
+            continue;
+          }
+          if (service != null &&
+              (other.declarationHandle < service.startHandle ||
+                  other.declarationHandle > service.endHandle)) {
+            continue;
+          }
+          nextCharacteristic = other;
+          break;
+        }
         final endHandle = nextCharacteristic != null
             ? nextCharacteristic.declarationHandle - 1
             : service?.endHandle ?? 0xFFFF;
