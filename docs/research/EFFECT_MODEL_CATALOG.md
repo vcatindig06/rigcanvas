@@ -19,6 +19,14 @@ The available KPT Pro manual is hosted by third-party manual sites rather than a
 
 The project owner reports that their physical KPT Pro displays firmware v8 and that M-EFCS v3.10.2311 is the installed editor version (both reported 2026-11-17). RigCanvas has not independently read the firmware value from the pedal. The manufacturer's download page lists a KPT Pro firmware archive labelled KPT PRO-011, but does not publish a mapping between that archive label and the pedal-displayed v8 value. The AMP/CAB names below are owner-provided physical-menu observations for this firmware baseline; all other manual-only factory inventories remain provisional until checked against the device.
 
+## M-EFCS public release-note evidence
+
+The owner's Android build number is reported as **v3.10.2311** and the owner reports that it connects to the KPT Pro. This exact Android build number has not been independently verified by RigCanvas.
+
+The public M-EFCS App Store version history lists a 3.10.2016 release adding A2 support for MK20, TANK PRO, and KPT PRO, followed by a 3.10.2314 release describing parameter/snapshot synchronization and device-support improvements. These release notes support the existence of KPT Pro A2-format support in the M-EFCS 3.10 series. They do **not** publish the Bluetooth GATT command framing, control opcodes, parameter IDs, preset transaction format, or BLE AE40 payload layout. A2 import support must not be mistaken for a documented live-editor transport protocol.
+
+Reference: [M-EFCS App Store version history](https://apps.apple.com/us/app/m-efcs/id6470352068).
+
 ## Owner-provided KPT Pro firmware-v8 AMP/CAB menu inventory
 
 The owner supplied these exact factory names from the physical pedal menu on 2026-11-17. Preserve the tokens exactly; no spelling or naming normalization has been applied.
@@ -104,6 +112,7 @@ These labels describe functional archetypes, not cloned commercial models, manuf
 
 - Each catalog entry has a stable model ID.
 - New blocks are selected from a searchable category picker; the user cannot type a custom model name.
+- The KPT Pro AMP picker can filter the owner's named factory list by Clean (CL), Overdrive (OD), or Distortion (DS), or show all types.
 - Changing an existing block opens the same fixed model selector, restricted to its effect family.
 - The displayed block name is resolved from the catalog entry and stored with its model ID.
 - Preset schema v3 stores model IDs. Schema-v1/v2 preset imports and local preset databases are migrated using the closest exact catalog name or a deterministic family default where no match exists.
