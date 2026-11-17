@@ -162,9 +162,9 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           subtitle: Text(
-                            (model.ampType == null
+                            (model.ampTypeLabel == null
                                     ? ''
-                                    : model.ampType!.labelWithCode + ' · ') +
+                                    : model.ampTypeLabel! + ' · ') +
                                 model.instrumentLabel + ' · ' + model.description,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
