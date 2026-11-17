@@ -4,10 +4,11 @@
 #include <cmath>
 #include <cstdint>
 #include <new>
+#include <limits>
 #include <vector>
 
 namespace {
-constexpr uint32_t kAbiVersion = 2, kMaxChannels = 2, kMaxNodes = 32, kMaxIrFrames = 4096;
+constexpr uint32_t kAbiVersion = 3, kMaxChannels = 2, kMaxNodes = 32, kMaxIrFrames = 4096;
 constexpr float kPi = 3.14159265358979323846f, kSilenceDb = -120.0f;
 enum NodeType : int32_t { kDynamics=1, kDrive=2, kAmplifier=3, kCabinet=4, kModulation=5, kDelay=6, kReverb=7, kEqualizer=8 };
 enum DynamicsMode : int32_t { kGate=0, kCompressor=1 };
@@ -186,4 +187,41 @@ double rg_engine_input_peak_db(void* p){Engine* e=engineOf(p);return e?linearToD
 double rg_engine_output_peak_db(void* p){Engine* e=engineOf(p);return e?linearToDb(e->outPeak):kSilenceDb;}
 uint32_t rg_engine_processed_frames(void* p){Engine* e=engineOf(p);return e?e->frames:0;}
 uint32_t rg_engine_enabled_node_count(void* p){Engine* e=engineOf(p);if(!e)return 0;uint32_t count=0;for(const auto& n:e->nodes)if(n.enabled)++count;return count;}
+uint32_t rg_engine_node_count(void* p){Engine* e=engineOf(p);return e?static_cast<uint32_t>(e->nodes.size()):0;}
+int32_t rg_engine_get_node_type(void* p,uint32_t ni){Engine* e=engineOf(p);if(!e||ni>=e->nodes.size())return -1;return e->nodes[ni].type;}
+int32_t rg_engine_get_node_enabled(void* p,uint32_t ni){Engine* e=engineOf(p);if(!e||ni>=e->nodes.size())return -1;return e->nodes[ni].enabled?1:0;}
+int32_t rg_engine_set_node_enabled(void* p,uint32_t ni,int32_t enabled){Engine* e=engineOf(p);if(!e||ni>=e->nodes.size())return -1;if(enabled!=0&&enabled!=1)return -2;e->nodes[ni].enabled=enabled!=0;return 0;}
+double rg_engine_get_parameter(void* p,uint32_t ni,uint32_t pi){
+  Engine* e=engineOf(p);
+  if(!e||ni>=e->nodes.size())return std::numeric_limits<double>::quiet_NaN();
+  const Node& n=e->nodes[ni];
+  uint32_t count=0;
+  switch(n.type){
+    case kDynamics:count=6;break;
+    case kDrive:count=4;break;
+    case kAmplifier:count=6;break;
+    case kCabinet:count=4;break;
+    case kModulation:count=4;break;
+    case kDelay:count=4;break;
+    case kReverb:count=4;break;
+    case kEqualizer:count=5;break;
+    default:return std::numeric_limits<double>::quiet_NaN();
+  }
+  if(pi>=count)return std::numeric_limits<double>::quiet_NaN();
+  return static_cast<double>(n.p[pi]);
+}
+int32_t rg_engine_move_node(void* p,uint32_t from,uint32_t to){
+  Engine* e=engineOf(p);
+  if(!e||from>=e->nodes.size()||to>=e->nodes.size())return -1;
+  if(from==to)return 0;
+  if(from<to)std::rotate(e->nodes.begin()+from,e->nodes.begin()+from+1,e->nodes.begin()+to+1);
+  else std::rotate(e->nodes.begin()+to,e->nodes.begin()+from,e->nodes.begin()+from+1);
+  return 0;
+}
+int32_t rg_engine_remove_node(void* p,uint32_t ni){
+  Engine* e=engineOf(p);
+  if(!e||ni>=e->nodes.size())return -1;
+  e->nodes.erase(e->nodes.begin()+ni);
+  return 0;
+}
 }

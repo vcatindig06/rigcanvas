@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../audio/rigcanvas_dsp_engine.dart';
 import '../audio/wav_ir_decoder.dart';
+import 'dsp_control_surface.dart';
 import '../models/effect_block.dart';
 import '../models/rig_preset.dart';
 import '../state/asset_controller.dart';
@@ -457,6 +458,13 @@ class _AudioEngineScreenState extends State<AudioEngineScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  if (preset != null)
+                    DspControlSurface(
+                      preset: preset,
+                      controller: widget.controller,
+                      assetController: widget.assetController,
+                    ),
                   const SizedBox(height: 14),
                   Card(
                     child: Padding(

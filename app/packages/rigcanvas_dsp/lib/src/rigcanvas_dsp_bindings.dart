@@ -15,6 +15,27 @@ external int rgEngineAddNode(Pointer<Void> handle, int nodeType, int mode, int e
 @Native<Int32 Function(Pointer<Void>, Uint32, Uint32, Float)>(symbol: 'rg_engine_set_parameter')
 external int rgEngineSetParameter(Pointer<Void> handle, int nodeIndex, int parameterIndex, double value);
 
+@Native<Double Function(Pointer<Void>, Uint32, Uint32)>(symbol: 'rg_engine_get_parameter')
+external double rgEngineGetParameter(Pointer<Void> handle, int nodeIndex, int parameterIndex);
+
+@Native<Int32 Function(Pointer<Void>, Uint32)>(symbol: 'rg_engine_get_node_type')
+external int rgEngineGetNodeType(Pointer<Void> handle, int nodeIndex);
+
+@Native<Int32 Function(Pointer<Void>, Uint32)>(symbol: 'rg_engine_get_node_enabled')
+external int rgEngineGetNodeEnabled(Pointer<Void> handle, int nodeIndex);
+
+@Native<Int32 Function(Pointer<Void>, Uint32, Int32)>(symbol: 'rg_engine_set_node_enabled')
+external int rgEngineSetNodeEnabled(Pointer<Void> handle, int nodeIndex, int enabled);
+
+@Native<Uint32 Function(Pointer<Void>)>(symbol: 'rg_engine_node_count')
+external int rgEngineNodeCount(Pointer<Void> handle);
+
+@Native<Int32 Function(Pointer<Void>, Uint32, Uint32)>(symbol: 'rg_engine_move_node')
+external int rgEngineMoveNode(Pointer<Void> handle, int fromIndex, int toIndex);
+
+@Native<Int32 Function(Pointer<Void>, Uint32)>(symbol: 'rg_engine_remove_node')
+external int rgEngineRemoveNode(Pointer<Void> handle, int nodeIndex);
+
 @Native<Int32 Function(Pointer<Void>, Uint32, Pointer<Float>, Uint32, Uint32)>(symbol: 'rg_engine_set_cabinet_ir')
 external int rgEngineSetCabinetIr(Pointer<Void> handle, int nodeIndex, Pointer<Float> interleavedSamples, int frameCount, int irChannels);
 

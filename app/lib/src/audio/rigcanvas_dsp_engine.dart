@@ -55,7 +55,7 @@ class RigCanvasDspEngine {
     if (_handle == nullptr) {
       throw ArgumentError('Unsupported DSP engine format: $sampleRate Hz, $channels channels.');
     }
-    if (native.rgEngineAbiVersion() != 2) {
+    if (native.rgEngineAbiVersion() != 3) {
       native.rgEngineDestroy(_handle);
       _handle = nullptr;
       throw StateError('RigCanvas DSP native API version mismatch.');
@@ -93,6 +93,61 @@ class RigCanvasDspEngine {
     final result = native.rgEngineSetParameter(_handle, nodeIndex, parameterIndex, value);
     if (result != 0) {
       throw ArgumentError('Native DSP rejected parameter $parameterIndex for block $nodeIndex ($result).');
+    }
+  }
+
+  /// Reads the current value held by the native DSP node.
+  double getParameter(int nodeIndex, int parameterIndex) {
+    _ensureAlive();
+    final value = native.rgEngineGetParameter(_handle, nodeIndex, parameterIndex);
+    if (!value.isFinite) {
+      throw RangeError('Native DSP has no parameter $parameterIndex on block $nodeIndex.');
+    }
+    return value;
+  }
+
+  int get nodeCount {
+    _ensureAlive();
+    return native.rgEngineNodeCount(_handle);
+  }
+
+  DspNodeType nodeTypeAt(int nodeIndex) {
+    _ensureAlive();
+    final nativeType = native.rgEngineGetNodeType(_handle, nodeIndex);
+    return DspNodeType.values.firstWhere(
+      (type) => type.nativeValue == nativeType,
+      orElse: () => throw RangeError('Invalid DSP node index $nodeIndex.'),
+    );
+  }
+
+  bool isNodeEnabled(int nodeIndex) {
+    _ensureAlive();
+    final result = native.rgEngineGetNodeEnabled(_handle, nodeIndex);
+    if (result < 0) throw RangeError('Invalid DSP node index $nodeIndex.');
+    return result == 1;
+  }
+
+  void setNodeEnabled(int nodeIndex, bool enabled) {
+    _ensureAlive();
+    final result = native.rgEngineSetNodeEnabled(_handle, nodeIndex, enabled ? 1 : 0);
+    if (result != 0) {
+      throw RangeError('Native DSP could not change bypass state for block $nodeIndex ($result).');
+    }
+  }
+
+  void moveNode(int fromIndex, int toIndex) {
+    _ensureAlive();
+    final result = native.rgEngineMoveNode(_handle, fromIndex, toIndex);
+    if (result != 0) {
+      throw RangeError('Native DSP could not move block $fromIndex to $toIndex ($result).');
+    }
+  }
+
+  void removeNode(int nodeIndex) {
+    _ensureAlive();
+    final result = native.rgEngineRemoveNode(_handle, nodeIndex);
+    if (result != 0) {
+      throw RangeError('Native DSP could not remove block $nodeIndex ($result).');
     }
   }
 

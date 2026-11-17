@@ -75,3 +75,18 @@ The signal is not captured from a physical guitar, microphone, audio interface, 
 3. Upgrade the resampler and convolution implementation only with reference tests and cross-platform profiling.
 4. Introduce OS audio I/O behind the same cross-platform stream/device contract, then verify latency and stability independently on Android and Windows.
 5. Do not infer KPT Pro device compatibility from this software DSP engine or from generic catalog categories.
+
+
+## Native DSP control and readback API — ABI v3
+
+The native C++ engine now exposes a bidirectional software-control surface in addition to audio processing:
+
+- Read a node's parameter value back from native memory after a control change.
+- Read a node's actual bypass/enabled state and change it independently.
+- Inspect node count and node type.
+- Reorder nodes in the native processing graph.
+- Remove a node from the native graph.
+
+The Audio page uses this API for the Software Multi-FX Control panel. Each supported block parameter is mapped to its DSP-native scale, written into the running native graph when adjusted, and read back for display. Parameter changes are committed to the local preset when the slider interaction ends. Bypass state is also changed in the native graph and saved to the preset.
+
+These controls operate on RigCanvas's software DSP graph only. They do not send messages to a physical KPT Pro. The native graph still processes supplied buffers or an internally generated test signal offline; no live audio input/output or low-latency monitoring is enabled by this milestone.

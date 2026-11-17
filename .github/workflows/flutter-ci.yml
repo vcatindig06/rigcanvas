@@ -123,6 +123,9 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows
+        env:
+          # MSVC 14.51 promotes the BLE plugin's legacy coroutine header warning to an error.
+          CXXFLAGS: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
         run: flutter build windows --release
 
       - name: Upload Windows build
