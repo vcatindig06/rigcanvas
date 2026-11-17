@@ -71,7 +71,26 @@ The empty characteristic map is expected when the selected trace contains no suc
 
 RigCanvas now exports payload-free protocol details for Read By Type/Group Type Requests (handle range and queried UUID), Error Responses (failed opcode/handle and ATT error), and MTU messages. These additions preserve privacy when payload export is off. The detailed evidence and limitations are in [TRACE_ANALYSIS_2026-11-17.md](TRACE_ANALYSIS_2026-11-17.md).
 
-**Next required evidence:** repeat a short M-EFCS connection and normal list/current-preset refresh capture, export only the selected connection, and enable ATT payload bytes after reviewing the privacy warning. Use a non-personal test preset where practical. Do not edit/save parameters or replay traffic. No command implementation is authorized from handle patterns alone.
+**Status at the time of this first, payload-free report:** the next evidence requested was a payload-enabled companion export. That companion has since been supplied and is documented in Phase 2.2 and [PAYLOAD_ANALYSIS_2026-11-17.md](PAYLOAD_ANALYSIS_2026-11-17.md).
+
+## Phase 2.2 — payload-enabled M-EFCS ATT trace (2026-11-17)
+
+The owner supplied the payload-enabled companion export for the 330-event selected session (connection handle 0x0200, frames 350–1,194). The export contains 1 Write Request, 157 Write Commands, and 165 Handle Value Notifications. The two uploaded text files are byte-identical duplicates and are treated as one capture.
+
+New observations:
+
+- A pedal-to-phone notification on handle 0x0064 contains the ASCII string KPTPRO_008. This is payload-level product-like identification evidence, although the advertising name remains absent and the token's suffix is not proven to be a firmware version.
+- A Write Request to 0x0065 carries 01 00 and receives an ATT Write Response. This is consistent with a CCCD notification-enable write, but the descriptor mapping is not proven without declarations.
+- Phone Write Commands target 0x0062; pedal notifications target 0x0064. Their direction and operation pattern are consistent with a bidirectional vendor data path. The capture still has no successful characteristic declaration response, so the UUID mapping to previously observed AE41/AE42 remains unconfirmed.
+- The vendor-looking payloads include repeated 00 59 11 and 00 59 23 prefixes. Two Write Command payload variants occur 76 times each, and two notification payload variants occur 76 times each. This supports a recurring exchange, but does not establish whether it is polling, synchronization, keep-alive traffic, or parameter control.
+- The payload contains long model-name lists. The speaker/cabinet-like names appear in notifications at frames 413–440. CL/OD/DS amp model names appear at frames 450–477, followed by a standalone FNDR AMPCAB string and Bass-prefixed names. Original strings and segmentation caveats are preserved in [PAYLOAD_ANALYSIS_2026-11-17.md](PAYLOAD_ANALYSIS_2026-11-17.md).
+- A larger binary notification is visible at frame 486, but no parameter offsets, types, ranges, or meanings are claimed.
+
+The report does not disclose a decoded FX, drive, modulation, delay, reverb, or dynamics catalog in the selected payload excerpts. This is an evidence gap, not proof those block types are absent.
+
+**Updated evidence status:** the payload-enabled capture milestone has been completed. The next required evidence is a successful fresh GATT service/characteristic/descriptor discovery to map handles 0x0062, 0x0064, and 0x0065 to UUIDs, plus raw HCI lifecycle context to resolve the repeated MTU exchange. Only after that should a passive, action-correlated official-app capture be used to investigate parameter semantics. In any such capture, RigCanvas remains read-only; do not replay messages or send guessed writes.
+
+The payload report itself is not included in the public repository. Only the summarized observations and model-name strings needed for the investigation are documented. No user preset dump, full proprietary payload sequence, or raw BTSnoop capture is committed.
 
 ## Phase 3 — USB enumeration (read-only)
 
@@ -128,23 +147,3 @@ Write support remains disabled until:
 - Do not infer KPT Pro behavior from Tank-G/Tank-B packet captures.
 - Treat device dumps as potentially proprietary and as user data.
 - Keep private captures outside the public repository.
-
-
-## Phase 2.2 — payload-enabled M-EFCS ATT trace (2026-11-17)
-
-The owner supplied the payload-enabled companion export for the 330-event selected session (connection handle 0x0200, frames 350–1,194). The export contains 1 Write Request, 157 Write Commands, and 165 Handle Value Notifications. The two uploaded text files are byte-identical duplicates and are treated as one capture.
-
-New observations:
-
-- A pedal-to-phone notification on handle 0x0064 contains the ASCII string KPTPRO_008. This is payload-level product-like identification evidence, although the advertising name remains absent and the token's suffix is not proven to be a firmware version.
-- A Write Request to 0x0065 carries 01 00 and receives an ATT Write Response. This is consistent with a CCCD notification-enable write, but the descriptor mapping is not proven without declarations.
-- Phone Write Commands target 0x0062; pedal notifications target 0x0064. Their direction and operation pattern are consistent with a bidirectional vendor data path. The capture still has no successful characteristic declaration response, so the UUID mapping to previously observed AE41/AE42 remains unconfirmed.
-- The vendor-looking payloads include repeated 00 59 11 and 00 59 23 prefixes. Two Write Command payload variants occur 76 times each, and two notification payload variants occur 76 times each. This supports a recurring exchange, but does not establish whether it is polling, synchronization, keep-alive traffic, or parameter control.
-- The payload contains long model-name lists. The speaker/cabinet-like names appear in notifications at frames 413–440. CL/OD/DS amp model names appear at frames 450–477, followed by a standalone FNDR AMPCAB string and Bass-prefixed names. Original strings and segmentation caveats are preserved in [PAYLOAD_ANALYSIS_2026-11-17.md](PAYLOAD_ANALYSIS_2026-11-17.md).
-- A larger binary notification is visible at frame 486, but no parameter offsets, types, ranges, or meanings are claimed.
-
-The report does not disclose a decoded FX, drive, modulation, delay, reverb, or dynamics catalog in the selected payload excerpts. This is an evidence gap, not proof those block types are absent.
-
-**Updated evidence status:** the payload-enabled capture milestone has been completed. The next required evidence is a successful fresh GATT service/characteristic/descriptor discovery to map handles 0x0062, 0x0064, and 0x0065 to UUIDs, plus raw HCI lifecycle context to resolve the repeated MTU exchange. Only after that should a passive, action-correlated official-app capture be used to investigate parameter semantics. In any such capture, RigCanvas remains read-only; do not replay messages or send guessed writes.
-
-The payload report itself is not included in the public repository. Only the summarized observations and model-name strings needed for the investigation are documented. No user preset dump, full proprietary payload sequence, or raw BTSnoop capture is committed.
