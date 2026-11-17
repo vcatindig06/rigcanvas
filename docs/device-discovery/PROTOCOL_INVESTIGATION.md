@@ -4,6 +4,26 @@
 
 Identify how the official software discovers and communicates with the KPT Pro, without modifying firmware or corrupting user presets.
 
+## Current test baseline — 2026-11-17
+
+The following details were supplied by the user and are recorded as **user-reported**, not independently read from the device by RigCanvas:
+
+| Field | Reported value | Evidence status |
+|---|---|---|
+| Pedal model | KPT Pro | User-reported |
+| Pedal firmware | v8 | User-reported |
+| Official editor | M-EFCS v3.10.2311 | User-reported |
+| M-EFCS recognition/control | M-EFCS works with the KPT Pro | User-reported |
+| Hardware revision | Not yet recorded | Unknown |
+| Windows edition/build | Not yet recorded | Unknown |
+| USB VID/PID and device release descriptor | Not yet captured | Unknown |
+| USB interfaces/endpoints and transfer types | Not yet captured | Unknown |
+| Wireless transport/service identifiers | Not yet captured | Unknown |
+
+The official application's successful operation is useful compatibility evidence, but it does not identify the USB packet format, prove that the same protocol is available to third-party software, or authorize RigCanvas to send commands.
+
+**Immediate next action:** capture the physical device's descriptors using the read-only procedure in [USB descriptor capture checklist](USB_DESCRIPTOR_CAPTURE.md). Do not start a custom protocol exchange yet.
+
 ## Phase 0 — information capture
 
 Collect:
@@ -18,9 +38,9 @@ Collect:
 
 1. Connect the pedal using a known data-capable USB cable.
 2. Record device descriptors using OS tools:
-   - Windows: Device Manager and USB Device Tree Viewer.
-   - Linux: `lsusb -v` and kernel logs.
-3. Record VID, PID, interface number, interface class/subclass/protocol, endpoint addresses, and transfer types.
+   - Windows: [USB Device Tree Viewer](https://www.uwe-sieber.de/usbtreeview_e.html) or [Microsoft USBView](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/usbview), plus Device Manager for Hardware IDs.
+   - Linux: lsusb -v and kernel logs.
+3. Record VID, PID, device release number, interface number, interface class/subclass/protocol, endpoint addresses, and transfer types.
 4. Do not send custom control transfers or vendor commands.
 5. Confirm whether the device exposes a standard USB audio interface separately from any control interface.
 
