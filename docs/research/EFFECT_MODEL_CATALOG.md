@@ -51,7 +51,7 @@ The KPT Pro manual describes seven movable effect modules — FX, AMP, MOD, DLY,
 | CAB | 60 | Guitar CAB 01–50 and Bass CAB 51–60 |
 | EXT | 5 | VOL, X-Wah, Funk-Wah, Slide-Wah, Cry-Wah |
 
-The module list therefore accounts for 151 factory choices. The manual's overview/FAQ separately mentions a 3-band EQ but does not make its placement in the seven-module chain clear. RigCanvas includes it as a documented KPT Pro EQ choice with a note that its exact module position is unspecified. The catalog test consequently counts 152 KPT-labelled entries including that one overview-level EQ option.
+The manual's listed module choices account for 151 factory choices. The manual's overview/FAQ separately mentions a 3-band EQ but does not make its placement in the seven-module chain clear. RigCanvas includes it as a documented KPT Pro EQ choice with a note that its exact module position is unspecified. The catalog test consequently counts 152 KPT-labelled entries including that one overview-level EQ option.
 
 ### Important KPT Pro documentation discrepancies
 
@@ -113,7 +113,7 @@ These labels describe functional archetypes, not cloned commercial models, manuf
 
 ## Next requirements before audio or hardware support
 
-1. Record the owner's reported firmware display as v15, then verify it directly on the connected unit; record hardware revision and exact M-EFCS app version/device-recognition result.
+1. Record the owner's reported firmware display as v8 and M-EFCS v3.10.2311; verify the firmware directly on the connected unit and record hardware revision.
 2. Verify the owner-provided 50 AMP and 50 CAB menu names/order against the connected unit; compare the MOD count and REV choices against the manual.
 3. Document model-specific parameter names/ranges for every confirmed KPT Pro model.
 4. Choose or implement a shared Android/Windows DSP engine before advertising any expanded model as playable.
