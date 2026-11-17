@@ -14,7 +14,7 @@ Collect:
 - Whether the device appears in the official application.
 - Whether USB control, wireless control, and USB audio are separate functions.
 
-## Phase 1 — USB enumeration (read-only)
+## Phase 1 — BLE GATT profile capture (read-only)\n\nA user-provided RigCanvas report captured on 2026-11-17 identifies a peripheral advertising as `KPTPRO_BLE` and confirms:\n- `0000AE40-0000-1000-8000-00805F9B34FB` with `AE41` write-without-response and `AE42` notify.\n- Standard BLE-MIDI service `03B80E5A-EDE8-4B33-A751-6CE34EC4C700` and characteristic `7772E5DB-3868-4112-A1A9-F2669D106BF3`, with read, write-without-response, and notify properties.\n- No standard Device Information service `180A`.\n- No vendor reads, notification subscriptions, or writes were performed.\n\nThe BLE-MIDI UUIDs identify the standard MIDI transport only; they do not define effect-editor or preset commands. The AE40 service is a vendor data tunnel candidate, but its payload format is unknown. Similar UUID layouts in other products are not protocol evidence for KPT Pro.\n\nNext, record the exact M-EFCS version/build and confirm whether it recognizes the KPT Pro. If it does, capture a private, read-only Bluetooth trace of device discovery and preset-list refresh. Keep raw traces and preset contents private; do not replay captured traffic.\n\n## Phase 2 — USB enumeration (read-only)
 
 1. Connect the pedal using a known data-capable USB cable.
 2. Record device descriptors using OS tools:
@@ -24,7 +24,7 @@ Collect:
 4. Do not send custom control transfers or vendor commands.
 5. Confirm whether the device exposes a standard USB audio interface separately from any control interface.
 
-## Phase 2 — observe official application behavior
+## Phase 3 — observe official application behavior
 
 Only when the official app recognizes the exact KPT Pro model:
 1. Capture a baseline preset backup using the official app.
@@ -34,7 +34,7 @@ Only when the official app recognizes the exact KPT Pro model:
 5. Compare repeated discovery traces to identify stable framing versus session values.
 6. Do not replay captured traffic.
 
-## Phase 3 — protocol documentation
+## Phase 4 — protocol documentation
 
 Create a written protocol specification only after repeated observations:
 - Framing and message boundaries.
@@ -47,7 +47,7 @@ Create a written protocol specification only after repeated observations:
 
 Mark each field as observed, inferred, or unknown. Never present an inference as a confirmed fact.
 
-## Phase 4 — implementation gate
+## Phase 5 — implementation gate
 
 The first adapter should implement only:
 - Device discovery.
