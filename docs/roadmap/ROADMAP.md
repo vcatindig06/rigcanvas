@@ -52,7 +52,7 @@
 - [ ] Verify the exact AMP/CAB order and the MOD/REV choices on the physical v8 pedal.
 - [ ] Manually smoke-test model selection and preset migration on Android and Windows.
 
-**Important boundary:** KPT Pro factory AMP/CAB names are not published in the accessible manual copy. Show numbered slots instead of guessed names. RigCanvas Library entries are generic archetypes, not clones or licensed manufacturer algorithms. The picker does not mean audio rendering or KPT Pro protocol support exists.
+**Important boundary:** the accessible manual does not publish individual AMP/CAB names; the firmware-v8 owner's 50 AMP and 50 CAB names are now included as user-provided factory-menu entries, not independently manufacturer-verified aliases. The extra manual-listed bass slots remain unverified. RigCanvas Library entries are generic archetypes, not clones or licensed manufacturer algorithms. Catalog selection does not mean audio rendering or KPT Pro protocol support exists.
  
 ## Milestone 2 — hardware discovery
 
@@ -67,8 +67,8 @@
 - [x] Add Android USB Host enumeration for attached device VID/PID, interfaces, and endpoints without opening the USB device or transferring data.
 - [x] Add Windows SetupAPI enumeration for present USB Plug-and-Play names, manufacturer, class, VID, and PID; full Windows interface/endpoint descriptor capture remains outstanding.
 - [ ] Identify the physical KPT Pro record from a scan and verify the VID/PID on the user's unit.
-- [ ] Record hardware revision and exact M-EFCS app version/build; confirm whether the app actually recognizes KPT Pro.
-- [ ] Capture full Windows USB configuration/interface/endpoint descriptors and identify the wireless transport/profile.
+- [ ] Record hardware revision from the pedal label or system information.
+- [ ] Capture full Windows USB configuration/interface/endpoint descriptors; the physical BLE profile is now identified, but its application protocol is not.
 - [x] Record the 50 named AMP and 50 named CAB entries supplied from the physical firmware-v8 menu.
 - [ ] Verify AMP/CAB ordering and compare the physical firmware-v8 unit's MOD/REV inventory and module-slot behavior against the manual.
 - [ ] Document verified protocol evidence and a capability matrix before implementing any protocol exchange.
@@ -123,7 +123,7 @@
 ### Review log — 2026-11-17
 
 - Recorded the user's KPT Pro firmware display as v8 without equating it to the vendor's KPT PRO-011 downloadable archive; the official download page does not publish a version mapping.
-- Recorded M-EFCS v3.10.2311 as the owner's installed version and the owner's report that M-EFCS works with KPT Pro; official-device command/protocol behavior remains unverified.
+- Recorded M-EFCS v3.10.2311 as the owner's installed version and the owner's report that M-EFCS works with KPT Pro; device command/protocol behavior remains unverified.
 - Added a shared Devices screen and native read-only USB inventory adapters. Android reports device/interface/endpoint descriptors; Windows currently reports USB PnP names and VID/PID only.
 - Recorded the physical BLE GATT report, including BLE-MIDI and the AE40 vendor service, without vendor reads or writes.
 - Added the owner's exact 50 AMP / 50 CAB menu names and structured CL/OD/DS amp type metadata.
