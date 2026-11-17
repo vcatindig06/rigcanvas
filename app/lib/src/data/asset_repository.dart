@@ -14,6 +14,8 @@ abstract interface class AssetRepository {
 
   Future<void> storeAssetFile(String filename, Uint8List bytes);
 
+  Future<Uint8List> readAssetFile(String filename);
+
   Future<void> deleteAssetFile(String filename);
 }
 
@@ -101,6 +103,21 @@ class JsonFileAssetRepository implements AssetRepository {
     await temporary.writeAsBytes(bytes, flush: true);
     if (await file.exists()) await file.delete();
     await temporary.rename(file.path);
+  }
+
+  @override
+  Future<Uint8List> readAssetFile(String filename) async {
+    _validateStorageFilename(filename);
+    final directory = await _assetDirectory();
+    final file = File('${directory.path}${Platform.pathSeparator}$filename');
+    if (!await file.exists()) {
+      throw FileSystemException('Stored asset file is missing.', file.path);
+    }
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty || bytes.length > maximumAssetFileBytes) {
+      throw const FormatException('Stored asset file size is invalid.');
+    }
+    return bytes;
   }
 
   @override

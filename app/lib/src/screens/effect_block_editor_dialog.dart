@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
 import '../models/rig_asset.dart';
+import 'effect_model_picker_dialog.dart';
 
 class EffectBlockEditorDialog extends StatefulWidget {
   const EffectBlockEditorDialog({
@@ -19,7 +20,7 @@ class EffectBlockEditorDialog extends StatefulWidget {
 }
 
 class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
-  late final TextEditingController _nameController;
+  late String _modelId;
   late Map<String, double> _parameters;
   late String? _assetId;
   bool _assetLinkAcknowledged = false;
@@ -59,15 +60,25 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.block.name);
+    _modelId = widget.block.modelId;
     _parameters = Map<String, double>.from(widget.block.parameters);
     _assetId = widget.block.assetId;
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _chooseModel() async {
+    final selected = await showDialog<EffectModelDefinition>(
+      context: context,
+      builder: (context) => EffectModelPickerDialog(
+        initialFamily: widget.block.family,
+      ),
+    );
+    if (selected == null) return;
+    setState(() => _modelId = selected.id);
   }
 
   String _formatValue(double value) {
@@ -98,12 +109,62 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: _nameController,
-                maxLength: 80,
-                decoration: const InputDecoration(
-                  labelText: 'Block name',
-                  border: OutlineInputBorder(),
+              const Text(
+                'MODEL CATALOG',
+                style: TextStyle(
+                  color: Color(0xFF9AA4B2),
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF171D24),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF39434F)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            EffectModelCatalog.byId(_modelId)?.name ?? 'Select model',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            EffectModelCatalog.byId(_modelId)?.source.label ?? '',
+                            style: const TextStyle(
+                              color: Color(0xFFFFC078),
+                              fontSize: 9,
+                              letterSpacing: 0.3,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      key: const ValueKey('effect-model-change'),
+                      onPressed: _chooseModel,
+                      icon: const Icon(Icons.swap_horiz, size: 16),
+                      label: const Text('Change'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                EffectModelCatalog.byId(_modelId)?.description ?? '',
+                style: const TextStyle(
+                  color: Color(0xFF9AA4B2),
+                  fontSize: 11,
+                  height: 1.35,
                 ),
               ),
               if (_assetKind != null) ...[
@@ -215,7 +276,7 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                 ],
               ],
               const Text(
-                'These are local workspace values. Their names and ranges are generic editor parameters, not verified KPT Pro firmware controls.',
+                'Model selection chooses a catalog label and generic family DSP for the offline Audio test. It does not emulate the named factory algorithm or control the KPT Pro.',
                 style: TextStyle(
                   color: Color(0xFF9AA4B2),
                   fontSize: 11,
@@ -234,11 +295,12 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
         FilledButton(
           onPressed: _canSave
               ? () {
-                  final name = _nameController.text.trim();
-                  if (name.isEmpty) return;
+                  final selectedModel = EffectModelCatalog.byId(_modelId);
+                  if (selectedModel == null) return;
                   Navigator.of(context).pop(
                     widget.block.copyWith(
-                      name: name,
+                      modelId: selectedModel.id,
+                      description: selectedModel.description,
                       parameters: Map<String, double>.from(_parameters),
                       assetId: _assetId,
                       clearAssetId: _assetId == null,
@@ -266,7 +328,12 @@ class _AssetAssignmentNotice extends StatelessWidget {
         ? asset.extension == '.nam'
             ? 'NAM JSON structure checked. Supported model architecture, version, and playback-runtime compatibility are not confirmed.'
             : 'AM2/AMP capture bytes are stored unchanged. Their internal structure and playback-runtime compatibility are not confirmed.'
-        : 'WAV metadata detected: ${asset.formatSummary}. The app has no audio engine yet to confirm that it can render this sample rate, channel layout, or bit depth.';
+        : 'WAV metadata detected: ${asset.formatSummary}. The offline Audio test decodes supported PCM / IEEE-float mono or stereo WAV and resamples it to 48 kHz, but this does not establish manufacturer-model accuracy or KPT Pro compatibility.';
+    final structureDetail = asset.kind == RigAssetKind.cabinetIr
+        ? 'The file passed a format check. The offline Audio test can load supported PCM / IEEE-float mono or stereo cabinet IRs, but that does not prove accurate cabinet modeling or KPT Pro support.'
+        : asset.extension == '.nam'
+            ? 'NAM JSON structure was checked, but the model architecture and playback runtime are not confirmed.'
+            : 'This amp-capture file is stored unchanged; playback runtime compatibility is not confirmed.';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(11),
@@ -303,7 +370,7 @@ class _AssetAssignmentNotice extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             structureChecked
-                ? 'The file passed a basic structure check. This does not prove that an audio engine can render it or that the KPT Pro supports it.'
+                ? structureDetail
                 : 'This capture is stored unchanged. Its internal format has not been verified, so it must not be treated as loadable or compatible.',
             style: const TextStyle(
               color: Color(0xFFE3B8A9),
@@ -322,7 +389,7 @@ class _AssetAssignmentNotice extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Assignment saves a local library reference only. It does not process audio or write to hardware.',
+            'Assignment saves a local library reference. The Audio page can use a compatible Cabinet WAV in an offline test; live audio and hardware writes remain disabled.',
             style: TextStyle(
               color: Color(0xFFE3B8A9),
               fontSize: 11,

@@ -34,6 +34,27 @@ class AssetController extends ChangeNotifier {
     }
   }
 
+  Future<Uint8List> readAssetBytes(String assetId) async {
+    RigAsset? asset;
+    for (final item in _assets) {
+      if (item.id == assetId) {
+        asset = item;
+        break;
+      }
+    }
+    if (asset == null) {
+      throw const FormatException('The linked asset is no longer in the library.');
+    }
+    if (asset.kind != RigAssetKind.cabinetIr) {
+      throw const FormatException('Only cabinet IR assets can be loaded by the CAB processor.');
+    }
+    final bytes = await _repository.readAssetFile(asset.storedFilename);
+    if (bytes.length != asset.fileSizeBytes) {
+      throw const FormatException('The stored cabinet IR size does not match its library record.');
+    }
+    return bytes;
+  }
+
   Future<void> importAsset({
     required RigAssetKind kind,
     required String filename,

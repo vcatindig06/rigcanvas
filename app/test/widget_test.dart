@@ -14,6 +14,7 @@ import 'package:rigcanvas/src/data/preset_repository.dart';
 import 'package:rigcanvas/src/data/setlist_repository.dart';
 import 'package:rigcanvas/src/models/effect_block.dart';
 import 'package:rigcanvas/src/models/rig_asset.dart';
+import 'package:rigcanvas/src/models/rig_grid.dart';
 import 'package:rigcanvas/src/models/rig_preset.dart';
 import 'package:rigcanvas/src/models/rig_setlist.dart';
 
@@ -46,6 +47,7 @@ class MemoryAssetRepository implements AssetRepository {
     : stored = List.of(assets);
 
   List<RigAsset> stored;
+  final Map<String, Uint8List> storedFiles = <String, Uint8List>{};
 
   @override
   Future<List<RigAsset>> loadAssets() async => List.of(stored);
@@ -56,10 +58,21 @@ class MemoryAssetRepository implements AssetRepository {
   }
 
   @override
-  Future<void> storeAssetFile(String filename, Uint8List bytes) async {}
+  Future<void> storeAssetFile(String filename, Uint8List bytes) async {
+    storedFiles[filename] = Uint8List.fromList(bytes);
+  }
 
   @override
-  Future<void> deleteAssetFile(String filename) async {}
+  Future<Uint8List> readAssetFile(String filename) async {
+    final bytes = storedFiles[filename];
+    if (bytes == null) throw const FormatException('Missing asset file.');
+    return Uint8List.fromList(bytes);
+  }
+
+  @override
+  Future<void> deleteAssetFile(String filename) async {
+    storedFiles.remove(filename);
+  }
 }
 
 void main() {
@@ -95,6 +108,14 @@ void main() {
     await tester.tap(find.text('Gig'));
     await tester.pumpAndSettle();
     expect(find.text('Gig View'), findsOneWidget);
+
+    await tester.tap(find.text('Devices'));
+    await tester.pumpAndSettle();
+    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
+
+    await tester.tap(find.text('Devices'));
+    await tester.pumpAndSettle();
+    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
@@ -145,6 +166,10 @@ void main() {
 
     expect(find.text('RigCanvas'), findsOneWidget);
     expect(find.text('Signal Workspace'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+    expect(find.text('IN 1'), findsOneWidget);
+    expect(find.text('OUT 4'), findsOneWidget);
+    expect(find.byKey(const ValueKey('grid-slot-3-7')), findsOneWidget);
     expect(find.text('KPT Pro · Disconnected'), findsOneWidget);
     expect(find.text('SIMULATION'), findsOneWidget);
     expect(find.text('Input Gate'), findsOneWidget);
@@ -179,6 +204,201 @@ void main() {
 
     expect(find.text('Oceans'), findsOneWidget);
     expect(find.textContaining('Key D'), findsOneWidget);
+  });
+
+  testWidgets('keeps Preset, Scene, Stomp and Hybrid on one Grid', (tester) async {
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+    expect(find.text('British Stack'), findsOneWidget);
+
+    await tester.tap(find.text('Scene').last);
+    await tester.pumpAndSettle();
+    expect(find.text('SCENES · A–H'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+
+    await tester.tap(find.text('Stomp').last);
+    await tester.pumpAndSettle();
+    expect(find.text('STOMP ASSIGNMENTS · A–H'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+
+    await tester.tap(find.text('Hybrid').last);
+    await tester.pumpAndSettle();
+    expect(find.text('SCENES · A–D'), findsOneWidget);
+    expect(find.text('STOMP ASSIGNMENTS · E–H'), findsOneWidget);
+    expect(find.text('GRID WORKSPACE'), findsOneWidget);
+  });
+
+  testWidgets('adds a fixed catalog model from the searchable picker', (tester) async {
+    final repository = MemoryPresetRepository();
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: repository,
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Add block'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add block').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add effect block'), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-family-filter')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-search')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('effect-family-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Drive').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('effect-model-search')),
+      'Mid-Hump Overdrive',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mid-Hump Overdrive').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mid-Hump Overdrive'), findsOneWidget);
+    final added = repository.stored.single.blocks.singleWhere(
+      (block) => block.modelId == 'drive.mid_hump',
+    );
+    expect(added.name, 'Mid-Hump Overdrive');
+    expect(added.model.source, EffectModelSource.rigcanvasExpanded);
+  });
+
+  testWidgets('filters KPT Pro AMP models by CL, OD, and DS type', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Add block'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add block').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('effect-family-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Amplifier').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('amp-type-filter')), findsOneWidget);
+    expect(
+      find.text(
+        '${EffectModelCatalog.forFamily(EffectFamily.amplifier).length} available options',
+      ),
+      findsOneWidget,
+    );
+
+    int countFor(AmpModelType type) => EffectModelCatalog.forFamily(
+      EffectFamily.amplifier,
+    ).where((model) => model.ampType == type).length;
+
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter-overdrive')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('${countFor(AmpModelType.overdrive)} available options'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('amp-type-filter-overdrive')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter-clean')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('${countFor(AmpModelType.clean)} available options'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter-distortion')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('${countFor(AmpModelType.distortion)} available options'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter-all')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        '${EffectModelCatalog.forFamily(EffectFamily.amplifier).length} available options',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('edits an effect by selecting a model instead of custom naming', (tester) async {
+    final repository = MemoryPresetRepository();
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: repository,
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('British Stack'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('British Stack'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('effect-model-change')), findsOneWidget);
+    expect(find.text('Block name'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('effect-model-change')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('effect-model-search')),
+      'British Modern Stack',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('British Modern Stack').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('British Modern Stack'), findsOneWidget);
+    final amplifier = repository.stored.single.blocks.singleWhere(
+      (block) => block.family == EffectFamily.amplifier,
+    );
+    expect(amplifier.modelId, 'amp.british_modern');
   });
 
   testWidgets('opens the local preset library', (tester) async {
@@ -252,7 +472,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('File structure checked'), findsOneWidget);
-    expect(find.textContaining('This does not prove'), findsOneWidget);
+    expect(
+      find.textContaining('model architecture and playback runtime are not confirmed'),
+      findsOneWidget,
+    );
 
     final saveBeforeAcknowledgement = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Save changes'),
@@ -341,7 +564,10 @@ void main() {
       find.textContaining('WAV metadata detected: WAV PCM'),
       findsOneWidget,
     );
-    expect(find.textContaining('no audio engine yet'), findsOneWidget);
+    expect(
+      find.textContaining('offline Audio test can load supported PCM / IEEE-float mono or stereo cabinet IRs'),
+      findsOneWidget,
+    );
 
     final saveBeforeAcknowledgement = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Save changes'),
@@ -475,4 +701,134 @@ void main() {
     expect(find.text('Import cabinet IR'), findsOneWidget);
     expect(find.textContaining('AM2/AMP files are preserved unchanged'), findsOneWidget);
   });
+  testWidgets('runs the shared native DSP test signal from Audio on both layouts', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Software Audio Engine'), findsOneWidget);
+    expect(find.text('Shared native DSP core · Android + Windows'), findsOneWidget);
+    expect(find.byKey(const ValueKey('run-dsp-test')), findsOneWidget);
+
+    final runDspButton = find.byKey(const ValueKey('run-dsp-test'));
+    await tester.ensureVisible(runDspButton);
+    await tester.pumpAndSettle();
+    await tester.tap(runDspButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('DSP TEST COMPLETE'), findsOneWidget);
+    expect(find.text('Processed frames'), findsOneWidget);
+    expect(find.textContaining('generated inside the engine'), findsOneWidget);
+    expect(find.textContaining('DSP test failed'), findsNothing);
+  });
+
+
+  testWidgets('loads a linked cabinet WAV through the Audio offline test', (
+    tester,
+  ) async {
+    final wavBytes = _testCabinetWav();
+    const assetId = 'asset-test-cabinet-ir';
+    const storedFilename = 'asset-test-cabinet-ir.wav';
+    final asset = RigAsset(
+      id: assetId,
+      title: 'Test Cabinet IR',
+      kind: RigAssetKind.cabinetIr,
+      originalFilename: 'test-cabinet.wav',
+      storedFilename: storedFilename,
+      extension: '.wav',
+      fileSizeBytes: wavBytes.length,
+      importedAt: DateTime.utc(2026, 11, 16),
+      validation: RigAssetValidation.validated,
+      formatSummary: 'WAV PCM · mono · 48000 Hz · 16-bit',
+      sampleRateHz: 48000,
+      channelCount: 1,
+      bitDepth: 16,
+    );
+    final assetRepository = MemoryAssetRepository(assets: [asset])
+      ..storedFiles[storedFilename] = Uint8List.fromList(wavBytes);
+    final cabinet = EffectBlock.create(
+      id: 'test-cabinet-block',
+      family: EffectFamily.cabinet,
+      modelId: 'cab.4x12_vintage',
+    ).copyWith(assetId: assetId);
+    final now = DateTime.utc(2026, 11, 16);
+    final preset = RigPreset(
+      id: 'preset-cabinet-ir-test',
+      name: 'CAB IR Loading Test',
+      description: 'Tests the linked WAV read and DSP loading path.',
+      createdAt: now,
+      updatedAt: now,
+      blocks: [cabinet],
+      grid: RigGrid.fromBlockIds([cabinet.id]),
+    );
+
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository()..stored = [preset],
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: assetRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+    final runButton = find.byKey(const ValueKey('run-dsp-test'));
+    await tester.ensureVisible(runButton);
+    await tester.pumpAndSettle();
+    await tester.tap(runButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('DSP TEST COMPLETE'), findsOneWidget);
+    expect(find.text('CABINET IR STATUS'), findsOneWidget);
+    expect(find.textContaining('MONO IR loaded'), findsOneWidget);
+    expect(find.textContaining('IR could not be loaded'), findsNothing);
+    expect(find.textContaining('DSP test failed'), findsNothing);
+  });
+
+}
+
+
+Uint8List _testCabinetWav() {
+  const channels = 1;
+  const sampleRate = 48000;
+  const bitDepth = 16;
+  const blockAlign = channels * (bitDepth ~/ 8);
+  const dataLength = 8;
+  final bytes = Uint8List(44 + dataLength);
+  final data = ByteData.sublistView(bytes);
+  void writeText(int offset, String value) {
+    for (var index = 0; index < value.length; index++) {
+      bytes[offset + index] = value.codeUnitAt(index);
+    }
+  }
+
+  writeText(0, 'RIFF');
+  data.setUint32(4, 36 + dataLength, Endian.little);
+  writeText(8, 'WAVE');
+  writeText(12, 'fmt ');
+  data.setUint32(16, 16, Endian.little);
+  data.setUint16(20, 1, Endian.little);
+  data.setUint16(22, channels, Endian.little);
+  data.setUint32(24, sampleRate, Endian.little);
+  data.setUint32(28, sampleRate * blockAlign, Endian.little);
+  data.setUint16(32, blockAlign, Endian.little);
+  data.setUint16(34, bitDepth, Endian.little);
+  writeText(36, 'data');
+  data.setUint32(40, dataLength, Endian.little);
+  data.setInt16(44, 32767, Endian.little);
+  data.setInt16(46, 8192, Endian.little);
+  data.setInt16(48, -4096, Endian.little);
+  data.setInt16(50, 0, Endian.little);
+  return bytes;
 }

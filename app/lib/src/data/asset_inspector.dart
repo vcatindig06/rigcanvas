@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../audio/wav_ir_decoder.dart';
 import '../models/rig_asset.dart';
 
 class AssetInspection {
@@ -159,107 +160,21 @@ class AssetInspector {
     Uint8List bytes,
     String suggestedTitle,
   ) {
-    if (bytes.length < 44) {
-      throw const FormatException('WAV file is too short to contain a valid header.');
-    }
-    final reader = ByteData.sublistView(bytes);
-    String fourCc(int offset) => String.fromCharCodes(bytes.sublist(offset, offset + 4));
-
-    if (fourCc(0) != 'RIFF' || fourCc(8) != 'WAVE') {
-      throw const FormatException('File does not contain a RIFF/WAVE header.');
-    }
-    final riffLength = reader.getUint32(4, Endian.little) + 8;
-    if (riffLength > bytes.length || riffLength < 44) {
-      throw const FormatException('WAV RIFF length is invalid or truncated.');
-    }
-
-    int? encoding;
-    int? channels;
-    int? sampleRate;
-    int? blockAlign;
-    int? bitDepth;
-    int? dataLength;
-    var offset = 12;
-
-    while (offset + 8 <= riffLength) {
-      final chunkId = fourCc(offset);
-      final chunkLength = reader.getUint32(offset + 4, Endian.little);
-      final chunkStart = offset + 8;
-      final chunkEnd = chunkStart + chunkLength;
-      if (chunkEnd > riffLength) {
-        throw const FormatException('WAV contains a truncated chunk.');
-      }
-
-      if (chunkId == 'fmt ') {
-        if (chunkLength < 16) {
-          throw const FormatException('WAV format chunk is incomplete.');
-        }
-        encoding = reader.getUint16(chunkStart, Endian.little);
-        channels = reader.getUint16(chunkStart + 2, Endian.little);
-        sampleRate = reader.getUint32(chunkStart + 4, Endian.little);
-        blockAlign = reader.getUint16(chunkStart + 12, Endian.little);
-        bitDepth = reader.getUint16(chunkStart + 14, Endian.little);
-      } else if (chunkId == 'data') {
-        dataLength = chunkLength;
-      }
-
-      offset = chunkEnd + (chunkLength.isOdd ? 1 : 0);
-    }
-
-    if (encoding == null ||
-        channels == null ||
-        sampleRate == null ||
-        blockAlign == null ||
-        bitDepth == null ||
-        dataLength == null) {
-      throw const FormatException('WAV must contain both format and audio data chunks.');
-    }
-    if (encoding != 1 && encoding != 3) {
-      throw const FormatException('WAV encoding must be PCM or IEEE floating point.');
-    }
-    if (channels! < 1 || channels! > 2) {
-      throw const FormatException('Cabinet IR WAV files must be mono or stereo.');
-    }
-    if (sampleRate! < 8000 || sampleRate! > 192000) {
-      throw const FormatException('WAV sample rate must be between 8 and 192 kHz.');
-    }
-    final validPcmDepth = [8, 16, 24, 32].contains(bitDepth);
-    final validFloatDepth = [32, 64].contains(bitDepth);
-    if ((encoding == 1 && !validPcmDepth) ||
-        (encoding == 3 && !validFloatDepth)) {
-      throw const FormatException('WAV bit depth is not supported for its encoding.');
-    }
-    final bytesPerSample = (bitDepth! + 7) ~/ 8;
-    final expectedBlockAlign = channels! * bytesPerSample;
-    if (blockAlign! != expectedBlockAlign ||
-        dataLength! <= 0 ||
-        dataLength! % blockAlign! != 0) {
-      throw const FormatException('WAV block alignment or audio data length is invalid.');
-    }
-
-    final validChannels = channels!;
-    final validSampleRate = sampleRate!;
-    final validBlockAlign = blockAlign!;
-    final validBitDepth = bitDepth!;
-    final validDataLength = dataLength!;
-    final frameCount = validDataLength ~/ validBlockAlign;
-    final durationMs = frameCount * 1000 / validSampleRate;
-    final channelLabel = validChannels == 1 ? 'mono' : 'stereo';
-    final encodingLabel = encoding == 1 ? 'PCM' : 'IEEE float';
+    final info = WavIrDecoder.inspect(bytes);
+    final durationMs = info.frameCount * 1000 / info.sampleRateHz;
     final durationLabel = durationMs >= 1000
         ? '${(durationMs / 1000).toStringAsFixed(2)} s'
         : '${durationMs.toStringAsFixed(1)} ms';
-
     return AssetInspection(
       kind: RigAssetKind.cabinetIr,
       extension: extension,
       validation: RigAssetValidation.validated,
       formatSummary:
-          'WAV $encodingLabel · $channelLabel · ${validSampleRate} Hz · $validBitDepth-bit · $durationLabel',
+          'WAV ${info.encodingLabel} · ${info.channelLabel} · ${info.sampleRateHz} Hz · ${info.bitDepth}-bit · $durationLabel',
       suggestedTitle: suggestedTitle,
-      sampleRateHz: validSampleRate,
-      channelCount: validChannels,
-      bitDepth: validBitDepth,
+      sampleRateHz: info.sampleRateHz,
+      channelCount: info.channels,
+      bitDepth: info.bitDepth,
     );
   }
 }

@@ -49,6 +49,7 @@ void main() {
       '${Platform.pathSeparator}assets${Platform.pathSeparator}asset-test.am2',
     );
     expect(await storedFile.readAsBytes(), bytes);
+    expect(await repository.readAssetFile(asset.storedFilename), bytes);
 
     await repository.deleteAssetFile(asset.storedFilename);
     expect(await storedFile.exists(), isFalse);

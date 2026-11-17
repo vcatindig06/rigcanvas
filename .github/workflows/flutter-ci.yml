@@ -1,5 +1,7 @@
 name: Flutter CI
 
+# Validate the shared Android/Windows app and device-protocol tooling on every PR change.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -9,13 +11,11 @@ on:
     branches: [main]
     paths:
       - "app/**"
-      - "docs/**"
       - ".github/workflows/flutter-ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "app/**"
-      - "docs/**"
       - ".github/workflows/flutter-ci.yml"
   workflow_dispatch:
 
@@ -43,11 +43,14 @@ jobs:
       - name: Generate Android and Windows runners
         run: flutter create --project-name rigcanvas --org com.rigcanvas --platforms=android,windows .
 
+      - name: Configure Android BLE permissions and minimum SDK
+        run: dart run tool/prepare_platforms.dart
+
       - name: Resolve packages
         run: flutter pub get
 
       - name: Format source
-        run: dart format lib test
+        run: dart format lib test tool
 
       - name: Apply supported Dart fixes
         run: dart fix --apply
@@ -77,6 +80,9 @@ jobs:
 
       - name: Generate Android runner
         run: flutter create --project-name rigcanvas --org com.rigcanvas --platforms=android .
+
+      - name: Configure Android BLE permissions and minimum SDK
+        run: dart run tool/prepare_platforms.dart
 
       - name: Resolve packages
         run: flutter pub get
@@ -125,6 +131,9 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows
+        env:
+          # MSVC 14.51 promotes the BLE plugin's legacy coroutine header warning to an error.
+          CXXFLAGS: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
         run: flutter build windows --release
 
       - name: Upload Windows build
