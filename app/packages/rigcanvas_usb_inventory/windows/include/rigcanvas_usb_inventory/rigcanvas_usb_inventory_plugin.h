@@ -2,7 +2,6 @@
 #define RIGCANVAS_USB_INVENTORY_PLUGIN_H_
 
 #include <flutter/method_channel.h>
-#include <flutter/plugin.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <memory>
 

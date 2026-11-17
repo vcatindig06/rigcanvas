@@ -205,6 +205,9 @@ class _DspControlSurfaceState extends State<DspControlSurface> {
         _assetNotice = null;
       });
     }
+    final previousEngine = _engine;
+    _engine = null;
+    previousEngine?.dispose();
     final nextEngine = RigCanvasDspEngine();
     final nextNodes = <_DspNodeBinding>[];
     final assetNotices = <String>[];
