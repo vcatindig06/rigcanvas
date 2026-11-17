@@ -52,6 +52,24 @@ extension EffectModelSourcePresentation on EffectModelSource {
 
 enum EffectInstrument { universal, guitar, bass }
 
+enum AmpModelType { clean, overdrive, distortion }
+
+extension AmpModelTypePresentation on AmpModelType {
+  String get code => switch (this) {
+    AmpModelType.clean => 'CL',
+    AmpModelType.overdrive => 'OD',
+    AmpModelType.distortion => 'DS',
+  };
+
+  String get label => switch (this) {
+    AmpModelType.clean => 'Clean',
+    AmpModelType.overdrive => 'Overdrive',
+    AmpModelType.distortion => 'Distortion',
+  };
+
+  String get labelWithCode => '${label} (${code})';
+}
+
 @immutable
 class EffectModelDefinition {
   const EffectModelDefinition({
@@ -61,6 +79,7 @@ class EffectModelDefinition {
     required this.description,
     required this.source,
     this.instrument = EffectInstrument.universal,
+    this.ampType,
   });
 
   final String id;
@@ -69,6 +88,7 @@ class EffectModelDefinition {
   final String description;
   final EffectModelSource source;
   final EffectInstrument instrument;
+  final AmpModelType? ampType;
 
   String get instrumentLabel => switch (instrument) {
     EffectInstrument.universal => 'Guitar / Bass',
@@ -77,8 +97,8 @@ class EffectModelDefinition {
   };
 }
 
-/// Fixed model catalog. The KPT Pro manual numbers its amp and cabinet slots
-/// but does not publish each model's descriptive name. Those remain numbered.
+/// Fixed catalog. Named guitar AMP and CAB entries come from the owner's
+/// physical firmware-v8 menu; the additional manual-listed bass slots remain unverified.
 class EffectModelCatalog {
   EffectModelCatalog._();
 
@@ -87,16 +107,131 @@ class EffectModelCatalog {
     EffectFamily family,
     String name,
     String description,
-    EffectModelSource source,
-    {EffectInstrument instrument = EffectInstrument.universal}
-  ) => EffectModelDefinition(
+    EffectModelSource source, {
+    EffectInstrument instrument = EffectInstrument.universal,
+    AmpModelType? ampType,
+  }) => EffectModelDefinition(
     id: id,
     family: family,
     name: name,
     description: description,
     source: source,
     instrument: instrument,
+    ampType: ampType,
   );
+
+  static const List<String> _firmwareV8AmpNames = [
+    'CL-UWETWINS',
+    'CL-UKC30',
+    'OD-MARVM410',
+    'OD-MARVICTO',
+    'DS-BRITPLEX',
+    'DS-MARSFD100',
+    'DS-EAGLES',
+    'DS-DISELHGN',
+    'DS-PVEV5150',
+    'CL-FORTIN',
+    'CL-MESSMKT',
+    'CL-CA-TWEED',
+    'CL-BOGSV20',
+    'DS-JUICEJIM',
+    'DS-SURSL68',
+    'CL-BOGBLUE',
+    'CL-BOGSH20',
+    'DS-BOGES20',
+    'CL-MESASTAR',
+    'DS-MESADR',
+    'CL-FEN65',
+    'OD-FEN65P',
+    'CL-FENRED',
+    'OD-FENFTMAN',
+    'CL-MARJ800',
+    'OD-MARJ900',
+    'DS-MARJ2000',
+    'DS-MAR2555',
+    'OD-MARSV20',
+    'CL-OGTB50',
+    'OD-OGRK30',
+    'DS-OGOR120',
+    'OD-SURSL68',
+    'OD-SURBR35',
+    'OD-ENGPB2',
+    'DS-ENGMK60',
+    'CL-PEY6534',
+    'DS-PEY6505',
+    'OD-RLAN120',
+    'OD-SOLD100',
+    'OD-SOLDH25',
+    'OD-DIEV4C2',
+    'DS-DIEV4C3',
+    'DS-VITRYSK',
+    'CL-TWORC',
+    'OD-FMAN100',
+    'CL-GOJAX',
+    'OD-VXAC30',
+    'CL-FOTINCA',
+    'CL-MATDC30',
+  ];
+
+  static const List<String> _firmwareV8CabNames = [
+    'EAGLPROV30S',
+    'SPERIMENTAL',
+    'JUICE4X12V30',
+    'MESS BOG',
+    'FDCHAMP',
+    'FDPRJUNIR',
+    'MAR960BV30',
+    'DIZZLV30',
+    'ELCTROVOICE',
+    'MESSRECTV30',
+    'TWINJENSENC',
+    'TWEDDLX1X12',
+    'FENDSHOWMAN',
+    'J120ROLND',
+    'AC30SILVERS',
+    'FENDELU',
+    'FENBFACE',
+    'FENMNTW',
+    'FENBMAN',
+    'FENPRIN2',
+    'FENPROJ',
+    'MESSOS',
+    'MESSBRO',
+    'MESSLM24',
+    'MESSSTDIO',
+    'MESSSTITO',
+    'MESSNOM',
+    'MAR36',
+    'MARMG15R',
+    'MARJ2000',
+    'MARMFOUR',
+    'MARPLX',
+    'MARVAL4',
+    'MARVAL2',
+    'ENG412',
+    'ENG412P',
+    'OGP212',
+    'PEY5150',
+    'PEYDEBLU',
+    'SOLDHOR',
+    'SOLDSC12',
+    'SOLDANG412',
+    'SOLDSC412',
+    'ALTON212',
+    'BOGUX',
+    'DIEV30',
+    'FIMANVT',
+    'HABTONV',
+    'VXAC15',
+    'VXAC30',
+  ];
+
+  static AmpModelType _ampTypeForCode(String modelCode) {
+    if (modelCode.startsWith('CL-')) return AmpModelType.clean;
+    if (modelCode.startsWith('OD-')) return AmpModelType.overdrive;
+    if (modelCode.startsWith('DS-')) return AmpModelType.distortion;
+    throw FormatException('Unknown KPT Pro amp type prefix: ' + modelCode);
+  }
 
   static final List<EffectModelDefinition> all = List.unmodifiable([
     // KPT Pro FX module: six documented factory choices.
@@ -113,18 +248,20 @@ class EffectModelCatalog {
     _model('kpt.fx.boost_od', EffectFamily.drive, 'Boost OD',
       'KPT Pro factory FX slot · boost overdrive.', EffectModelSource.kptProFactory),
 
-    // KPT Pro manual: guitar preamps 1–50, bass preamps 51–60.
-    ...List.generate(50, (index) {
-      final slot = index + 1;
-      final number = slot.toString().padLeft(2, '0');
+    // Owner-reported named KPT Pro firmware-v8 AMP inventory.
+    // Existing slot IDs are deliberately preserved for saved-preset compatibility.
+    ..._firmwareV8AmpNames.asMap().entries.map((entry) {
+      final index = entry.key;
+      final modelCode = entry.value;
+      final ampType = _ampTypeForCode(modelCode);
       return _model(
         'kpt.amp.guitar.' + index.toString(),
         EffectFamily.amplifier,
-        'Guitar Preamp ' + number,
-        'KPT Pro factory preamp slot ' + slot.toString() +
-            '. The available manual does not publish an individual model name.',
+        modelCode,
+        'KPT Pro AMP model reported by the owner for firmware v8 · ${ampType.labelWithCode}. Device parameter mapping has not yet been decoded.',
         EffectModelSource.kptProFactory,
         instrument: EffectInstrument.guitar,
+        ampType: ampType,
       );
     }),
     ...List.generate(10, (index) {
@@ -134,8 +271,8 @@ class EffectModelCatalog {
         'kpt.amp.bass.' + index.toString(),
         EffectFamily.amplifier,
         'Bass Preamp ' + number,
-        'KPT Pro factory preamp slot ' + slot.toString() +
-            '. The available manual does not publish an individual model name.',
+        'Manual-listed bass AMP slot ' + slot.toString() +
+            '. Availability and model name have not been confirmed on the owner-reported firmware v8.',
         EffectModelSource.kptProFactory,
         instrument: EffectInstrument.bass,
       );
@@ -187,16 +324,16 @@ class EffectModelCatalog {
     _model('kpt.reverb.cloud', EffectFamily.reverb, 'Cloud',
       'KPT Pro factory reverb model.', EffectModelSource.kptProFactory),
 
-    // KPT Pro manual: guitar CAB slots 1–50, bass CAB slots 51–60.
-    ...List.generate(50, (index) {
-      final slot = index + 1;
-      final number = slot.toString().padLeft(2, '0');
+    // Owner-reported named KPT Pro firmware-v8 CAB inventory.
+    // Existing slot IDs are deliberately preserved for saved-preset compatibility.
+    ..._firmwareV8CabNames.asMap().entries.map((entry) {
+      final index = entry.key;
+      final modelCode = entry.value;
       return _model(
         'kpt.cab.guitar.' + index.toString(),
         EffectFamily.cabinet,
-        'Guitar CAB ' + number,
-        'KPT Pro factory guitar cabinet slot ' + slot.toString() +
-            '. The available manual does not publish an individual cabinet name.',
+        modelCode,
+        'KPT Pro CAB model reported by the owner for firmware v8. Exact speaker, microphone, and device slot mapping have not been decoded.',
         EffectModelSource.kptProFactory,
         instrument: EffectInstrument.guitar,
       );
