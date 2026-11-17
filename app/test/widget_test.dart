@@ -285,6 +285,58 @@ void main() {
     expect(added.model.source, EffectModelSource.rigcanvasExpanded);
   });
 
+  testWidgets('filters KPT Pro AMP models by CL, OD, and DS type', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      RigCanvasApp(
+        repository: MemoryPresetRepository(),
+        setlistRepository: MemorySetlistRepository(),
+        assetRepository: MemoryAssetRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workspace'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Add block'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add block').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('effect-family-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Amplifier').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('amp-type-filter')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.4')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Overdrive (OD)').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.0')), findsNothing);
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.4')), findsNothing);
+    expect(find.text('OD-MARVM410'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('amp-type-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All amp types').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('effect-model-kpt.amp.guitar.4')), findsOneWidget);
+  });
+
   testWidgets('edits an effect by selecting a model instead of custom naming', (tester) async {
     final repository = MemoryPresetRepository();
     await tester.pumpWidget(
