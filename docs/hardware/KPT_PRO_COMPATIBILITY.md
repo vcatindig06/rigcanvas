@@ -34,6 +34,16 @@ The [KPT Pro manual](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.ht
 
 The owner reports using **M-EFCS v3.10.2311** with the KPT Pro firmware-v8 unit and confirms that the app connects. The public M-EFCS App Store history separately lists a 3.10.2016 release adding KPT Pro A2 support and a later 3.10.2314 release with device-support and parameter/snapshot synchronization improvements. This reinforces that KPT Pro is supported in the 3.10 app series, but it does not expose the BLE command protocol. See the [M-EFCS App Store version history](https://apps.apple.com/us/app/m-efcs/id6470352068).
 
+## Owner-provided M-EFCS ATT trace — 2026-11-17
+
+The owner supplied a filtered BTSnoop report associated with the M-EFCS / KPT Pro test session. It contains one selected BLE candidate connection (handle `0x0200`), 330 ATT events, 158 writes, and 165 notifications/indications. The advertisement name is absent, and the report does not independently prove the peer identity.
+
+The trace shows repeated phone Write Commands to handle `0x0062`, pedal Handle Value Notifications from `0x0064`, and one acknowledged Write Request to `0x0065`. It also shows a Read By Type Request followed by an ATT Error Response and two MTU request/response pairs. ATT payload bytes were excluded and the characteristic-discovery map was empty.
+
+These handle patterns are consistent with the previously inspected AE41 write-without-response and AE42 notify roles, but they do not prove the mapping in this connection. The `0x0065` request may be a CCCD write, but its value was not included. Application command framing, preset-list semantics, firmware identity, and safe write behavior remain unverified.
+
+See [the detailed trace analysis](../device-discovery/TRACE_ANALYSIS_2026-11-17.md). RigCanvas has added privacy-safe metadata decoding for Read By Type queries, ATT errors, and MTU values. The next required evidence is a short selected-connection payload-enabled trace of M-EFCS's normal list/current-preset refresh, after reviewing the privacy implications.
+
 ## Owner-provided factory AMP/CAB inventory — firmware v8
 
 The owner supplied the following names from the physical KPT Pro menu on 2026-11-17. They are recorded exactly as supplied, including abbreviations, spacing, and spelling. These are user-provided menu observations, not a manufacturer-published parameter specification.
