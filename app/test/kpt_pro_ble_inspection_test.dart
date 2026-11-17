@@ -71,7 +71,9 @@ void main() {
     ));
 
     await tester.tap(find.byKey(const ValueKey('scan-kpt-ble')));
-    await tester.pumpAndSettle();
+    // Scanning intentionally shows an indeterminate progress indicator.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
     expect(gateway.scanCalls, 1);
 
     gateway.devices.add(const NearbyKptBleDevice(
@@ -79,7 +81,7 @@ void main() {
       name: 'KPT PRO',
       rssi: -51,
     ));
-    await tester.pumpAndSettle();
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('connect-kpt-device-ble-kpt-01')));
     await tester.pumpAndSettle();
 
