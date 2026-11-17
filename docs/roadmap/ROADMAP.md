@@ -127,7 +127,7 @@
 - Added 50 owner-provided AMP and 50 CAB menu names exactly as supplied. AMP model prefixes are structured Clean (CL), Overdrive (OD), or Distortion (DS) metadata; the extra manual-listed bass slots are still marked unverified for the v8 unit.
 - Added visible AMP type filter chips and tests covering All / CL / OD / DS result counts.
 - Recorded public M-EFCS App Store release-note evidence for KPT Pro A2 support in the 3.10 series, without treating that as a published BLE command protocol.
-- GitHub Actions run [#?](https://github.com/vcatindig06/rigcanvas/actions/runs/44069719859) passed Flutter analysis, all 90 automated tests, Android APK build/package verification, and Windows desktop build. Both artifacts uploaded successfully.
+- GitHub Actions run [#125](https://github.com/vcatindig06/rigcanvas/actions/runs/44069719859) passed Flutter analysis, all 90 automated tests, Android APK build/package verification, and Windows desktop build. Both artifacts uploaded successfully.
 - **Next focus:** continue read-only KPT Pro protocol investigation using the exact v8 / M-EFCS v3.10.2311 baseline. Capture an authorized M-EFCS interaction trace before implementing any proprietary parameter or preset commands.
 
 ## Release gates
