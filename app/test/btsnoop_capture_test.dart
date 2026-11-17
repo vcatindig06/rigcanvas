@@ -105,6 +105,56 @@ void main() {
       expect(event.characteristicProperties, 0x1C);
     });
 
+    test('exports safe ATT discovery, error and MTU metadata without payload bytes', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([
+          0x08, // Read By Type Request.
+          0x01, 0x00, // Start handle.
+          0xFF, 0xFF, // End handle.
+          0x03, 0x28, // Characteristic declaration UUID 0x2803.
+        ]), flags: 0, timestamp: 1200),
+        _record(_aclPacket([
+          0x01, // Error Response.
+          0x08, // Read By Type Request failed.
+          0x01, 0x00, // Attribute handle in error.
+          0x0A, // Attribute Not Found.
+        ]), flags: 1, timestamp: 1300),
+        _record(_aclPacket([0x02, 0xF7, 0x00]), flags: 0, timestamp: 1400),
+        _record(_aclPacket([0x03, 0xF7, 0x00]), flags: 1, timestamp: 1500),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      final events = report['attEvents'] as List<Object?>;
+      final request = events[0] as Map<String, Object?>;
+      final error = events[1] as Map<String, Object?>;
+      final mtuRequest = events[2] as Map<String, Object?>;
+      final mtuResponse = events[3] as Map<String, Object?>;
+
+      expect(request['protocolDetails'], {
+        'startHandle': '0x0001',
+        'endHandle': '0xffff',
+        'attributeTypeUuid':
+            '00002803-0000-1000-8000-00805f9b34fb',
+      });
+      expect(error['protocolDetails'], {
+        'requestOpcodeInError': '0x08',
+        'requestOperation': 'Read By Type Request',
+        'attributeHandleInError': '0x0001',
+        'errorCode': '0x0a',
+        'error': 'Attribute Not Found',
+      });
+      expect(mtuRequest['protocolDetails'], {'receiveMtu': 247});
+      expect(mtuResponse['protocolDetails'], {'receiveMtu': 247});
+      expect(request.containsKey('attPduHex'), isFalse);
+      expect(error.containsKey('valueHex'), isFalse);
+    });
+
     test('keeps ATT payloads from other Bluetooth devices out of the selected session', () {
       final otherAddress = <int>[0x10, 0x20, 0x30, 0x40, 0x50, 0x60];
       final capture = BtsnoopCaptureParser.parse(_capture([
