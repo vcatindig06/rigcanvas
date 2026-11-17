@@ -18,9 +18,9 @@ Flutter UI
   ├── Application state and validation
   ├── Domain models (preset, block, scene, asset)
   └── Device gateway interface
-         ├── Demo gateway (first implementation)
-         ├── KPT Pro USB adapter (not implemented)
-         └── KPT Pro wireless adapter (not implemented)
+         ├── Simulation gateway (tests/preview)
+         ├── BLE advertisement scanner (Android + Windows; scan only)
+         └── KPT Pro GATT/session adapter (not implemented)
 
 Shared native audio engine (Android + Windows)
   ├── Common DSP graph, nodes, and routing
@@ -36,7 +36,8 @@ Shared native audio engine (Android + Windows)
 - Device adapters implement typed operations and report unsupported capabilities.
 - Preset files are versioned and validated before import.
 - Hardware writes require a verified backup and an explicit user action.
-- The mock gateway is the default until device compatibility is demonstrated.
+- The simulation gateway is used in tests and preview sessions; the production entry point enables BLE advertisement scanning.
+- BLE discovery is not a KPT Pro connection. GATT discovery, characteristic reads/writes, preset transfers, and pedal commands remain disabled.
 - The shared audio engine runs outside Flutter's UI thread and must not allocate or block in its real-time callback.
 - The same audio/DSP capabilities and parameter behavior must be available on Android and Windows; only the low-level device I/O adapters may differ.
 - Do not ship Windows-exclusive app features. Defer features that cannot be delivered equivalently on both target operating systems.

@@ -1,6 +1,14 @@
 # KPT Pro compatibility notes
 
-**Status: research in progress. Hardware protocol and firmware-specific support are not verified.**
+**Status: M-EFCS compatibility is user-confirmed; RigCanvas hardware protocol and firmware-specific support remain unverified.**
+
+## User-confirmed compatibility baseline
+
+- On 2026-11-17, the user confirmed that the latest installed M-EFCS version works with their KPT PRO.
+- The pedal firmware is reported by the user as **v15**; RigCanvas has not independently read this version.
+- The exact M-EFCS version/build number has not yet been captured.
+- The KPT Pro mobile-app instructions say to enable BT on both the phone and pedal, select **KPT PRO** as the current device in M-EFCS, and scan nearby devices. This points to wireless discovery, but does not identify BLE versus Bluetooth Classic or reveal GATT UUIDs/commands.
+- RigCanvas now performs BLE advertisement scanning only on Android and Windows; it does not connect, read characteristics, or write to the pedal.
 
 ## Documentation findings
 
@@ -17,7 +25,7 @@ Sources:
 - [KPT Pro user manual mirror](https://manuals.plus/ae/1005009814096903), particularly sections 6.5–6.6 and 6.11–6.15.
 - [KPT Pro user manual PDF mirror](https://manuals.plus/yuimer/kpt-pro-guitar-pedal-manual.pdf).
 
-The vendor's [TankPedal download page](https://tankpedal.com/pages/data-sharing-opt-out) lists its M-EFCS PC and mobile downloads as supporting **TANK-G and TANK-B**, and describes PC USB and mobile wireless connections. The page separately lists KPT Pro firmware and the KPT Pro user manual.
+The vendor's [TankPedal download page](https://tankpedal.com/en-asia/pages/download) lists its M-EFCS PC and mobile downloads as supporting **TANK-G and TANK-B**, while separately listing KPT Pro firmware and manual downloads. This public list appears incomplete or stale relative to the user's direct confirmation that the latest installed M-EFCS works with KPT PRO.
 
 ## Documented KPT Pro effect catalogue
 
@@ -50,7 +58,7 @@ There is a documentation discrepancy:
 - The KPT Pro manual describes M-EFCS control for KPT Pro.
 - The vendor's general download page labels its M-EFCS binaries as supporting Tank-G and Tank-B.
 
-This does **not** prove that KPT Pro is incompatible with M-EFCS. It means the exact KPT Pro firmware, M-EFCS build, and transport protocol must be identified before writing a KPT Pro adapter.
+The user's successful M-EFCS use confirms practical compatibility for their KPT PRO setup. The exact M-EFCS build and control transport still need to be recorded, and RigCanvas must independently verify the device protocol before implementing control.
 
 Do not assume Tank-G packets, firmware, preset files, or bootloader behavior are compatible with KPT Pro.
 
@@ -94,10 +102,11 @@ Before enabling a KPT Pro device profile, record and verify:
 1. Exact model label and hardware revision.
 2. Firmware version shown by the pedal.
 3. M-EFCS application version and its device list.
-4. USB vendor/product IDs, interfaces, endpoints, and OS descriptors.
-5. Wireless service UUIDs and characteristics, if Bluetooth Low Energy is used.
-6. A read-only device identification exchange.
-7. A known-good preset export/import format and checksum behavior.
-8. Whether read and write operations are distinct and whether writes can be safely verified.
+4. BLE advertisements: local name, OS-provided identifier, RSSI, and advertised service UUIDs; then establish BLE versus Bluetooth Classic.
+5. USB vendor/product IDs, interfaces, endpoints, and OS descriptors if Windows M-EFCS uses USB for control.
+6. Wireless service UUIDs and characteristics only after a verified connection path is identified.
+7. A read-only device identification exchange.
+8. A known-good preset export/import format and checksum behavior.
+9. Whether read and write operations are distinct and whether writes can be safely verified.
 
 A capability is not supported until it is tested on the physical KPT Pro and documented with firmware/app versions.

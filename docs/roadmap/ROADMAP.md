@@ -26,12 +26,12 @@
 
 ## Milestone 2 — hardware discovery
 
-- [ ] Collect exact KPT Pro firmware/app versions.
-- [ ] Capture USB descriptors.
-- [ ] Confirm whether official M-EFCS recognizes the tested KPT Pro.
-- [ ] Identify wireless transport and OS permissions.
+- [x] Confirm the user's KPT PRO works with the latest installed M-EFCS (user-confirmed 2026-11-17; exact app build still to capture).
+- [x] Record user-reported KPT Pro firmware v15 (not independently read by RigCanvas).
+- [ ] Capture RigCanvas BLE scan results from the physical KPT PRO and determine BLE versus Bluetooth Classic.
+- [ ] Capture USB descriptors if the Windows editor uses USB for control.
 - [ ] Document protocol evidence and a capability matrix.
-- [ ] Implement safe read-only discovery only after protocol behavior is understood.
+- [ ] Implement device identity and read-only preset discovery only after protocol behavior is understood.
 
 ## Milestone 3 — KPT Pro read-only editor
 
@@ -81,7 +81,7 @@
 - Expanded the KPT Pro catalogue from available manual evidence: FX, AMP, MOD, DLY, REV, CAB, and EXT families are recorded separately; unsupported individual amp/cab names and parameter ranges are explicitly not invented.
 - Recorded the vendor download-page discrepancy: M-EFCS is listed for TANK-G/TANK-B, while a KPT Pro manual describes M-EFCS control. KPT Pro compatibility remains unverified; Tank-G protocol assumptions are prohibited.
 - User reports the physical KPT Pro is running firmware **v15**. Recorded as a user-reported baseline, not independently device-verified; the official download page does not expose a visible version-to-package mapping in its page text, so v15 must not be equated with the manual mirror's KPTPRO007 label.
-- **Next focus:** obtain the exact M-EFCS app version and whether KPT Pro appears in its device selector; then capture read-only USB descriptors on Windows. Do not implement undocumented device writes or mark the catalogue as verified device capability.
+- **Next focus:** run RigCanvas BLE advertisement discovery with the physical KPT PRO on Android and Windows, record its advertised name/identifier/service UUIDs, and establish whether M-EFCS uses BLE or Bluetooth Classic. Capture the exact M-EFCS build. Do not connect to unknown services or implement device writes.
 
 ## Release gates
 
@@ -93,3 +93,11 @@ A milestone is not complete because the UI exists. It must include:
 - Documented supported hardware/firmware combinations.
 - Clear unsupported-feature messaging.
 - No destructive device operation without a tested backup/recovery workflow.
+
+
+### Review log — 2026-11-17
+
+- Updated compatibility evidence after the user confirmed that the latest installed M-EFCS works with their KPT PRO; firmware v15 remains user-reported, and the exact M-EFCS build is not yet recorded.
+- Added a shared Android/Windows BLE advertisement scan workflow. It displays advertised names where supported, peripheral identifiers, RSSI, and advertised service UUIDs.
+- Kept the hardware safety boundary: this milestone does not connect, enumerate GATT characteristics, read/write preset data, or send pedal commands.
+- Next: scan with the physical pedal and compare results with M-EFCS's device selector. If no BLE advertisement appears, investigate Bluetooth Classic or the actual transport used by M-EFCS before changing the adapter.

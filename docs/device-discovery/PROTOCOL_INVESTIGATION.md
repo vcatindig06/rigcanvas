@@ -14,7 +14,13 @@ Collect:
 - Whether the device appears in the official application.
 - Whether USB control, wireless control, and USB audio are separate functions.
 
-## Phase 1 — USB enumeration (read-only)
+## Phase 1 — BLE advertisement discovery (read-only)
+
+The KPT Pro mobile-app instructions describe enabling BT on both the phone and pedal, choosing **KPT PRO** as the current device in M-EFCS, and scanning nearby devices. RigCanvas includes scan-only BLE discovery for Android and Windows. Record advertised name (if present), the OS-provided peripheral identifier, RSSI, and advertised service UUIDs. An advertisement name is only a clue, not proof of device identity.
+
+A missing BLE result does not prove incompatibility. Establish whether the official mobile app uses BLE, Bluetooth Classic, or another transport before changing the adapter strategy. Do not connect, enumerate GATT characteristics, or exchange commands during this initial scan phase.
+
+## Phase 2 — USB enumeration (read-only)
 
 1. Connect the pedal using a known data-capable USB cable.
 2. Record device descriptors using OS tools:
@@ -24,7 +30,7 @@ Collect:
 4. Do not send custom control transfers or vendor commands.
 5. Confirm whether the device exposes a standard USB audio interface separately from any control interface.
 
-## Phase 2 — observe official application behavior
+## Phase 3 — observe official application behavior
 
 Only when the official app recognizes the exact KPT Pro model:
 1. Capture a baseline preset backup using the official app.
@@ -34,7 +40,7 @@ Only when the official app recognizes the exact KPT Pro model:
 5. Compare repeated discovery traces to identify stable framing versus session values.
 6. Do not replay captured traffic.
 
-## Phase 3 — protocol documentation
+## Phase 4 — protocol documentation
 
 Create a written protocol specification only after repeated observations:
 - Framing and message boundaries.
@@ -47,7 +53,7 @@ Create a written protocol specification only after repeated observations:
 
 Mark each field as observed, inferred, or unknown. Never present an inference as a confirmed fact.
 
-## Phase 4 — implementation gate
+## Phase 5 — implementation gate
 
 The first adapter should implement only:
 - Device discovery.
