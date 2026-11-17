@@ -9,7 +9,7 @@ add_library(${PLUGIN_NAME} SHARED
 apply_standard_settings(${PLUGIN_NAME})
 target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_17)
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin setupapi)
-target_include_directories(${PLUGIN_NAME} PRIVATE
+target_include_directories(${PLUGIN_NAME} PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 set_target_properties(${PLUGIN_NAME} PROPERTIES
