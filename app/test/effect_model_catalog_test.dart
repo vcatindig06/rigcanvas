@@ -50,21 +50,44 @@ void main() {
       );
     });
 
-    test('numbers guitar and bass preamp and cabinet slots without inventing names', () {
-      final guitarAmp = EffectModelCatalog.byId('kpt.amp.guitar.0')!;
-      final lastGuitarAmp = EffectModelCatalog.byId('kpt.amp.guitar.49')!;
+    test('uses the owner-reported firmware-v8 AMP and CAB names', () {
+      final guitarAmps = EffectModelCatalog.all
+          .where((model) => model.id.startsWith('kpt.amp.guitar.'))
+          .toList();
+      final guitarCabs = EffectModelCatalog.all
+          .where((model) => model.id.startsWith('kpt.cab.guitar.'))
+          .toList();
       final firstBassAmp = EffectModelCatalog.byId('kpt.amp.bass.0')!;
       final lastBassAmp = EffectModelCatalog.byId('kpt.amp.bass.9')!;
-      final guitarCab = EffectModelCatalog.byId('kpt.cab.guitar.0')!;
       final firstBassCab = EffectModelCatalog.byId('kpt.cab.bass.0')!;
 
-      expect(guitarAmp.name, 'Guitar Preamp 01');
-      expect(lastGuitarAmp.name, 'Guitar Preamp 50');
+      expect(guitarAmps, hasLength(50));
+      expect(guitarCabs, hasLength(50));
+      expect(guitarAmps.first.name, 'CL-UWETWINS');
+      expect(guitarAmps.last.name, 'CL-MATDC30');
+      expect(guitarCabs.first.name, 'EAGLPROV30S');
+      expect(guitarCabs.last.name, 'VXAC30');
       expect(firstBassAmp.name, 'Bass Preamp 51');
       expect(lastBassAmp.name, 'Bass Preamp 60');
-      expect(guitarCab.name, 'Guitar CAB 01');
       expect(firstBassCab.name, 'Bass CAB 51');
-      expect(guitarAmp.description, contains('does not publish an individual model name'));
+      expect(firstBassAmp.description, contains('not been confirmed'));
+      expect(firstBassCab.description, contains('not been confirmed'));
+    });
+
+    test('classifies the owner's AMP prefixes as Clean, Overdrive, and Distortion', () {
+      final clean = EffectModelCatalog.byId('kpt.amp.guitar.0')!;
+      final overdrive = EffectModelCatalog.byId('kpt.amp.guitar.2')!;
+      final distortion = EffectModelCatalog.byId('kpt.amp.guitar.4')!;
+
+      expect(clean.name, 'CL-UWETWINS');
+      expect(clean.ampType, AmpModelType.clean);
+      expect(clean.ampType!.labelWithCode, 'Clean (CL)');
+      expect(overdrive.name, 'OD-MARVM410');
+      expect(overdrive.ampType, AmpModelType.overdrive);
+      expect(overdrive.ampType!.labelWithCode, 'Overdrive (OD)');
+      expect(distortion.name, 'DS-BRITPLEX');
+      expect(distortion.ampType, AmpModelType.distortion);
+      expect(distortion.ampType!.labelWithCode, 'Distortion (DS)');
     });
 
     test('gives every catalog model a unique stable identifier', () {
