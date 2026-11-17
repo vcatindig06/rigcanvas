@@ -90,6 +90,8 @@ class EffectModelDefinition {
   final EffectInstrument instrument;
   final AmpModelType? ampType;
 
+  String? get ampTypeLabel => ampType?.labelWithCode;
+
   String get instrumentLabel => switch (instrument) {
     EffectInstrument.universal => 'Guitar / Bass',
     EffectInstrument.guitar => 'Guitar',
