@@ -21,7 +21,7 @@ The firmware string is retained exactly as reported: v8. It must not be reinterp
 
 ## Official firmware and software download evidence
 
-The [TankPedal official download page](https://tankpedal.com/pages/download) currently exposes a KPT Pro firmware download labelled KPT PRO-011. The page does not provide a version-history table or a public mapping between that archive label and a pedal-displayed v8 value. RigCanvas must not assume that v15 equals KPT PRO-011 or recommend flashing that archive to the user's unit.
+The [TankPedal official download page](https://tankpedal.com/pages/download) currently exposes a KPT Pro firmware download labelled KPT PRO-011. The page does not provide a version-history table or a public mapping between that archive label and a pedal-displayed v8 value. RigCanvas must not assume that firmware v8 equals KPT PRO-011 or recommend flashing that archive to the user's unit.
 
 The same official page states that:
 - M-EFCS PC software for Windows/macOS supports TANK-G and TANK-B and connects by USB.
