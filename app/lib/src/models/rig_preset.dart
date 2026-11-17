@@ -190,6 +190,8 @@ class RigPreset {
       'enabled': block.enabled,
       'parameters': block.parameters,
       'assetId': block.assetId,
+      'catalogId': block.catalogId,
+      'catalogSource': block.catalogSource?.name,
     };
   }
 
@@ -210,6 +212,8 @@ class RigPreset {
     final enabled = value['enabled'];
     final rawParameters = value['parameters'];
     final rawAssetId = value['assetId'];
+    final rawCatalogId = value['catalogId'];
+    final rawCatalogSource = value['catalogSource'];
 
     if (enabled is! bool) {
       throw const FormatException('Effect block enabled flag must be boolean.');
@@ -220,6 +224,28 @@ class RigPreset {
             rawAssetId.length > 128)) {
       throw const FormatException('Effect block asset reference is invalid.');
     }
+    if (rawCatalogId != null &&
+        (rawCatalogId is! String ||
+            rawCatalogId.trim().isEmpty ||
+            rawCatalogId.length > 160)) {
+      throw const FormatException('Effect block catalogue ID is invalid.');
+    }
+    if (rawCatalogSource != null && rawCatalogSource is! String) {
+      throw const FormatException('Effect block catalogue source is invalid.');
+    }
+    if ((rawCatalogId == null) != (rawCatalogSource == null)) {
+      throw const FormatException('Effect block catalogue identity is incomplete.');
+    }
+    EffectCatalogSource? catalogSource;
+    if (rawCatalogSource is String) {
+      catalogSource = EffectCatalogSource.values.firstWhere(
+        (candidate) => candidate.name == rawCatalogSource,
+        orElse: () => throw FormatException(
+          'Unsupported effect catalogue source "$rawCatalogSource".',
+        ),
+      );
+    }
+
     if (rawParameters is! Map<String, dynamic>) {
       throw const FormatException('Effect block parameters must be an object.');
     }
@@ -277,6 +303,8 @@ class RigPreset {
       enabled: enabled,
       parameters: parameters,
       assetId: rawAssetId as String?,
+      catalogId: rawCatalogId as String?,
+      catalogSource: catalogSource,
     );
   }
 

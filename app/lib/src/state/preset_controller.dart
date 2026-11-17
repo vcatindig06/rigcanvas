@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/preset_repository.dart';
 import '../models/effect_block.dart';
+import '../models/effect_catalog.dart';
 import '../models/rig_preset.dart';
 
 class PresetController extends ChangeNotifier {
@@ -129,6 +130,26 @@ class PresetController extends ChangeNotifier {
     );
     final nextBlocks = [...current.blocks, block];
     await _replaceActiveBlocks(nextBlocks);
+  }
+
+  Future<void> addCatalogBlock(EffectCatalogEntry entry) async {
+    final current = activePreset;
+    if (current == null) return;
+    if (current.blocks.length >= maximumPresetBlocks) {
+      throw const FormatException(
+        'This workspace has reached the maximum number of effect blocks.',
+      );
+    }
+    final block = EffectBlock(
+      id: _newId('block'),
+      name: entry.name,
+      family: entry.family,
+      description: entry.description,
+      parameters: EffectBlock.defaultParameters(entry.family),
+      catalogId: entry.id,
+      catalogSource: entry.source,
+    );
+    await _replaceActiveBlocks([...current.blocks, block]);
   }
 
   Future<void> updateBlock(EffectBlock updatedBlock) async {

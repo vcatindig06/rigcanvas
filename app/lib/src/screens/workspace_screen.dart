@@ -1,11 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/effect_block.dart';
+import '../models/effect_catalog.dart';
 import '../models/rig_asset.dart';
 import '../models/rig_preset.dart';
 import '../state/asset_controller.dart';
 import '../state/preset_controller.dart';
 import 'effect_block_editor_dialog.dart';
+import 'effect_catalog_picker_dialog.dart';
 
 enum WorkspaceMode { preset, scene, stomp, hybrid }
 
@@ -74,6 +76,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     );
     if (updated == null) return;
     await _runMutation(() => controller.updateBlock(updated));
+  }
+
+  Future<void> _addEffectBlock() async {
+    final entry = await showDialog<EffectCatalogEntry>(
+      context: context,
+      builder: (context) => const EffectCatalogPickerDialog(),
+    );
+    if (entry == null) return;
+    await _runMutation(() => controller.addCatalogBlock(entry));
   }
 
   Future<void> _captureScene() async {
@@ -253,25 +264,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     ),
                   ),
                   const Spacer(),
-                  PopupMenuButton<EffectFamily>(
-                    tooltip: 'Add effect block',
-                    onSelected: (family) => _runMutation(
-                      () => controller.addBlock(family),
-                    ),
-                    itemBuilder: (context) => EffectFamily.values
-                        .map(
-                          (family) => PopupMenuItem<EffectFamily>(
-                            value: family,
-                            child: Row(
-                              children: [
-                                Icon(family.icon, size: 18),
-                                const SizedBox(width: 10),
-                                Text(family.label),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
+                  InkWell(
+                    key: const ValueKey('add-effect-block'),
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: _addEffectBlock,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,

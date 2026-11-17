@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+enum EffectCatalogSource { rigCanvasSoftware, kptProManual }
+
 enum EffectFamily {
   gate,
   drive,
@@ -290,6 +292,8 @@ class EffectBlock {
     this.enabled = true,
     this.parameters = const <String, double>{},
     this.assetId,
+    this.catalogId,
+    this.catalogSource,
   });
 
   final String id;
@@ -302,6 +306,10 @@ class EffectBlock {
   /// Local Asset Library reference. This does not load or transmit the asset.
   final String? assetId;
 
+  /// Stable catalogue model identity and origin; null for legacy/custom blocks.
+  final String? catalogId;
+  final EffectCatalogSource? catalogSource;
+
   EffectBlock copyWith({
     String? name,
     String? description,
@@ -309,6 +317,9 @@ class EffectBlock {
     Map<String, double>? parameters,
     String? assetId,
     bool clearAssetId = false,
+    String? catalogId,
+    EffectCatalogSource? catalogSource,
+    bool clearCatalog = false,
   }) {
     return EffectBlock(
       id: id,
@@ -318,6 +329,10 @@ class EffectBlock {
       enabled: enabled ?? this.enabled,
       parameters: parameters ?? this.parameters,
       assetId: clearAssetId ? null : (assetId ?? this.assetId),
+      catalogId: clearCatalog ? null : (catalogId ?? this.catalogId),
+      catalogSource: clearCatalog
+          ? null
+          : (catalogSource ?? this.catalogSource),
     );
   }
 
