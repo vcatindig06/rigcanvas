@@ -33,7 +33,7 @@ void main() {
 
       final capture = BtsnoopCaptureParser.parse(bytes);
 
-      expect(capture.packetCount, 5);
+      expect(capture.packetCount, 6);
       expect(capture.connectionSessions, hasLength(1));
       final session = capture.connectionSessions.single;
       expect(session.deviceName, 'KPTPRO_BLE');
@@ -43,15 +43,16 @@ void main() {
       expect(session.maskedAddress, '**:**:**:**:E5:F6');
 
       final events = capture.eventsForSession(session.id);
-      expect(events, hasLength(3));
-      expect(events[0].opcodeName, 'Read By Type Response');
-      expect(events[1].opcodeName, 'Write Command');
-      expect(events[1].direction, BtsnoopDirection.hostToController);
-      expect(events[1].attributeHandle, 0x25);
-      expect(events[1].attributeUuid, '0000ae41-0000-1000-8000-00805f9b34fb');
-      expect(events[1].serviceUuid, '0000ae40-0000-1000-8000-00805f9b34fb');
-      expect(events[1].characteristicProperties, 0x04);
-      expect(events[1].valueHex, 'AA BB');
+      expect(events, hasLength(4));
+      expect(events[0].opcodeName, 'Read By Group Type Response');
+      expect(events[1].opcodeName, 'Read By Type Response');
+      expect(events[2].opcodeName, 'Write Command');
+      expect(events[2].direction, BtsnoopDirection.hostToController);
+      expect(events[2].attributeHandle, 0x25);
+      expect(events[2].attributeUuid, '0000ae41-0000-1000-8000-00805f9b34fb');
+      expect(events[2].serviceUuid, '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(events[2].characteristicProperties, 0x04);
+      expect(events[2].valueHex, 'AA BB');
 
       final filtered = capture.toJson(
         sessionId: session.id,
@@ -63,9 +64,9 @@ void main() {
       expect(ae41['serviceUuid'], '0000ae40-0000-1000-8000-00805f9b34fb');
       expect(ae41['characteristicUuid'], '0000ae41-0000-1000-8000-00805f9b34fb');
       expect(ae41['properties'], 0x04);
-      expect(events[2].opcodeName, 'Handle Value Notification');
-      expect(events[2].direction, BtsnoopDirection.controllerToHost);
-      expect(events[2].valueHex, '01 02');
+      expect(events[3].opcodeName, 'Handle Value Notification');
+      expect(events[3].direction, BtsnoopDirection.controllerToHost);
+      expect(events[3].valueHex, '01 02');
       expect(capture.writeCount, 1);
       expect(capture.notificationCount, 1);
     });
@@ -98,7 +99,7 @@ void main() {
         ]), flags: 0, timestamp: 1400),
       ]));
 
-      final event = capture.attEvents.single;
+      final event = capture.attEvents.last;
       expect(event.attributeUuid, midiCharacteristic);
       expect(event.serviceUuid, midiService);
       expect(event.characteristicProperties, 0x1C);
@@ -306,17 +307,16 @@ Uint8List _connectionComplete({
   return Uint8List.fromList([0x04, 0x3E, params.length, ...params]);
 }
 
-List<int> _uuid128Bytes(String uuid) => uuid
-    .replaceAll('-', '')
-    .toLowerCase()
-    .replaceAllMapped(RegExp(r'[0-9a-f]{2}'), (match) => match.group(0)!)
-    .toList()
-    .reversed
-    .toList()
-    .asMap()
-    .entries
-    .map((entry) => int.parse(entry.value, radix: 16))
-    .toList();
+List<int> _uuid128Bytes(String uuid) {
+  final hex = uuid.replaceAll('-', '').toLowerCase();
+  return List<int>.generate(
+    16,
+    (index) => int.parse(
+      hex.substring((15 - index) * 2, (15 - index) * 2 + 2),
+      radix: 16,
+    ),
+  );
+}
 
 Uint8List _aclPacket(List<int> attPdu, {int connectionHandle = 11}) {
   final l2cap = <int>[attPdu.length, 0x00, 0x04, 0x00, ...attPdu];
