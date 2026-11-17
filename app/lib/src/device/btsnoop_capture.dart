@@ -230,6 +230,7 @@ class KptProHciCapture {
     required this.connectionSessions,
     required this.peripherals,
     required this.attEvents,
+    required this.characteristicDiscoveryBySession,
     required this.malformedHciPacketCount,
     required this.nonAttAclPacketCount,
   });
@@ -240,6 +241,7 @@ class KptProHciCapture {
   final List<KptBleConnectionSession> connectionSessions;
   final List<KptBlePeripheralObservation> peripherals;
   final List<KptBleAttEvent> attEvents;
+  final Map<int, Map<String, Object?>> characteristicDiscoveryBySession;
   final int malformedHciPacketCount;
   final int nonAttAclPacketCount;
 
@@ -307,23 +309,8 @@ class KptProHciCapture {
     };
   }
 
-  Map<String, Object?> _characteristicMapForSession(int sessionId) {
-    final session = sessionById(sessionId);
-    if (session == null) return const {};
-    // The parser stores a complete GATT attribute table per HCI connection.
-    // The map is serialized on each ATT event so no cross-device handles mix.
-    final selected = <String, Object?>{};
-    for (final event in eventsForSession(sessionId)) {
-      if (event.attributeHandle != null && event.attributeUuid != null) {
-        selected['0x${event.attributeHandle!.toRadixString(16).padLeft(4, '0')}'] = {
-          'serviceUuid': event.serviceUuid,
-          'characteristicUuid': event.attributeUuid,
-          'properties': event.characteristicProperties,
-        };
-      }
-    }
-    return Map.unmodifiable(selected);
-  }
+  Map<String, Object?> _characteristicMapForSession(int sessionId) =>
+      characteristicDiscoveryBySession[sessionId] ?? const {};
 }
 
 class _BtsnoopParserState {
@@ -337,6 +324,7 @@ class _BtsnoopParserState {
   final List<KptBleAttEvent> _attEvents = [];
   final Map<String, _PendingL2cap> _pendingL2cap = {};
   final Map<int, _ConnectionAttributeTable> _attributeTables = {};
+  final Map<int, _ConnectionAttributeTable> _sessionAttributeTables = {};
   int malformedHciPacketCount = 0;
   int nonAttAclPacketCount = 0;
 
@@ -449,6 +437,9 @@ class _BtsnoopParserState {
       startFrame: frameNumber,
     );
     _sessions.add(session);
+    final table = _ConnectionAttributeTable();
+    _attributeTables[handle] = table;
+    _sessionAttributeTables[session.id] = table;
     _activeSessions[handle] = session;
   }
 
@@ -574,6 +565,10 @@ class _BtsnoopParserState {
 
   KptProHciCapture finish({required int recordCount}) {
     final sessions = _sessions.map((session) => session.freeze()).toList(growable: false);
+    final characteristicDiscoveryBySession = <int, Map<String, Object?>>{
+      for (final session in sessions)
+        session.id: _sessionAttributeTables[session.id]?.toJson() ?? const {},
+    };
     final peripherals = _peripherals.values.toList(growable: false)
       ..sort((a, b) => (a.name ?? a.address).compareTo(b.name ?? b.address));
     return KptProHciCapture(
@@ -583,6 +578,9 @@ class _BtsnoopParserState {
       connectionSessions: sessions,
       peripherals: peripherals,
       attEvents: List.unmodifiable(_attEvents),
+      characteristicDiscoveryBySession: Map.unmodifiable(
+        characteristicDiscoveryBySession,
+      ),
       malformedHciPacketCount: malformedHciPacketCount,
       nonAttAclPacketCount: nonAttAclPacketCount,
     );
