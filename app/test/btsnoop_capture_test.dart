@@ -18,22 +18,31 @@ void main() {
         ]), flags: 1, timestamp: 1150),
         _record(_aclPacket([
           0x09, 0x07, // Read By Type Response, 7-byte entries.
-          0x22, 0x00, // Attribute handle (characteristic declaration).
-          0x04,       // Write Without Response property.
-          0x25, 0x00, // Characteristic value handle.
-          0x41, 0xAE, // UUID 0xAE41.
+          0x22, 0x00, // AE41 declaration handle.
+          0x04,       // Write Without Response.
+          0x25, 0x00, // AE41 value handle.
+          0x41, 0xAE, // Characteristic UUID AE41.
+          0x26, 0x00, // AE42 declaration handle.
+          0x10,       // Notify.
+          0x27, 0x00, // AE42 value handle.
+          0x42, 0xAE, // Characteristic UUID AE42.
+          0x28, 0x00, // Extra declaration to test retained discovery.
+          0x02,       // Read.
+          0x29, 0x00, // Extra value handle.
+          0x43, 0xAE, // Characteristic UUID AE43.
         ]), flags: 1, timestamp: 1200),
         _record(_aclPacket([
           0x52, 0x25, 0x00, 0xAA, 0xBB,
         ]), flags: 0, timestamp: 1300),
         _record(_aclPacket([
-          0x1B, 0x25, 0x00, 0x01, 0x02,
+          0x1B, 0x27, 0x00, 0x01, 0x02,
         ]), flags: 1, timestamp: 1400),
+        _record(_disconnectComplete(), flags: 1, timestamp: 1500),
       ]);
 
       final capture = BtsnoopCaptureParser.parse(bytes);
 
-      expect(capture.packetCount, 6);
+      expect(capture.packetCount, 7);
       expect(capture.connectionSessions, hasLength(1));
       final session = capture.connectionSessions.single;
       expect(session.deviceName, 'KPTPRO_BLE');
@@ -64,8 +73,20 @@ void main() {
       expect(ae41['serviceUuid'], '0000ae40-0000-1000-8000-00805f9b34fb');
       expect(ae41['characteristicUuid'], '0000ae41-0000-1000-8000-00805f9b34fb');
       expect(ae41['properties'], 0x04);
+      final ae42 = characteristicMap['0x0027'] as Map<String, Object?>;
+      expect(ae42['characteristicUuid'], '0000ae42-0000-1000-8000-00805f9b34fb');
+      expect(ae42['propertyNames'], ['notify']);
+      final discoveredWithoutTraffic =
+          characteristicMap['0x0029'] as Map<String, Object?>;
+      expect(
+        discoveredWithoutTraffic['characteristicUuid'],
+        '0000ae43-0000-1000-8000-00805f9b34fb',
+      );
       expect(events[3].opcodeName, 'Handle Value Notification');
       expect(events[3].direction, BtsnoopDirection.controllerToHost);
+      expect(events[3].attributeUuid, '0000ae42-0000-1000-8000-00805f9b34fb');
+      expect(events[3].serviceUuid, '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(events[3].characteristicProperties, 0x10);
       expect(events[3].valueHex, '01 02');
       expect(capture.writeCount, 1);
       expect(capture.notificationCount, 1);
@@ -317,6 +338,16 @@ List<int> _uuid128Bytes(String uuid) {
     ),
   );
 }
+
+Uint8List _disconnectComplete({int handle = 11}) => Uint8List.fromList([
+  0x04,
+  0x05,
+  0x04,
+  0x00,
+  handle & 0xFF,
+  (handle >> 8) & 0xFF,
+  0x13,
+]);
 
 Uint8List _aclPacket(List<int> attPdu, {int connectionHandle = 11}) {
   final l2cap = <int>[attPdu.length, 0x00, 0x04, 0x00, ...attPdu];
