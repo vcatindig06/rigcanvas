@@ -296,6 +296,8 @@ class KptProHciCapture {
         'attEvents': events.length,
         'writeRequestsAndCommands': events.where((event) => event.isWrite).length,
         'notificationsAndIndications': events.where((event) => event.isNotification).length,
+        'mtuExchangeRequests': events.where((event) => event.opcode == 0x02).length,
+        'mtuExchangeResponses': events.where((event) => event.opcode == 0x03).length,
         'attributeValueReadRequestsAndResponses': events.where(
           (event) => const [0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F].contains(event.opcode),
         ).length,
@@ -309,6 +311,10 @@ class KptProHciCapture {
           (event) => event.opcode == 0x0A || event.opcode == 0x0B,
         ).length,
       },
+      'protocolWarnings': [
+        if (events.where((event) => event.opcode == 0x02).length > 1)
+          'Multiple ATT Exchange MTU Requests were captured for one selected connection. Verify the HCI connection lifecycle and raw event sequence before interpreting MTU negotiation.',
+      ],
       'characteristicDiscovery': _characteristicMapForSession(sessionId),
       'attEvents': events.map(
         (event) => event.toJson(includePayload: includePayload),
@@ -863,6 +869,10 @@ String _attErrorName(int code) => switch (code) {
   0x0F => 'Insufficient Encryption',
   0x10 => 'Unsupported Group Type',
   0x11 => 'Insufficient Resources',
+  0x12 => 'Database Out of Sync',
+  0x14 => 'MIC Length Too Short',
+  _ when code >= 0x80 && code <= 0x9F => 'Application Error',
+  _ when code >= 0xE0 && code <= 0xFF => 'Common Profile and Service Error',
   _ => 'Unknown ATT error',
 };
 
