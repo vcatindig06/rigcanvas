@@ -37,3 +37,14 @@ Provide:
 - Any hardware revision printed on the pedal label or shown in system information.
 
 Do not include serial numbers, account credentials, private preset contents, or other personal information. Do not update firmware, import firmware packages, or experiment with unknown protocol commands as part of discovery.
+
+
+## BLE trace evidence
+
+The captured Android BLE evidence is summarized in:
+
+- [First payload-free ATT trace analysis](TRACE_ANALYSIS_2026-11-17.md)
+- [Payload-enabled ATT and model-catalog analysis](PAYLOAD_ANALYSIS_2026-11-17.md)
+- [KPT Pro protocol investigation plan](PROTOCOL_INVESTIGATION.md)
+
+The raw BTSnoop capture and full payload export are not committed. The model names and protocol observations in the payload analysis remain subject to the confidence limits documented there.
