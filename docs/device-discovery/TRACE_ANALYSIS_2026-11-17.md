@@ -59,6 +59,8 @@ The new trace has repeated writes to handle `0x0062` and notifications from hand
 
 The Write Request to `0x0065` may be a Client Characteristic Configuration Descriptor (CCCD) write associated with the notification characteristic at `0x0064`. That is only a hypothesis: its value bytes and this session's characteristic map are absent. A value of `01 00` would normally enable notifications and `02 00` indications, but the report does not show either value.
 
+**MTU-exchange anomaly:** the report lists two client-to-server Exchange MTU Requests and two responses for the same selected connection. Bluetooth Core ATT §3.4.2.1 says the client sends ATT_EXCHANGE_MTU_REQ only once during a connection, and §3.4.2.2 defines the server response. This makes the second pair worth checking against raw timestamps and the HCI connection lifecycle. Do not assume it is valid renegotiation or a pedal defect: the payload-free report cannot distinguish repeated stack traffic, an underlying session/bearer boundary issue, or a capture/parser artifact. See the [Bluetooth Core Specification, Attribute Protocol §3.4.2](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-61/out/en/host/attribute-protocol--att-.html).
+
 ## Why characteristic discovery is empty
 
 The parser populates the service map from successful ATT Read By Group Type Responses (`0x11`) and the characteristic map from successful Read By Type Responses (`0x09`). This selected report contains a Read By Type Request and an Error Response, but no successful declaration responses. Consequently, an empty `characteristicDiscovery` object is expected; it is not evidence that the pedal has no GATT characteristics.
