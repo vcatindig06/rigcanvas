@@ -296,6 +296,15 @@ class KptProHciCapture {
         'attEvents': events.length,
         'writeRequestsAndCommands': events.where((event) => event.isWrite).length,
         'notificationsAndIndications': events.where((event) => event.isNotification).length,
+        'attributeValueReadRequestsAndResponses': events.where(
+          (event) => const [0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F].contains(event.opcode),
+        ).length,
+        'gattDiscoveryRequestsAndResponses': events.where(
+          (event) => const [0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11].contains(event.opcode),
+        ).length,
+        'attErrorResponses': events.where((event) => event.opcode == 0x01).length,
+        // Retained for compatibility with earlier report readers; this counts
+        // only simple Read Request/Read Response pairs, not GATT discovery.
         'readRequestsAndResponses': events.where(
           (event) => event.opcode == 0x0A || event.opcode == 0x0B,
         ).length,
