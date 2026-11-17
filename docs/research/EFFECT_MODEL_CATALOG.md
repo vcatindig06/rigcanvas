@@ -17,7 +17,25 @@ The available KPT Pro manual is hosted by third-party manual sites rather than a
 
 ## User-reported firmware baseline
 
-The project owner reports that their physical KPT Pro displays firmware v15 (reported 2026-11-17). This is recorded as a user-provided baseline only; RigCanvas has not independently read the version from the pedal. The manufacturer's download page currently lists a KPT Pro firmware archive labelled KPT PRO-011, but does not publish a mapping from that archive label to the displayed v15 value. The inventory below is manual-documented and must not be described as verified for firmware v15 until the physical unit is checked.
+The project owner reports that their physical KPT Pro displays firmware v8 and that M-EFCS v3.10.2311 is the installed editor version (both reported 2026-11-17). RigCanvas has not independently read the firmware value from the pedal. The manufacturer's download page lists a KPT Pro firmware archive labelled KPT PRO-011, but does not publish a mapping between that archive label and the pedal-displayed v8 value. The AMP/CAB names below are owner-provided physical-menu observations for this firmware baseline; all other manual-only factory inventories remain provisional until checked against the device.
+
+## Owner-provided KPT Pro firmware-v8 AMP/CAB menu inventory
+
+The owner supplied these exact factory names from the physical pedal menu on 2026-11-17. Preserve the tokens exactly; no spelling or naming normalization has been applied.
+
+**AMP types:** `CL` = Clean, `OD` = Overdrive, `DS` = Distortion.
+
+**AMP (50):**
+
+`CL-UWETWINS, CL-UKC30, OD-MARVM410, OD-MARVICTO, DS-BRITPLEX, DS-MARSFD100, DS-EAGLES, DS-DISELHGN, DS-PVEV5150, CL-FORTIN, CL-MESSMKT, CL-CA-TWEED, CL-BOGSV20, DS-JUICEJIM, DS-SURSL68, CL-BOGBLUE, CL-BOGSH20, DS-BOGES20, CL-MESASTAR, DS-MESADR, CL-FEN65, OD-FEN65P, CL-FENRED, OD-FENFTMAN, CL-MARJ800, OD-MARJ900, DS-MARJ2000, DS-MAR2555, OD-MARSV20, CL-OGTB50, OD-OGRK30, DS-OGOR120, OD-SURSL68, OD-SURBR35, OD-ENGPB2, DS-ENGMK60, CL-PEY6534, DS-PEY6505, OD-RLAN120, OD-SOLD100, OD-SOLDH25, OD-DIEV4C2, DS-DIEV4C3, DS-VITRYSK, CL-TWORC, OD-FMAN100, CL-GOJAX, OD-VXAC30, CL-FOTINCA, CL-MATDC30`
+
+**CAB (50):**
+
+`EAGLPROV30S, SPERIMENTAL, JUICE4X12V30, MESS BOG, FDCHAMP, FDPRJUNIR, MAR960BV30, DIZZLV30, ELCTROVOICE, MESSRECTV30, TWINJENSENC, TWEDDLX1X12, FENDSHOWMAN, J120ROLND, AC30SILVERS, FENDELU, FENBFACE, FENMNTW, FENBMAN, FENPRIN2, FENPROJ, MESSOS, MESSBRO, MESSLM24, MESSSTDIO, MESSSTITO, MESSNOM, MAR36, MARMG15R, MARJ2000, MARMFOUR, MARPLX, MARVAL4, MARVAL2, ENG412, ENG412P, OGP212, PEY5150, PEYDEBLU, SOLDHOR, SOLDSC12, SOLDANG412, SOLDSC412, ALTON212, BOGUX, DIEV30, FIMANVT, HABTONV, VXAC15, VXAC30`
+
+The app now uses these strings as the 50 named AMP and 50 named CAB entries for the owner's reported firmware-v8 menu. Their existing stable IDs `kpt.amp.guitar.0–49` and `kpt.cab.guitar.0–49` are retained for preset compatibility. The 10 extra bass AMP/CAB slots described by the third-party manual remain present only as unverified manual-listed placeholders, with that uncertainty stated in their descriptions.
+
+For AMP entries, the two-letter prefix is stored as structured metadata, not inferred later from display text. The model picker shows `Clean (CL)`, `Overdrive (OD)`, or `Distortion (DS)` next to the supplied model code. This list does not establish device slot mapping, parameter sets, hardware commands, or audio-model implementation.
 
 ## KPT Pro factory inventory
 
@@ -39,7 +57,7 @@ The module list therefore accounts for 151 factory choices. The manual's overvie
 
 1. The named MOD module list enumerates nine models (including Sense-Wah), while the manual's FAQ/overview says “8 Modulations.” RigCanvas includes all nine named module entries pending confirmation on the exact firmware.
 2. The detailed module inventory lists Cloud in REV. Some alternate seller/manual descriptions differ in the reported Reverb list. Factory list differences must be checked against the installed device firmware.
-3. The manual identifies AMP and CAB slot counts and numbering, but the accessible text does not publish individual descriptive amp or cabinet names. RigCanvas therefore uses numbered factory-slot labels. It does not invent Fender-, Marshall-, Vox-, Mesa-, or other manufacturer-style names for those slots.
+3. The accessible manual identifies AMP and CAB slot counts and numbering but does not publish individual descriptive names. For the owner's firmware-v8 unit, the catalog now uses the 50 exact AMP and 50 exact CAB menu names supplied by the owner. The additional manual-listed bass 51–60 entries remain placeholders and are explicitly marked unverified for this unit.
 4. The manual's FX section describes combinations such as noise gate plus boost/compression. The catalog exposes the listed choices for browsing, but it does not reproduce their internal hardware combination logic or the physical KPT Pro's slot constraints.
 
 ### KPT Pro parameter evidence
@@ -96,10 +114,10 @@ These labels describe functional archetypes, not cloned commercial models, manuf
 ## Next requirements before audio or hardware support
 
 1. Record the owner's reported firmware display as v15, then verify it directly on the connected unit; record hardware revision and exact M-EFCS app version/device-recognition result.
-2. Compare the actual AMP/CAB model slots, MOD count, and REV choices on that unit against the manual.
+2. Verify the owner-provided 50 AMP and 50 CAB menu names/order against the connected unit; compare the MOD count and REV choices against the manual.
 3. Document model-specific parameter names/ranges for every confirmed KPT Pro model.
 4. Choose or implement a shared Android/Windows DSP engine before advertising any expanded model as playable.
-5. Capture the v15 unit's read-only USB inventory and full descriptors, then compare the actual AMP/CAB slots, MOD count, REV choices, and effect-slot rules against the manual.
+5. Capture the v8 unit's read-only USB inventory and full descriptors, then compare the actual AMP/CAB slots, MOD count, REV choices, and effect-slot rules against the manual.
 6. Only map KPT model IDs to device memory/control IDs after read-only protocol discovery confirms the mapping. Never send guessed IDs or guessed parameter values to hardware.
 
 ## References
