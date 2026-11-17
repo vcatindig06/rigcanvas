@@ -55,6 +55,12 @@
  
 ## Milestone 2 — hardware discovery
 
+- [x] Scan and connect to the physical BLE peripheral; capture its GATT service/characteristic UUIDs and properties without sending writes.
+- [x] Identify the standard BLE-MIDI service/characteristic UUID pair from the physical report.
+- [ ] Capture and document KPT Pro-specific MIDI messages or vendor-tunnel framing from an authorized official-app trace; do not infer commands from UUIDs alone.
+- [ ] Confirm the exact M-EFCS version/build and whether it recognizes the KPT Pro.
+
+
 - [x] Record the owner's reported KPT Pro firmware display as v15 (reported 2026-11-17; direct device verification remains pending).
 - [x] Add a shared Devices screen for Android and Windows with read-only USB inventory.
 - [x] Add Android USB Host enumeration for attached device VID/PID, interfaces, and endpoints without opening the USB device or transferring data.
