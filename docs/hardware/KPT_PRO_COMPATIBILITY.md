@@ -82,6 +82,12 @@ These remain manual-level claims, not observations from the user's firmware-v8 u
 
 The manual's detailed MOD pages enumerate nine models while the overview/FAQ says eight. Its FX section describes selectable gate/boost/compressor combinations, so the catalogue must not imply that all six FX labels can occupy independent simultaneous slots. RigCanvas-expanded effect archetypes remain software-only and are not KPT Pro factory algorithms.
 
+## Android HCI trace analyzer
+
+RigCanvas now includes an offline Android BTSnoop importer in Devices. It parses BTSnoop version 1 / HCI UART (H4) data-link type 1002, LE advertising and connection events, L2CAP/ATT traffic, ATT operation codes, and characteristic declaration UUIDs. It associates ATT events with a single connection session, recognizes the observed `KPTPRO_BLE` advertisement name when present, masks peer addresses in copied reports, excludes other connections, and keeps ATT payload bytes off by default.
+
+The importer does not connect to the pedal, send commands, replay packets, or change device state. No real M-EFCS HCI capture has been analyzed yet. The next required evidence is an owner-captured full/unfiltered Android HCI snoop from a normal M-EFCS v3.10.2311 connection and preset-list refresh, without editing/saving a preset. Follow [the Android HCI capture guide](../device-discovery/ANDROID_HCI_CAPTURE_GUIDE.md). Payload bytes should only be included when the owner is comfortable sharing proprietary/preset data.
+
 ## Physical BLE/GATT inspection — 2026-11-17
 
 A RigCanvas read-only inspection report supplied by the owner confirms a BLE peripheral advertising as `KPTPRO_BLE` (RSSI -54 dBm at capture). The report contains these services:
