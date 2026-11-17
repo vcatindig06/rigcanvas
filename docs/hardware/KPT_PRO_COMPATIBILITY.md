@@ -30,11 +30,15 @@ The same official page states that:
 
 The [KPT Pro manual](https://www.manualslib.com/manual/3679532/Yuimer-Kpt-Pro.html) discusses PC/mobile software support for the KPT Pro, but the current official download page does not explicitly list KPT Pro among the stated M-EFCS supported devices. This is an unresolved vendor-documentation gap, not proof of incompatibility. Do not assume TANK-G/TANK-B protocol packets, preset formats, firmware images, or bootloader behavior are compatible with KPT Pro.
 
+## M-EFCS version evidence
+
+The owner reports using **M-EFCS v3.10.2311** with the KPT Pro firmware-v8 unit and confirms that the app connects. The public M-EFCS App Store history separately lists a 3.10.2016 release adding KPT Pro A2 support and a later 3.10.2314 release with device-support and parameter/snapshot synchronization improvements. This reinforces that KPT Pro is supported in the 3.10 app series, but it does not expose the BLE command protocol. See the [M-EFCS App Store version history](https://apps.apple.com/us/app/m-efcs/id6470352068).
+
 ## Owner-provided factory AMP/CAB inventory — firmware v8
 
 The owner supplied the following names from the physical KPT Pro menu on 2026-11-17. They are recorded exactly as supplied, including abbreviations, spacing, and spelling. These are user-provided menu observations, not a manufacturer-published parameter specification.
 
-**AMP model types:** `CL` = Clean, `OD` = Overdrive, `DS` = Distortion. RigCanvas stores that prefix as structured amp-type metadata and displays both the full type and short code in the model picker.
+**AMP model types:** `CL` = Clean, `OD` = Overdrive, `DS` = Distortion. RigCanvas stores that prefix as structured amp-type metadata, displays both the full type and short code, and exposes a type filter in the AMP picker.
 
 **AMP names (50):**
 
