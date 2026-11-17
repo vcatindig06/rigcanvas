@@ -32,9 +32,11 @@ The owner reports KPT Pro firmware v8 and M-EFCS Android v3.10.2311, and confirm
 The importer:
 - Recognizes BLE advertising reports and LE connection-complete/disconnection events.
 - Associates ATT events with their connection handle and observed advertiser name.
-- Parses ATT writes, reads, notifications, indications, and characteristic declarations.
+- Parses ATT writes, reads, notifications, indications, service declarations, and characteristic declarations.
+- Correlates ATT attribute handles with discovered 16-bit or 128-bit service and characteristic UUIDs, including characteristic property bits, within each connection handle.
 - Filters an export to one selected connection, masks the BLE peer address, and excludes all other connections.
 - Keeps ATT payload bytes off by default because they may contain user preset or proprietary data.
+- The service/characteristic map is evidence from the captured GATT discovery exchange; it does not decode proprietary command payload semantics.
 
 The importer never replays a captured packet and never writes to the pedal. It currently accepts BTSnoop v1 / HCI UART H4 data-link type 1002. See [Android HCI capture guide](ANDROID_HCI_CAPTURE_GUIDE.md) for the Samsung Android 12 workflow.
 
@@ -42,7 +44,7 @@ The importer never replays a captured packet and never writes to the pedal. It c
 
 **No command implementation is authorized from the GATT property list alone.** First compare the ATT sequence for discovery, notifications, and read/list refresh; identify characteristic UUIDs from the GATT discovery records; then document actual payload framing and any acknowledgement behavior. Do not replay traffic.
 
-## Phase 2 — USB enumeration (read-only)
+## Phase 3 — USB enumeration (read-only)
 
 1. Connect the pedal using a known data-capable USB cable.
 2. Record device descriptors using OS tools:
@@ -52,7 +54,7 @@ The importer never replays a captured packet and never writes to the pedal. It c
 4. Do not send custom control transfers or vendor commands.
 5. Confirm whether the device exposes a standard USB audio interface separately from any control interface.
 
-## Phase 3 — observe official application behavior
+## Phase 4 — observe official application behavior
 
 Only when the official app recognizes the exact KPT Pro model:
 1. Capture a baseline preset backup using the official app.
@@ -62,7 +64,7 @@ Only when the official app recognizes the exact KPT Pro model:
 5. Compare repeated discovery traces to identify stable framing versus session values.
 6. Do not replay captured traffic.
 
-## Phase 4 — protocol documentation
+## Phase 5 — protocol documentation
 
 Create a written protocol specification only after repeated observations:
 - Framing and message boundaries.
@@ -75,7 +77,7 @@ Create a written protocol specification only after repeated observations:
 
 Mark each field as observed, inferred, or unknown. Never present an inference as a confirmed fact.
 
-## Phase 5 — implementation gate
+## Phase 6 — implementation gate
 
 The first adapter should implement only:
 - Device discovery.
