@@ -176,6 +176,8 @@ class KptBleAttEvent {
     required this.opcodeName,
     this.attributeHandle,
     this.attributeUuid,
+    this.serviceUuid,
+    this.characteristicProperties,
     this.value = const <int>[],
     required this.pdu,
   });
@@ -189,6 +191,8 @@ class KptBleAttEvent {
   final String opcodeName;
   final int? attributeHandle;
   final String? attributeUuid;
+  final String? serviceUuid;
+  final int? characteristicProperties;
   final List<int> value;
   final List<int> pdu;
 
@@ -208,7 +212,9 @@ class KptBleAttEvent {
     'attributeHandle': attributeHandle == null
         ? null
         : '0x${attributeHandle!.toRadixString(16).padLeft(4, '0')}',
+    'serviceUuid': serviceUuid,
     'characteristicUuid': attributeUuid,
+    'characteristicProperties': characteristicProperties,
     if (includePayload) 'valueHex': valueHex,
     if (includePayload) 'attPduHex': pduHex,
   };
@@ -300,12 +306,19 @@ class KptProHciCapture {
     };
   }
 
-  Map<String, String> _characteristicMapForSession(int sessionId) {
-    final selected = <String, String>{};
+  Map<String, Object?> _characteristicMapForSession(int sessionId) {
+    final session = sessionById(sessionId);
+    if (session == null) return const {};
+    // The parser stores a complete GATT attribute table per HCI connection.
+    // The map is serialized on each ATT event so no cross-device handles mix.
+    final selected = <String, Object?>{};
     for (final event in eventsForSession(sessionId)) {
       if (event.attributeHandle != null && event.attributeUuid != null) {
-        selected['0x${event.attributeHandle!.toRadixString(16).padLeft(4, '0')}'] =
-            event.attributeUuid!;
+        selected['0x${event.attributeHandle!.toRadixString(16).padLeft(4, '0')}'] = {
+          'serviceUuid': event.serviceUuid,
+          'characteristicUuid': event.attributeUuid,
+          'properties': event.characteristicProperties,
+        };
       }
     }
     return Map.unmodifiable(selected);
@@ -322,7 +335,7 @@ class _BtsnoopParserState {
   final List<_MutableSession> _sessions = [];
   final List<KptBleAttEvent> _attEvents = [];
   final Map<String, _PendingL2cap> _pendingL2cap = {};
-  final Map<int, String> _characteristicUuids = {};
+  final Map<int, _ConnectionAttributeTable> _attributeTables = {};
   int malformedHciPacketCount = 0;
   int nonAttAclPacketCount = 0;
 
@@ -364,6 +377,7 @@ class _BtsnoopParserState {
       final handle = _u16le(packet, 4) & 0x0FFF;
       final session = _activeSessions.remove(handle);
       if (session != null) session.endFrame = frameNumber;
+      _attributeTables.remove(handle);
       return;
     }
     if (eventCode != 0x3E || packet.length < 5) return;
@@ -423,6 +437,7 @@ class _BtsnoopParserState {
     final observation = _peripherals[address];
     final oldSession = _activeSessions.remove(handle);
     if (oldSession != null) oldSession.endFrame = frameNumber;
+    _attributeTables[handle] = _ConnectionAttributeTable();
 
     final session = _MutableSession(
       id: _sessions.length,
@@ -512,8 +527,14 @@ class _BtsnoopParserState {
       return;
     }
     final opcode = pdu[0];
-    if (opcode == 0x09) {
-      _readCharacteristicDeclarations(pdu);
+    final table = _attributeTables.putIfAbsent(
+      handle,
+      _ConnectionAttributeTable.new,
+    );
+    if (opcode == 0x11) {
+      table.readServiceDeclarations(pdu);
+    } else if (opcode == 0x09) {
+      table.readCharacteristicDeclarations(pdu);
     }
     final attributeHandle = switch (opcode) {
       0x12 || 0x52 || 0x1B || 0x1D || 0x0A || 0x0C || 0x0E || 0x16 =>
@@ -526,6 +547,9 @@ class _BtsnoopParserState {
       0x0B => pdu.length > 1 ? pdu.sublist(1) : const <int>[],
       _ => const <int>[],
     };
+    final metadata = attributeHandle == null
+        ? null
+        : table.characteristicsByValueHandle[attributeHandle];
     final session = _activeSessions[handle];
     if (session != null) session.attEventCount++;
     _attEvents.add(KptBleAttEvent(
@@ -537,28 +561,15 @@ class _BtsnoopParserState {
       opcode: opcode,
       opcodeName: _attOpcodeName(opcode),
       attributeHandle: attributeHandle,
-      attributeUuid: attributeHandle == null ? null : _characteristicUuids[attributeHandle],
+      attributeUuid: metadata?.uuid,
+      serviceUuid: metadata?.serviceUuid(table.services),
+      characteristicProperties: metadata?.properties,
       value: List<int>.unmodifiable(value),
       pdu: List<int>.unmodifiable(pdu),
     ));
   }
 
-  void _readCharacteristicDeclarations(Uint8List pdu) {
-    if (pdu.length < 2) return;
-    final entryLength = pdu[1];
-    if (entryLength != 7 && entryLength != 21) return;
-    var offset = 2;
-    while (offset + entryLength <= pdu.length) {
-      // ATT Read By Type Response for characteristic declaration 0x2803:
-      // attribute handle, properties, value handle, UUID.
-      final attributeUuid = entryLength == 7
-          ? _uuid16(_u16le(pdu, offset + 5))
-          : _uuid128LittleEndian(pdu, offset + 5);
-      final valueHandle = _u16le(pdu, offset + 3);
-      _characteristicUuids[valueHandle] = attributeUuid;
-      offset += entryLength;
-    }
-  }
+  
 
   KptProHciCapture finish({required int recordCount}) {
     final sessions = _sessions.map((session) => session.freeze()).toList(growable: false);
@@ -574,6 +585,128 @@ class _BtsnoopParserState {
       malformedHciPacketCount: malformedHciPacketCount,
       nonAttAclPacketCount: nonAttAclPacketCount,
     );
+  }
+}
+
+class _GattServiceRange {
+  const _GattServiceRange({
+    required this.startHandle,
+    required this.endHandle,
+    required this.uuid,
+  });
+
+  final int startHandle;
+  final int endHandle;
+  final String uuid;
+}
+
+class _GattCharacteristicMetadata {
+  const _GattCharacteristicMetadata({
+    required this.declarationHandle,
+    required this.valueHandle,
+    required this.uuid,
+    required this.properties,
+  });
+
+  final int declarationHandle;
+  final int valueHandle;
+  final String uuid;
+  final int properties;
+
+  String? serviceUuid(List<_GattServiceRange> services) {
+    for (final service in services) {
+      if (declarationHandle >= service.startHandle &&
+          declarationHandle <= service.endHandle) {
+        return service.uuid;
+      }
+    }
+    return null;
+  }
+
+  Map<String, Object?> toJson(List<_GattServiceRange> services) => {
+    'declarationHandle':
+        '0x${declarationHandle.toRadixString(16).padLeft(4, '0')}',
+    'valueHandle': '0x${valueHandle.toRadixString(16).padLeft(4, '0')}',
+    'serviceUuid': serviceUuid(services),
+    'characteristicUuid': uuid,
+    'properties': properties,
+    'propertyNames': [
+      if ((properties & 0x01) != 0) 'broadcast',
+      if ((properties & 0x02) != 0) 'read',
+      if ((properties & 0x04) != 0) 'writeWithoutResponse',
+      if ((properties & 0x08) != 0) 'write',
+      if ((properties & 0x10) != 0) 'notify',
+      if ((properties & 0x20) != 0) 'indicate',
+      if ((properties & 0x40) != 0) 'authenticatedSignedWrites',
+      if ((properties & 0x80) != 0) 'extendedProperties',
+    ],
+  };
+}
+
+class _ConnectionAttributeTable {
+  final List<_GattServiceRange> services = [];
+  final Map<int, _GattCharacteristicMetadata> characteristicsByValueHandle = {};
+
+  /// ATT Read By Group Type Response for primary/secondary service declarations.
+  /// Entries are 6 bytes for 16-bit UUIDs or 20 bytes for 128-bit UUIDs.
+  void readServiceDeclarations(Uint8List pdu) {
+    if (pdu.length < 2) return;
+    final entryLength = pdu[1];
+    if (entryLength != 6 && entryLength != 20) return;
+    var offset = 2;
+    while (offset + entryLength <= pdu.length) {
+      final startHandle = _u16le(pdu, offset);
+      final endHandle = _u16le(pdu, offset + 2);
+      final uuid = entryLength == 6
+          ? _uuid16(_u16le(pdu, offset + 4))
+          : _uuid128LittleEndian(pdu, offset + 4);
+      if (startHandle != 0 && endHandle >= startHandle) {
+        services.add(_GattServiceRange(
+          startHandle: startHandle,
+          endHandle: endHandle,
+          uuid: uuid,
+        ));
+      }
+      offset += entryLength;
+    }
+  }
+
+  /// ATT Read By Type Response for characteristic declarations (UUID 0x2803).
+  /// Entries are 7 bytes for 16-bit characteristic UUIDs or 21 for 128-bit.
+  void readCharacteristicDeclarations(Uint8List pdu) {
+    if (pdu.length < 2) return;
+    final entryLength = pdu[1];
+    if (entryLength != 7 && entryLength != 21) return;
+    var offset = 2;
+    while (offset + entryLength <= pdu.length) {
+      final declarationHandle = _u16le(pdu, offset);
+      final properties = pdu[offset + 2];
+      final valueHandle = _u16le(pdu, offset + 3);
+      final uuid = entryLength == 7
+          ? _uuid16(_u16le(pdu, offset + 5))
+          : _uuid128LittleEndian(pdu, offset + 5);
+      if (declarationHandle != 0 && valueHandle > declarationHandle) {
+        characteristicsByValueHandle[valueHandle] =
+            _GattCharacteristicMetadata(
+          declarationHandle: declarationHandle,
+          valueHandle: valueHandle,
+          uuid: uuid,
+          properties: properties,
+        );
+      }
+      offset += entryLength;
+    }
+  }
+
+  Map<String, Object?> toJson() {
+    final result = <String, Object?>{};
+    final characteristics = characteristicsByValueHandle.values.toList()
+      ..sort((a, b) => a.valueHandle.compareTo(b.valueHandle));
+    for (final characteristic in characteristics) {
+      result['0x${characteristic.valueHandle.toRadixString(16).padLeft(4, '0')}'] =
+          characteristic.toJson(services);
+    }
+    return Map.unmodifiable(result);
   }
 }
 
