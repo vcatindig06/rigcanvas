@@ -128,26 +128,31 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
             ),
             if (_family == EffectFamily.amplifier) ...[
               const SizedBox(height: 8),
-              DropdownButtonFormField<_AmpTypePickerFilter>(
-                key: const ValueKey('amp-type-filter'),
-                initialValue: _ampTypeFilter,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'AMP type',
-                  border: OutlineInputBorder(),
+              const Text(
+                'AMP TYPE',
+                style: TextStyle(
+                  color: Color(0xFF9AA4B2),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
                 ),
-                items: _AmpTypePickerFilter.values
-                    .map(
-                      (filter) => DropdownMenuItem<_AmpTypePickerFilter>(
-                        value: filter,
-                        child: Text(filter.label),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => _ampTypeFilter = value);
-                },
+              ),
+              const SizedBox(height: 5),
+              Wrap(
+                key: const ValueKey('amp-type-filter'),
+                spacing: 6,
+                runSpacing: 2,
+                children: _AmpTypePickerFilter.values.map((filter) {
+                  return ChoiceChip(
+                    key: ValueKey('amp-type-filter-${filter.name}'),
+                    label: Text(filter.label),
+                    selected: _ampTypeFilter == filter,
+                    onSelected: (_) {
+                      setState(() => _ampTypeFilter = filter);
+                    },
+                    visualDensity: VisualDensity.compact,
+                  );
+                }).toList(),
               ),
             ],
             const SizedBox(height: 10),
