@@ -30,15 +30,11 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
       _error = null;
     });
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final selected = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: const ['log', 'snoop', 'btsnoop'],
-        allowMultiple: false,
-        withData: false,
       );
-      if (result == null || result.files.isEmpty) return;
-
-      final selected = result.files.single;
+      if (selected == null) return;
       final path = selected.path;
       if (path == null) {
         throw const FormatException(
