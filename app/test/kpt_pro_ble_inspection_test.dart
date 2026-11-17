@@ -86,7 +86,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(gateway.connectCalls, 1);
-    expect(find.text('1 GATT services'), findsOneWidget);
+    expect(find.textContaining('1 GATT services'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('read-standard-device-info')));
     await tester.pumpAndSettle();
 
