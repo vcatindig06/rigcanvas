@@ -231,7 +231,19 @@ These strings were transferred in notifications at frames 450, 458, 462, 470, an
 49. CL-FotinCa
 50. CL-MatDC30
 
-A standalone ASCII string “FNDR AMPCAB” appears after the 50th amp entry. It may be a category/group marker, but its exact role is not established by this capture. Following it are Bass-prefixed strings: BassAlmbic, BassG800K, BassTrTrad, BassMaT501, BassHake, BassPJ400, BassOgAD, BassDarkVT, and BassBman70. Preserve these as separate observed strings; do not silently assign “FNDR AMPCAB” as model 51 or assume the following names are amp models rather than another model family.
+A standalone ASCII string “FNDR AMPCAB” appears after the 50th amp entry. It may be a category/group marker, but its exact role is not established by this capture. The following numbered strings begin at 52 and carry Bass-prefixed names:
+
+52. BassAlmbic
+53. BassG800K
+54. BassTrTrad
+55. BassMaT501
+56. BassHake
+57. BassPJ400
+58. BassOgAD
+59. BassDarkVT
+60. BassBman70
+
+Preserve these as separate observed strings; do not silently assign “FNDR AMPCAB” as model 51 or assume the following names are amp models rather than another model family.
 
 ### What this report does not reveal
 
