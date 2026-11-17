@@ -76,6 +76,12 @@
 - [ ] Verify AMP/CAB ordering and compare the physical firmware-v8 unit's MOD/REV inventory and module-slot behavior against the manual.
 - [ ] Document verified protocol evidence and a capability matrix before implementing any protocol exchange.
 
+- [x] Analyze the first owner-provided M-EFCS ATT trace: recurring phone writes on `0x0062`, pedal notifications on `0x0064`, and one acknowledged write on `0x0065`; keep handle-to-UUID assignments unverified because discovery map/payloads are absent.
+- [x] Add payload-free decoding for ATT discovery query ranges/UUIDs, ATT error details, and MTU values; split GATT discovery counts from simple attribute-value reads in reports.
+- [ ] Capture a short selected-connection HCI trace with payload bytes enabled after reviewing privacy implications, to identify vendor-tunnel framing and response correlation.
+- [ ] Reconfirm the selected connection's GATT declaration map so ATT handles can be mapped to AE41/AE42 within the same session.
+- [ ] Identify message framing, length fields, sequence/acknowledgement behavior and any fragmentation from payload evidence; do not replay packets or issue writes.
+
 ## Milestone 3 — KPT Pro read-only editor
 
 - [ ] Device identity and firmware display.
