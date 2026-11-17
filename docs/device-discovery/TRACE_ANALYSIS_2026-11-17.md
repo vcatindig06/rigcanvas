@@ -124,3 +124,10 @@ The payload-enabled report should let us compare ATT values on handles `0x0062`,
 - Do not send guessed GATT writes, MIDI/SysEx, vendor commands, preset changes, erase commands, or firmware operations.
 - Do not infer KPT Pro protocol support from Tank-G/Tank-B packet captures.
 - Do not implement device-side parameter/preset writes until payload framing, response behavior, backup, and recovery are documented and verified on the exact model/firmware.
+
+
+## Payload-enabled companion report
+
+A separate export of the same 330-event selected connection (handle 0x0200, frames 350–1,194) is now available with ATT payload bytes included. It exposes the KPTPRO_008 payload string, recurring write/notification message patterns, and model-name catalogs. It does not add a successful GATT declaration map, so the handle-to-UUID mappings remain provisional. The two uploaded files were byte-identical duplicates of this payload-enabled export.
+
+See [PAYLOAD_ANALYSIS_2026-11-17.md](PAYLOAD_ANALYSIS_2026-11-17.md) for the decoded observations, exact source model-name strings, caveats, and next safe evidence milestones. The privacy-restricted analysis above remains the record of what could be concluded when ATT payload export was disabled.
