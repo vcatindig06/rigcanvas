@@ -41,11 +41,14 @@ jobs:
       - name: Generate Android and Windows runners
         run: flutter create --project-name rigcanvas --org com.rigcanvas --platforms=android,windows .
 
+      - name: Configure Android BLE permissions and minimum SDK
+        run: dart run tool/prepare_platforms.dart
+
       - name: Resolve packages
         run: flutter pub get
 
       - name: Format source
-        run: dart format lib test
+        run: dart format lib test tool
 
       - name: Apply supported Dart fixes
         run: dart fix --apply
@@ -75,6 +78,9 @@ jobs:
 
       - name: Generate Android runner
         run: flutter create --project-name rigcanvas --org com.rigcanvas --platforms=android .
+
+      - name: Configure Android BLE permissions and minimum SDK
+        run: dart run tool/prepare_platforms.dart
 
       - name: Resolve packages
         run: flutter pub get
@@ -123,6 +129,10 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows
+        env:
+          # MSVC 14.51 makes the legacy experimental coroutine header a hard error.
+          # The BLE plugin still uses /await; silence only that deprecated-header diagnostic.
+          CXXFLAGS: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
         run: flutter build windows --release
 
       - name: Upload Windows build

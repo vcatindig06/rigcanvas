@@ -1,82 +1,53 @@
 import 'package:flutter/foundation.dart';
 
-enum DeviceConnectionState {
-  disconnected,
-  discovering,
-  connected,
-  unsupported,
-  permissionDenied,
-  protocolMismatch,
-}
-
-enum DeviceFeature {
-  readPresetCatalog,
-  exportPreset,
-  writePreset,
-  importAm2,
-  importIrWav,
-  reorderEffectModules,
-  nativeScenes,
-  stereoSignalPath,
-  parallelRouting,
-}
+enum BluetoothAdapterState { unknown, unsupported, unauthorized, poweredOff, poweredOn }
 
 @immutable
-class DeviceIdentity {
-  const DeviceIdentity({
-    required this.modelName,
-    this.hardwareRevision,
-    this.firmwareVersion,
+class NearbyBluetoothDevice {
+  const NearbyBluetoothDevice({
+    required this.id,
+    required this.rssi,
+    this.name,
+    this.serviceUuids = const <String>[],
   });
 
-  final String modelName;
-  final String? hardwareRevision;
-  final String? firmwareVersion;
+  /// Platform-provided identifier; it may differ between operating systems.
+  final String id;
+  final String? name;
+  final int rssi;
+  final List<String> serviceUuids;
+
+  bool get nameMentionsKpt => name?.toLowerCase().contains('kpt') ?? false;
 }
 
-@immutable
-class DeviceCapabilities {
-  const DeviceCapabilities({
-    this.features = const <DeviceFeature>{},
-  });
-
-  final Set<DeviceFeature> features;
-
-  bool supports(DeviceFeature feature) => features.contains(feature);
-}
-
-@immutable
-class DeviceDiscoveryResult {
-  const DeviceDiscoveryResult({
-    required this.state,
-    required this.message,
-    this.identity,
-    this.capabilities = const DeviceCapabilities(),
-  });
-
-  final DeviceConnectionState state;
-  final String message;
-  final DeviceIdentity? identity;
-  final DeviceCapabilities capabilities;
-}
-
-/// The UI depends on this interface, never on transport-specific packets.
-///
-/// A physical KPT Pro adapter must not be implemented until its exact
-/// firmware/protocol has been observed and documented.
+/// Shared UI boundary for scan-only Bluetooth discovery.
 abstract interface class DeviceGateway {
-  Future<DeviceDiscoveryResult> discover();
+  BluetoothAdapterState get adapterState;
+  Stream<BluetoothAdapterState> get adapterStateChanges;
+  Stream<NearbyBluetoothDevice> get discoveries;
+  Future<void> startDiscovery();
+  Future<void> stopDiscovery();
+  Future<void> dispose();
 }
 
-/// Safe default gateway used by the app until hardware support is verified.
+/// Safe default used in tests and preview sessions.
 class SimulationDeviceGateway implements DeviceGateway {
   const SimulationDeviceGateway();
 
   @override
-  Future<DeviceDiscoveryResult> discover() async {
-    return const DeviceDiscoveryResult(
-      state: DeviceConnectionState.disconnected,
-      message: 'Simulation mode: no hardware transport is active.',
-    );
+  BluetoothAdapterState get adapterState => BluetoothAdapterState.unsupported;
+  @override
+  Stream<BluetoothAdapterState> get adapterStateChanges =>
+      const Stream<BluetoothAdapterState>.empty();
+  @override
+  Stream<NearbyBluetoothDevice> get discoveries =>
+      const Stream<NearbyBluetoothDevice>.empty();
+  @override
+  Future<void> startDiscovery() async {
+    throw UnsupportedError('Hardware discovery is not enabled in simulation mode.');
   }
+  @override
+  Future<void> stopDiscovery() async {}
+  @override
+  Future<void> dispose() async {}
 }

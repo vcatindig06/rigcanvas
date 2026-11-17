@@ -2,7 +2,7 @@
 
 RigCanvas is an independent Windows and Android guitar-rig editor and processing workspace. Development starts with a safe, local editor prototype and KPT Pro compatibility research.
 
-> **Current status:** local-first editor prototype with persistent presets, scene snapshots, Gig View setlists, and an Asset Library for amp captures and cabinet impulse responses. KPT Pro communication remains disabled: no device protocol has been confirmed or implemented.
+> **Current status:** local-first editor prototype with persistent presets, scene snapshots, Gig View setlists, and an Asset Library for amp captures and cabinet impulse responses. Android and Windows now include scan-only BLE discovery; KPT Pro connection, preset reading, and writing remain disabled until the device protocol is verified.
 
 ## Product direction
 
@@ -24,7 +24,10 @@ Software-only blocks must never be sent to a physical pedal that cannot execute 
 ## Technology direction
 
 - Flutter / Dart for the shared Controller UI.
-- Narrow device gateway abstraction between UI and USB/Bluetooth adapters.
+- Separate model catalogues for documented KPT PRO factory entries and RigCanvas software-only templates.
+- New Workspace blocks are selected from named catalogue entries, with catalogue source and model ID preserved in preset files.
+- Narrow device gateway abstraction between UI and platform BLE adapters.
+- Scan-only BLE advertisement discovery on Android and Windows.
 - Local-first preset, setlist, and asset persistence in app-private storage.
 - Kotlin and Android USB/Bluetooth APIs for Android-specific communication.
 - Native Windows USB APIs behind a Windows adapter.
@@ -41,6 +44,7 @@ From the repository root:
 
     cd app
     flutter create --project-name rigcanvas --org com.rigcanvas --platforms=android,windows .
+    dart run tool/prepare_platforms.dart
     flutter pub get
     flutter run -d windows
 
@@ -49,7 +53,7 @@ For Android, connect a developer-enabled device and run:
     cd app
     flutter run
 
-The initial app opens in **Simulation Workspace**. Reordering blocks and toggling them changes local UI state only.
+The Workspace remains local simulation. Add block opens a named model catalogue with separate RigCanvas software and manual-documented KPT PRO sections. Settings provides scan-only BLE discovery on Android and Windows; no pedal control is enabled yet.
 
 ## Asset Library
 
@@ -60,7 +64,7 @@ The initial app opens in **Simulation Workspace**. Reordering blocks and togglin
 
 ## Hardware safety
 
-Do not flash firmware, replay undocumented traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
+Do not flash firmware, replay undocumented traffic, connect to unknown GATT characteristics, or write unverified preset bytes to a physical pedal. RigCanvas scans BLE advertisements only; a scan result is not a verified KPT Pro connection. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
 
 ## Roadmap
 

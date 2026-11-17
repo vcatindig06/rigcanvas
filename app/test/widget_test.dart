@@ -98,7 +98,8 @@ void main() {
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Connection preferences, audio settings, appearance, and diagnostics will live here.'), findsOneWidget);
+    expect(find.text('Device connection'), findsOneWidget);
+    expect(find.text('Bluetooth Low Energy discovery'), findsOneWidget);
 
     tester.view.physicalSize = const Size(1280, 900);
     await tester.pumpAndSettle();
@@ -124,7 +125,8 @@ void main() {
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Connection preferences, audio settings, appearance, and diagnostics will live here.'), findsOneWidget);
+    expect(find.text('Device connection'), findsOneWidget);
+    expect(find.text('Bluetooth Low Energy discovery'), findsOneWidget);
 
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
@@ -145,7 +147,7 @@ void main() {
 
     expect(find.text('RigCanvas'), findsOneWidget);
     expect(find.text('Signal Workspace'), findsOneWidget);
-    expect(find.text('KPT Pro · Disconnected'), findsOneWidget);
+    expect(find.text('KPT Pro · Not connected'), findsOneWidget);
     expect(find.text('SIMULATION'), findsOneWidget);
     expect(find.text('Input Gate'), findsOneWidget);
   });

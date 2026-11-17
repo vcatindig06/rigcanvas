@@ -101,11 +101,31 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
               TextField(
                 controller: _nameController,
                 maxLength: 80,
-                decoration: const InputDecoration(
-                  labelText: 'Block name',
-                  border: OutlineInputBorder(),
+                readOnly: widget.block.catalogId != null,
+                decoration: InputDecoration(
+                  labelText: widget.block.catalogId == null
+                      ? 'Block name'
+                      : 'Selected model',
+                  helperText: widget.block.catalogId == null
+                      ? null
+                      : 'Choose another catalogue entry to change this model.',
+                  border: const OutlineInputBorder(),
                 ),
               ),
+              if (widget.block.catalogSource != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.block.catalogSource ==
+                          EffectCatalogSource.kptProManual
+                      ? 'KPT PRO manual-listed model · hardware control mapping still requires physical verification.'
+                      : 'RigCanvas software model template · audio processing is not implemented yet.',
+                  style: const TextStyle(
+                    color: Color(0xFFFFB29D),
+                    fontSize: 11,
+                    height: 1.35,
+                  ),
+                ),
+              ],
               if (_assetKind != null) ...[
                 const SizedBox(height: 18),
                 const Text(
@@ -215,7 +235,7 @@ class _EffectBlockEditorDialogState extends State<EffectBlockEditorDialog> {
                 ],
               ],
               const Text(
-                'These are local workspace values. Their names and ranges are generic editor parameters, not verified KPT Pro firmware controls.',
+                'These values are local editor metadata. They do not render audio yet; generic ranges are not confirmed KPT PRO firmware controls.',
                 style: TextStyle(
                   color: Color(0xFF9AA4B2),
                   fontSize: 11,

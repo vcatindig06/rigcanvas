@@ -18,9 +18,9 @@ Flutter UI
   ├── Application state and validation
   ├── Domain models (preset, block, scene, asset)
   └── Device gateway interface
-         ├── Demo gateway (first implementation)
-         ├── KPT Pro USB adapter (not implemented)
-         └── KPT Pro wireless adapter (not implemented)
+         ├── Simulation gateway (tests/preview)
+         ├── BLE advertisement scanner (Android + Windows; scan only)
+         └── KPT Pro GATT/session adapter (not implemented)
 
 Shared native audio engine (Android + Windows)
   ├── Common DSP graph, nodes, and routing
@@ -36,7 +36,8 @@ Shared native audio engine (Android + Windows)
 - Device adapters implement typed operations and report unsupported capabilities.
 - Preset files are versioned and validated before import.
 - Hardware writes require a verified backup and an explicit user action.
-- The mock gateway is the default until device compatibility is demonstrated.
+- The simulation gateway is used in tests and preview sessions; the production entry point enables BLE advertisement scanning.
+- BLE discovery is not a KPT Pro connection. GATT discovery, characteristic reads/writes, preset transfers, and pedal commands remain disabled.
 - The shared audio engine runs outside Flutter's UI thread and must not allocate or block in its real-time callback.
 - The same audio/DSP capabilities and parameter behavior must be available on Android and Windows; only the low-level device I/O adapters may differ.
 - Do not ship Windows-exclusive app features. Defer features that cannot be delivered equivalently on both target operating systems.
@@ -53,6 +54,13 @@ A preset should eventually contain:
 - Device target and capability requirements.
 
 The local software workspace can represent richer graphs than the physical device. Every graph must declare its target: `softwareRack` or a verified hardware capability profile.
+
+## Effect model catalogues
+
+- RigCanvas software templates and KPT PRO manual-listed factory names are distinct sources.
+- Each selected model stores a stable catalogue ID and source in RigCanvas preset JSON; older schema-1 presets without these optional fields remain readable.
+- The reviewed KPT PRO manual reports 50 guitar + 10 bass AMP and CAB models but does not publish individual names there, so RigCanvas does not invent labels.
+- RigCanvas templates are metadata-only until the shared audio engine is implemented. KPT PRO manual entries are not declared firmware-v15 verified and cannot be sent to the device.
 
 ## Persistence
 

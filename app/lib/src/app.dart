@@ -5,8 +5,9 @@ import 'package:material_ui/material_ui.dart';
 import 'data/asset_repository.dart';
 import 'data/preset_repository.dart';
 import 'data/setlist_repository.dart';
+import 'device/device_gateway.dart';
 import 'screens/asset_library_screen.dart';
-import 'screens/feature_placeholder_screen.dart';
+import 'screens/device_connection_screen.dart';
 import 'screens/gig_view_screen.dart';
 import 'screens/preset_library_screen.dart';
 import 'screens/workspace_screen.dart';
@@ -19,12 +20,14 @@ class RigCanvasApp extends StatefulWidget {
     this.repository,
     this.setlistRepository,
     this.assetRepository,
+    this.deviceGateway,
     super.key,
   });
 
   final PresetRepository? repository;
   final SetlistRepository? setlistRepository;
   final AssetRepository? assetRepository;
+  final DeviceGateway? deviceGateway;
 
   @override
   State<RigCanvasApp> createState() => _RigCanvasAppState();
@@ -34,6 +37,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
   late final PresetController _presetController;
   late final SetlistController _setlistController;
   late final AssetController _assetController;
+  late final DeviceGateway _deviceGateway;
 
   @override
   void initState() {
@@ -47,6 +51,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
     _assetController = AssetController(
       widget.assetRepository ?? JsonFileAssetRepository(),
     );
+    _deviceGateway = widget.deviceGateway ?? const SimulationDeviceGateway();
     unawaited(_presetController.initialize());
     unawaited(_setlistController.initialize());
     unawaited(_assetController.initialize());
@@ -57,6 +62,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
     _presetController.dispose();
     _setlistController.dispose();
     _assetController.dispose();
+    unawaited(_deviceGateway.dispose());
     super.dispose();
   }
 
@@ -93,6 +99,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
         presetController: _presetController,
         setlistController: _setlistController,
         assetController: _assetController,
+        deviceGateway: _deviceGateway,
       ),
     );
   }
@@ -103,12 +110,14 @@ class RigCanvasShell extends StatefulWidget {
     required this.presetController,
     required this.setlistController,
     required this.assetController,
+    required this.deviceGateway,
     super.key,
   });
 
   final PresetController presetController;
   final SetlistController setlistController;
   final AssetController assetController;
+  final DeviceGateway deviceGateway;
 
   @override
   State<RigCanvasShell> createState() => _RigCanvasShellState();
@@ -170,12 +179,9 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
           controller: widget.assetController,
         );
       default:
-        return const FeaturePlaceholderScreen(
-          key: ValueKey('settings'),
-          title: 'Settings',
-          description:
-              'Connection preferences, audio settings, appearance, and diagnostics will live here.',
-          icon: Icons.settings_outlined,
+        return DeviceConnectionScreen(
+          key: const ValueKey('settings'),
+          gateway: widget.deviceGateway,
         );
     }
   }
@@ -267,7 +273,7 @@ class _ConnectionStatus extends StatelessWidget {
           Icon(Icons.link_off, size: 14, color: Color(0xFFFF987B)),
           SizedBox(width: 7),
           Text(
-            'KPT Pro · Disconnected',
+            'KPT Pro · Not connected',
             style: TextStyle(
               color: Color(0xFFFFB29D),
               fontSize: 11,

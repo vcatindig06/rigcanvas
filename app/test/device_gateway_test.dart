@@ -2,15 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rigcanvas/src/device/device_gateway.dart';
 
 void main() {
-  test('simulation gateway never reports a physical pedal as connected',
-      () async {
+  test('simulation gateway never claims hardware discovery is available', () {
     const gateway = SimulationDeviceGateway();
+    expect(gateway.adapterState, BluetoothAdapterState.unsupported);
+  });
 
-    final result = await gateway.discover();
-
-    expect(result.state, DeviceConnectionState.disconnected);
-    expect(result.identity, isNull);
-    expect(result.capabilities.features, isEmpty);
-    expect(result.message, contains('Simulation mode'));
+  test('simulation gateway does not start a physical scan', () async {
+    const gateway = SimulationDeviceGateway();
+    await expectLater(gateway.startDiscovery(), throwsA(isA<UnsupportedError>()));
   });
 }
