@@ -179,6 +179,7 @@ class KptBleAttEvent {
     this.attributeUuid,
     this.serviceUuid,
     this.characteristicProperties,
+    this.protocolDetails,
     this.value = const <int>[],
     required this.pdu,
   });
@@ -194,6 +195,7 @@ class KptBleAttEvent {
   final String? attributeUuid;
   final String? serviceUuid;
   final int? characteristicProperties;
+  final Map<String, Object?>? protocolDetails;
   final List<int> value;
   final List<int> pdu;
 
@@ -216,6 +218,7 @@ class KptBleAttEvent {
     'serviceUuid': serviceUuid,
     'characteristicUuid': attributeUuid,
     'characteristicProperties': characteristicProperties,
+    if (protocolDetails != null) 'protocolDetails': protocolDetails,
     if (includePayload) 'valueHex': valueHex,
     if (includePayload) 'attPduHex': pduHex,
   };
@@ -554,6 +557,7 @@ class _BtsnoopParserState {
       attributeUuid: metadata?.uuid,
       serviceUuid: metadata?.serviceUuid(table.services),
       characteristicProperties: metadata?.properties,
+      protocolDetails: _attProtocolDetails(pdu),
       value: List<int>.unmodifiable(value),
       pdu: List<int>.unmodifiable(pdu),
     ));
@@ -775,6 +779,82 @@ String _attOpcodeName(int opcode) => switch (opcode) {
   0x52 => 'Write Command',
   0xD2 => 'Signed Write Command',
   _ => 'ATT opcode 0x${opcode.toRadixString(16).padLeft(2, '0')}',
+};
+
+Map<String, Object?>? _attProtocolDetails(Uint8List pdu) {
+  if (pdu.isEmpty) return null;
+  final opcode = pdu[0];
+  switch (opcode) {
+    case 0x01: // Error Response.
+      if (pdu.length < 5) {
+        return {
+          'malformedPdu': true,
+          'expectedLength': 5,
+          'actualLength': pdu.length,
+        };
+      }
+      final requestOpcode = pdu[1];
+      final errorCode = pdu[4];
+      return {
+        'requestOpcodeInError':
+            '0x${requestOpcode.toRadixString(16).padLeft(2, '0')}',
+        'requestOperation': _attOpcodeName(requestOpcode),
+        'attributeHandleInError':
+            '0x${_u16le(pdu, 2).toRadixString(16).padLeft(4, '0')}',
+        'errorCode': '0x${errorCode.toRadixString(16).padLeft(2, '0')}',
+        'error': _attErrorName(errorCode),
+      };
+    case 0x02: // Exchange MTU Request.
+    case 0x03: // Exchange MTU Response.
+      if (pdu.length < 3) {
+        return {
+          'malformedPdu': true,
+          'expectedLength': 3,
+          'actualLength': pdu.length,
+        };
+      }
+      return {'receiveMtu': _u16le(pdu, 1)};
+    case 0x08: // Read By Type Request.
+    case 0x10: // Read By Group Type Request.
+      if (pdu.length < 7 || (pdu.length != 7 && pdu.length != 21)) {
+        return {
+          'malformedPdu': true,
+          'expectedLengths': const [7, 21],
+          'actualLength': pdu.length,
+        };
+      }
+      final uuid = pdu.length == 7
+          ? _uuid16(_u16le(pdu, 5))
+          : _uuid128LittleEndian(pdu, 5);
+      return {
+        'startHandle': '0x${_u16le(pdu, 1).toRadixString(16).padLeft(4, '0')}',
+        'endHandle': '0x${_u16le(pdu, 3).toRadixString(16).padLeft(4, '0')}',
+        opcode == 0x08 ? 'attributeTypeUuid' : 'groupTypeUuid': uuid,
+      };
+    default:
+      return null;
+  }
+}
+
+String _attErrorName(int code) => switch (code) {
+  0x01 => 'Invalid Handle',
+  0x02 => 'Read Not Permitted',
+  0x03 => 'Write Not Permitted',
+  0x04 => 'Invalid PDU',
+  0x05 => 'Insufficient Authentication',
+  0x06 => 'Request Not Supported',
+  0x07 => 'Invalid Offset',
+  0x08 => 'Insufficient Authorization',
+  0x09 => 'Prepare Queue Full',
+  0x0A => 'Attribute Not Found',
+  0x0B => 'Attribute Not Long',
+  0x0C => 'Insufficient Encryption Key Size',
+  0x0D => 'Invalid Attribute Value Length',
+  0x0E => 'Unlikely Error',
+  0x0F => 'Insufficient Encryption',
+  0x10 => 'Unsupported Group Type',
+  0x11 => 'Insufficient Resources',
+  _ => 'Unknown ATT error',
 };
 
 int _u16le(List<int> bytes, int offset) =>
