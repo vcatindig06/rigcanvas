@@ -44,11 +44,11 @@ The KPT Pro manual describes seven movable effect modules — FX, AMP, MOD, DLY,
 | Manual module | Catalog choices | Implementation treatment |
 |---|---:|---|
 | FX | 6 | AI Gate, Compress, F Compress, A Boost, B Boost, Boost OD |
-| AMP | 60 | Guitar Preamp 01–50 and Bass Preamp 51–60 |
+| AMP | 60 in the manual | 50 exact named AMP entries supplied from the owner's firmware-v8 menu; 10 manual-listed bass placeholders remain unverified |
 | MOD | 9 named entries | Chorus, Phaser, Tremolo, Flanger, Vibrato, Univibe, Autofilter, Wah-Wah, Sense-Wah |
 | DLY | 5 | Analog, Duck, dTape, Dual, Lofi |
 | REV | 6 | Room, Hall, Swell, Spring, Shimmer, Cloud |
-| CAB | 60 | Guitar CAB 01–50 and Bass CAB 51–60 |
+| CAB | 60 in the manual | 50 exact named CAB entries supplied from the owner's firmware-v8 menu; 10 manual-listed bass placeholders remain unverified |
 | EXT | 5 | VOL, X-Wah, Funk-Wah, Slide-Wah, Cry-Wah |
 
 The manual's listed module choices account for 151 factory choices. The manual's overview/FAQ separately mentions a 3-band EQ but does not make its placement in the seven-module chain clear. RigCanvas includes it as a documented KPT Pro EQ choice with a note that its exact module position is unspecified. The catalog test consequently counts 152 KPT-labelled entries including that one overview-level EQ option.
