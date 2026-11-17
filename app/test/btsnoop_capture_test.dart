@@ -151,6 +151,11 @@ void main() {
       });
       expect(mtuRequest['protocolDetails'], {'receiveMtu': 247});
       expect(mtuResponse['protocolDetails'], {'receiveMtu': 247});
+      final summary = report['summary'] as Map<String, Object?>;
+      expect(summary['attributeValueReadRequestsAndResponses'], 0);
+      expect(summary['gattDiscoveryRequestsAndResponses'], 1);
+      expect(summary['attErrorResponses'], 1);
+      expect(summary['readRequestsAndResponses'], 0);
       expect(request.containsKey('attPduHex'), isFalse);
       expect(error.containsKey('valueHex'), isFalse);
     });
