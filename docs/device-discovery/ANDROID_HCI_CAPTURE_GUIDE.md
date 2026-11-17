@@ -69,6 +69,10 @@ Extract the bug report ZIP and locate the BTSnoop log as above. Android's AOSP d
 
 The current parser accepts BTSnoop version 1 with Android HCI UART/H4 data-link type 1002. If RigCanvas reports a different data-link type or a truncated capture, keep the file private and report the exact error. Do not convert or replay packets.
 
+## Payload-enabled follow-up capture
+
+The first owner-provided trace showed repeated writes to ATT handle `0x0062`, notifications from `0x0064`, and one acknowledged write to `0x0065`, but its payloads were excluded and its characteristic map was empty. For the next short capture, RigCanvas can decode the Read By Type query range/UUID, ATT error details, and MTU values even with payloads disabled. Actual command framing still requires reviewing the selected connection's ATT values. Enable payload export only after considering that it may disclose preset names/settings; keep other device connections excluded and use a non-personal test preset where practical.
+
 ## After capture
 
 1. Turn **Enable Bluetooth HCI snoop log** off when the capture is finished.
