@@ -11,9 +11,15 @@ void main() {
         _record(_advertisement(), flags: 1, timestamp: 1000),
         _record(_connectionComplete(), flags: 1, timestamp: 1100),
         _record(_aclPacket([
+          0x11, 0x06, // Read By Group Type Response, 6-byte entries.
+          0x20, 0x00, // Service start handle.
+          0x30, 0x00, // Service end handle.
+          0x40, 0xAE, // Service UUID 0xAE40.
+        ]), flags: 1, timestamp: 1150),
+        _record(_aclPacket([
           0x09, 0x07, // Read By Type Response, 7-byte entries.
-          0x20, 0x00, // Attribute handle (characteristic declaration).
-          0x10,       // Properties.
+          0x22, 0x00, // Attribute handle (characteristic declaration).
+          0x04,       // Write Without Response property.
           0x25, 0x00, // Characteristic value handle.
           0x41, 0xAE, // UUID 0xAE41.
         ]), flags: 1, timestamp: 1200),
@@ -43,12 +49,59 @@ void main() {
       expect(events[1].direction, BtsnoopDirection.hostToController);
       expect(events[1].attributeHandle, 0x25);
       expect(events[1].attributeUuid, '0000ae41-0000-1000-8000-00805f9b34fb');
+      expect(events[1].serviceUuid, '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(events[1].characteristicProperties, 0x04);
       expect(events[1].valueHex, 'AA BB');
+
+      final filtered = capture.toJson(
+        sessionId: session.id,
+        includePayload: true,
+      );
+      final characteristicMap =
+          filtered['characteristicDiscovery'] as Map<String, Object?>;
+      final ae41 = characteristicMap['0x0025'] as Map<String, Object?>;
+      expect(ae41['serviceUuid'], '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(ae41['characteristicUuid'], '0000ae41-0000-1000-8000-00805f9b34fb');
+      expect(ae41['properties'], 0x04);
       expect(events[2].opcodeName, 'Handle Value Notification');
       expect(events[2].direction, BtsnoopDirection.controllerToHost);
       expect(events[2].valueHex, '01 02');
       expect(capture.writeCount, 1);
       expect(capture.notificationCount, 1);
+    });
+
+    test('maps a 128-bit BLE-MIDI characteristic to its service', () {
+      const midiService =
+          '03b80e5a-ede8-4b33-a751-6ce34ec4c700';
+      const midiCharacteristic =
+          '7772e5db-3868-4112-a1a9-f2669d106bf3';
+      final serviceUuidBytes = _uuid128Bytes(midiService);
+      final characteristicUuidBytes = _uuid128Bytes(midiCharacteristic);
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([
+          0x11, 0x14, // Read By Group Type Response, 20-byte entries.
+          0x40, 0x00, // Service start handle.
+          0x50, 0x00, // Service end handle.
+          ...serviceUuidBytes,
+        ]), flags: 1, timestamp: 1200),
+        _record(_aclPacket([
+          0x09, 0x15, // Read By Type Response, 21-byte entries.
+          0x41, 0x00, // Characteristic declaration handle.
+          0x1C,       // Read, write without response, notify.
+          0x42, 0x00, // Characteristic value handle.
+          ...characteristicUuidBytes,
+        ]), flags: 1, timestamp: 1300),
+        _record(_aclPacket([
+          0x52, 0x42, 0x00, 0x80, 0x80, 0x90,
+        ]), flags: 0, timestamp: 1400),
+      ]));
+
+      final event = capture.attEvents.single;
+      expect(event.attributeUuid, midiCharacteristic);
+      expect(event.serviceUuid, midiService);
+      expect(event.characteristicProperties, 0x1C);
     });
 
     test('keeps ATT payloads from other Bluetooth devices out of the selected session', () {
@@ -252,6 +305,18 @@ Uint8List _connectionComplete({
   ];
   return Uint8List.fromList([0x04, 0x3E, params.length, ...params]);
 }
+
+List<int> _uuid128Bytes(String uuid) => uuid
+    .replaceAll('-', '')
+    .toLowerCase()
+    .replaceAllMapped(RegExp(r'[0-9a-f]{2}'), (match) => match.group(0)!)
+    .toList()
+    .reversed
+    .toList()
+    .asMap()
+    .entries
+    .map((entry) => int.parse(entry.value, radix: 16))
+    .toList();
 
 Uint8List _aclPacket(List<int> attPdu, {int connectionHandle = 11}) {
   final l2cap = <int>[attPdu.length, 0x00, 0x04, 0x00, ...attPdu];
