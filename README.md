@@ -60,7 +60,7 @@ The initial app opens in **Simulation Workspace**. Reordering blocks and togglin
 
 ## Hardware safety
 
-Do not flash firmware, replay undocumented traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
+The KPT Pro captured-frame parser is offline only; it does not communicate with the pedal. Do not flash firmware, replay captured traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
 
 ## Roadmap
 
@@ -106,10 +106,16 @@ The current catalog is selection metadata only. It does not implement the DSP, l
 
 ## Offline DSP foundation
 
-The Audio page processes an internally generated 440 Hz / 48 kHz / 500 ms test signal through the active preset's supported enabled blocks in Grid order. The shared C++ core has generic dynamics (gate/compressor), soft-clipping drive, amplifier preamp/tone shaping, cabinet FIR, chorus/vibrato/flanger/tremolo, standard/ping-pong delay, a room-style reverb, and four-band EQ.
+The Audio page processes an internally generated 440 Hz / 48 kHz / 500 ms test signal through the active preset's supported enabled blocks in Grid order. The shared C++ core has generic dynamics (gate/compressor), soft-clipping drive, amplifier preamp/tone shaping, cabinet FIR, chorus/vibrato/flanger/tremolo, a four-stage phaser, envelope-responsive wah/autofilter, a rotary-speaker approximation, standard/ping-pong delay, a room-style reverb, and four-band EQ.
 
 Linked cabinet WAVs are loaded from the Asset Library for the offline test. The shared WAV decoder validates RIFF/WAVE structure, accepts PCM 8/16/24/32-bit and IEEE float 32/64-bit mono/stereo files, resamples to 48 kHz, and caps the loaded IR at 4,096 frames per channel. The Audio test reports resampling and truncation. The original imported file is preserved.
 
-These are generic RigCanvas prototypes, **not** emulations of KPT Pro factory algorithms or other manufacturers' DSP. Catalog names remain labels; some specialized types (including phaser, wah/autofilter, rotary, pitch, ducking/reverse/tape/lo-fi delay, and spring/shimmer/cloud reverb) remain unsupported and are explicitly skipped. The current linear-interpolation resampler and direct FIR convolution are not production-grade live-audio implementations.
+These are generic RigCanvas prototypes, **not** emulations of KPT Pro factory algorithms or other manufacturers' DSP. The phaser, envelope wah/autofilter, and rotary effects are newly implemented generic algorithms; wah is envelope-responsive and is not controlled by a physical expression pedal. Catalog names remain labels; Univibe, ring modulation, pitch, ducking/reverse/tape/lo-fi delay, and spring/shimmer/cloud reverb remain unsupported and are explicitly skipped. The current linear-interpolation resampler and direct FIR convolution are not production-grade live-audio implementations.
 
 The engine is still offline: it does not capture a guitar or microphone, open an audio interface, or play through speakers/headphones. NAM/AM2 capture execution and KPT Pro device control remain unimplemented. See [DSP engine architecture](docs/architecture/DSP_ENGINE.md).
+
+## Current development priority — native KPT Pro patch control
+
+The next major milestone is the physical KPT Pro workflow: read device presets, edit hardware parameters, save a patch to the pedal, and import/export native tone files. Generic RigCanvas DSP work is paused until this workflow is verified on the owner's KPT Pro firmware baseline. The existing four-row/eight-slot Workspace and RigCanvas JSON preset files remain local software features; they are not a representation of the pedal's seven-module chain or a hardware patch transfer format.
+
+Implementation status and required evidence: [KPT Pro Patch Control plan](docs/device-discovery/KPT_PRO_PATCH_CONTROL_PLAN.md).
