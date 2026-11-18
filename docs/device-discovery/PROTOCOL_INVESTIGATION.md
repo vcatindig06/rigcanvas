@@ -152,7 +152,7 @@ Write support remains disabled until:
 
 ## Phase 2.3 — Enhanced ATT bearer and L2CAP signaling analysis
 
-The parser now inspects LE L2CAP signaling traffic on CID 0x0005 and recognizes Enhanced Credit Based Connection Request/Response commands (codes 0x17/0x18) for the EATT fixed PSM 0x0027. On a successful response, source and destination CIDs are paired in request order and retained as one Enhanced ATT bearer. The report includes requester/responder receive MTU and MPS values, their effective minima, initial credits, directional CIDs, and the request identifier.
+The parser now inspects LE L2CAP signaling traffic on CID 0x0005 and recognizes Enhanced Credit Based Connection Request/Response commands (codes 0x17/0x18) for the EATT fixed PSM 0x0027. On a successful response, source and destination CIDs are paired in request order and retained as one Enhanced ATT bearer. The report includes requester/responder receive MTU and MPS values, the effective ATT MTU (the lower of the two receive MTUs), initial credits, directional CIDs, and the request identifier. MPS values are retained separately because they describe each endpoint's receive capability.
 
 ATT packets on established EATT dynamic CIDs are now routed through their matching bearer rather than being counted as unrelated non-ATT ACL traffic. The analyzer reassembles the L2CAP SDU from K-frames using the initial SDU Length field and tags each decoded ATT event with its L2CAP CID, bearer ID, and bearer type. L2CAP channel disconnection signaling removes the active CID mappings and pending partial SDUs. The existing fixed LE ATT channel (CID 0x0004) remains supported.
 
