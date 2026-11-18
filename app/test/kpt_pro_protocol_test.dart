@@ -33,7 +33,7 @@ void main() {
     test('parses a captured response frame and preserves unknown bytes', () {
       final raw = _bytes(
         '00 59 23 12 00 00 '
-        '04 00 00 00 60 70 0A 00 00 00 64 00 00 00 5A 00 01 02 '
+        '04 00 00 60 70 0A 00 00 21 00 64 00 00 00 5A 00 01 02 '
         '3F',
       );
       final frame = KptProProtocolFrame.parse(raw);
@@ -169,7 +169,8 @@ void main() {
     });
 
     test('clears a failed frame after checksum validation fails', () {
-      final badFrame = _makeFrame(0x23, [1, 2, 3])..[9] ^= 0x01;
+      final badFrame = _makeFrame(0x23, [1, 2, 3]);
+      badFrame[badFrame.length - 1] ^= 0x01;
       final reassembler = KptProNotificationFrameReassembler();
 
       expect(
