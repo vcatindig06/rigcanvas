@@ -40,6 +40,12 @@ void main() {
     expect(find.text('Export local preset-library backup'), findsOneWidget);
 
     await tester.scrollUntilVisible(
+      find.text('Inspect M-EFCS export'),
+      300,
+    );
+    expect(find.text('Inspect M-EFCS export'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
       find.text('Write disabled · No transfer bytes generated'),
       350,
     );

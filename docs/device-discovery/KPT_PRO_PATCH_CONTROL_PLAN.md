@@ -102,6 +102,37 @@ The Control Center now has a supported workflow that can advance without another
 
 The Control Center exports a RigCanvas local preset-library backup and shows a metadata-only write-readiness preview. It cannot read device slots, download a hardware backup, translate a RigCanvas graph into a KPT Pro patch, encode vendor commands, save to the pedal, or import/export native KPT Pro tone files. Vendor writes remain disabled on Android and Windows.
 
+## Tank-G protocol comparison — 2026-11-18
+
+The public Tank-G Control Center research repository provides a detailed, separately verified Tank-G protocol record in `research/FINDINGS.md`. It documents the Tank-G / Tank-Gv2 BLE operations as follows: command `0x23` reads, command `0x22` writes, memory `4` contains preset records, and Tank-G uses its own spaces for bank data, live editing, status, commit, and preset selection. Its preset bank is a 758-byte structure with 36 records of 21 bytes. These are **Tank-G-only findings** from that project's hardware and firmware; they are not a KPT Pro memory map. [Tank-G Control Center research](https://github.com/CamiloFerreira/tankg-control-center/blob/main/research/FINDINGS.md)
+
+The comparison is useful precisely because it prevents unsafe assumptions:
+
+| Feature | Tank-G / Tank-Gv2 research | KPT Pro evidence available to RigCanvas |
+|---|---|---|
+| BLE vendor framing | `00 59` envelope and field words | Matching outer envelope independently validated against the supplied KPT trace |
+| `0x23` meaning | Read operation on Tank-G | Repeated KPT traffic exists, but its meaning is uncorrelated with a user action |
+| Write command | `0x22` on Tank-G | No KPT-specific write command has been established |
+| Preset memory | Memory `4`, 36 × 21-byte records | Field-slice candidates appear in two KPT `0x23` bodies; no slot schema or record length is known |
+| Space values | Tank-G spaces `0`, `1`, `2`, `E`, and `F` have documented Tank-G meanings | KPT candidate spaces include `2` and `7` with candidate lengths 56 and 10; semantics are unknown |
+| Save/commit | Tank-G commit and read-back procedure verified on Tank-G | KPT acknowledgement, commit, read-back, and recovery are unverified |
+
+Therefore, neither Tank-G's `0x23 = read` nor `0x22 = write` mapping is copied into the KPT Pro implementation. In particular, the KPT candidate with space `2` and length `56` does not match the Tank-G research's four-byte status shape. This is a concrete mismatch, not evidence that either protocol is wrong.
+
+### Product workflow adopted as design guidance only
+
+The Tank-G Control Center documents a full-bank backup before writes, writing only changed presets, and reading values back after the operation. RigCanvas adopts these as **future safety acceptance requirements**, not as a command implementation. The Tank-G source repository reports no SPDX/repository licence, and its research directory contains manufacturer factory preset data; RigCanvas does not copy its source code, protocol implementation, or factory dumps. [Tank-G Control Center README and terms](https://github.com/CamiloFerreira/tankg-control-center)
+
+### Current M-EFCS documentation discrepancy
+
+The current [M-VAVE downloads page](https://www.m-vave.com/appdownload) lists M-EFCS device support but does not explicitly name KPT Pro in its PC or mobile compatibility lists. The [TankPedal download page](https://tankpedal.com/en-asia/pages/download) labels its M-EFCS PC/mobile downloads as TANK-G/TANK-B support. The owner's working Android M-EFCS v3.10.2311 / KPT Pro firmware-v8 pairing remains an owner-reported physical observation and is retained as the target test baseline. The public download-page lists do not establish that a generic current M-EFCS installer has KPT Pro protocol support.
+
+## Capture-free implementation milestone — 2026-11-18
+
+The Control Center now includes a generic **Native File Inspection** path. The user can select the exact M-EFCS-exported candidate file, and RigCanvas records its original filename/extension, file size, SHA-256 fingerprint, generic file signature, bounded entropy sample, a short hex prefix, readable ASCII strings, and JSON root keys where applicable. It copies a metadata-only report; it does not retain or upload the bytes, assume the extension names a whole patch, extract archives, or send any data to the pedal.
+
+This does not yet decode a native KPT Pro schema. It is intended to classify the first genuine export and preserve its provenance. AM2 AMP data, IR audio, and whole-patch exports must be identified by the actual export action and format evidence rather than their extension alone.
+
 ## Required capture package
 
 Use the owner's working **M-EFCS Android v3.10.2311** and the physical KPT Pro. Capture with Android Bluetooth HCI snoop logging enabled before opening the connection. Select only the KPT Pro connection in RigCanvas's Android Bluetooth Trace Analyzer.

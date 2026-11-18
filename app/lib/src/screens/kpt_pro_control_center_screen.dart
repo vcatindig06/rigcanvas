@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../device/kpt_pro_native_file_inspector.dart';
 import '../device/kpt_pro_write_plan.dart';
 import '../state/preset_controller.dart';
 
@@ -23,6 +26,52 @@ class KptProControlCenterScreen extends StatefulWidget {
 class _KptProControlCenterScreenState
     extends State<KptProControlCenterScreen> {
   bool _exporting = false;
+  bool _inspectingFile = false;
+  String? _inspectionError;
+  KptProNativeFileInspection? _fileInspection;
+
+  Future<void> _inspectNativeExport() async {
+    setState(() {
+      _inspectingFile = true;
+      _inspectionError = null;
+      _fileInspection = null;
+    });
+    try {
+      final file = await FilePicker.pickFile(type: FileType.any);
+      if (file == null) return;
+      if (file.size < 1 ||
+          file.size > maximumNativePatchFileInspectionBytes) {
+        throw const FormatException(
+          'Choose a non-empty file that is 64 MiB or smaller.',
+        );
+      }
+      final bytes = await file.readAsBytes();
+      final result = KptProNativeFileInspection.inspect(
+        filename: file.name,
+        bytes: bytes,
+      );
+      if (!mounted) return;
+      setState(() => _fileInspection = result);
+    } catch (error) {
+      if (mounted) setState(() => _inspectionError = error.toString());
+    } finally {
+      if (mounted) setState(() => _inspectingFile = false);
+    }
+  }
+
+  Future<void> _copyFileInspectionReport() async {
+    final inspection = _fileInspection;
+    if (inspection == null) return;
+    await Clipboard.setData(
+      ClipboardData(
+        text: const JsonEncoder.withIndent('  ').convert(inspection.toJson()),
+      ),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('File inspection report copied.')),
+    );
+  }
 
   Future<void> _exportLocalBackup() async {
     setState(() => _exporting = true);
@@ -85,6 +134,16 @@ class _KptProControlCenterScreenState
               exporting: _exporting,
               onExport: preset == null || _exporting ? null : _exportLocalBackup,
             ),
+            const SizedBox(height: 12),
+            _NativeFileInspectionCard(
+              inspection: _fileInspection,
+              busy: _inspectingFile,
+              error: _inspectionError,
+              onInspect: _inspectingFile ? null : _inspectNativeExport,
+              onCopyReport: _fileInspection == null
+                  ? null
+                  : _copyFileInspectionReport,
+            ),
             if (plan != null) ...[
               const SizedBox(height: 12),
               _WriteReadinessCard(plan: plan),
@@ -96,6 +155,232 @@ class _KptProControlCenterScreenState
           ],
         );
       },
+    );
+  }
+}
+
+class _NativeFileInspectionCard extends StatelessWidget {
+  const _NativeFileInspectionCard({
+    required this.inspection,
+    required this.busy,
+    required this.error,
+    required this.onInspect,
+    required this.onCopyReport,
+  });
+
+  final KptProNativeFileInspection? inspection;
+  final bool busy;
+  final String? error;
+  final VoidCallback? onInspect;
+  final VoidCallback? onCopyReport;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionHeading(
+              icon: Icons.find_in_page_outlined,
+              title: 'Native file inspection',
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'Select the exact file exported by M-EFCS. RigCanvas inspects it locally, calculates a SHA-256 fingerprint, identifies generic container signatures, and lists readable metadata. It does not upload, alter, decode into a patch, or send the file to the pedal.',
+              style: TextStyle(
+                color: Color(0xFF9AA4B2),
+                fontSize: 12,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onInspect,
+                icon: busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.file_open_outlined),
+                label: Text(
+                  busy ? 'Inspecting file…' : 'Inspect M-EFCS export',
+                ),
+              ),
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                error!,
+                style: const TextStyle(
+                  color: Color(0xFFFFA38F),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            if (inspection != null) ...[
+              const Divider(height: 22),
+              _InspectionRow(label: 'File', value: inspection!.filename),
+              _InspectionRow(
+                label: 'Size',
+                value: inspection!.fileSizeLabel,
+              ),
+              _InspectionRow(
+                label: 'Detected signature',
+                value: inspection!.signature,
+              ),
+              _InspectionRow(
+                label: 'Extension',
+                value: inspection!.extension.isEmpty
+                    ? 'No extension'
+                    : inspection!.extension,
+              ),
+              _InspectionRow(
+                label: 'SHA-256',
+                value: inspection!.sha256,
+                selectable: true,
+              ),
+              _InspectionRow(
+                label: 'Sample entropy',
+                value: inspection!.sampleEntropyBitsPerByte
+                    .toStringAsFixed(3) + ' bits/byte',
+              ),
+              const SizedBox(height: 7),
+              Text(
+                inspection!.formatNote,
+                style: const TextStyle(
+                  color: Color(0xFFFFC078),
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+              if (inspection!.jsonRootKeys.isNotEmpty) ...[
+                const SizedBox(height: 9),
+                const Text(
+                  'JSON root keys',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  inspection!.jsonRootKeys.join(' · '),
+                  style: const TextStyle(
+                    color: Color(0xFFADB6C2),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+              if (inspection!.printableStrings.isNotEmpty) ...[
+                const SizedBox(height: 9),
+                const Text(
+                  'Readable strings (sample)',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                for (final value in inspection!.printableStrings.take(10))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      value,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFFADB6C2),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+              ],
+              const SizedBox(height: 9),
+              const Text(
+                'First 48 bytes',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              SelectableText(
+                inspection!.hexPreview,
+                style: const TextStyle(
+                  color: Color(0xFFADB6C2),
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 11),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: onCopyReport,
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Copy metadata report'),
+                ),
+              ),
+              const Text(
+                'This report identifies a generic file container only. It does not confirm that the file is a KPT Pro patch or establish any write command.',
+                style: TextStyle(
+                  color: Color(0xFFFFB49B),
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InspectionRow extends StatelessWidget {
+  const _InspectionRow({
+    required this.label,
+    required this.value,
+    this.selectable = false,
+  });
+
+  final String label;
+  final String value;
+  final bool selectable;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 108,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF8993A1),
+                fontSize: 11,
+              ),
+            ),
+          ),
+          Expanded(
+            child: selectable
+                ? SelectableText(
+                    value,
+                    style: const TextStyle(
+                      color: Color(0xFFADB6C2),
+                      fontSize: 11,
+                    ),
+                  )
+                : Text(
+                    value,
+                    style: const TextStyle(
+                      color: Color(0xFFADB6C2),
+                      fontSize: 11,
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

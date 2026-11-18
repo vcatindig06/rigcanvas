@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   bluetooth_low_energy: ^6.2.1
+  crypto: ^3.0.8
   file_picker: ^13.3.3
   material_ui: ^1.11.0
   path_provider: ^2.1.6
