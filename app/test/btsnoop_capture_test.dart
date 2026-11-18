@@ -149,7 +149,8 @@ void main() {
       expect(bearer['requestReceiveMtu'], 256);
       expect(bearer['responseReceiveMtu'], 200);
       expect(bearer['effectiveAttMtu'], 200);
-      expect(bearer['effectiveMps'], 200);
+      expect(bearer['requestMps'], 251);
+      expect(bearer['responseMps'], 200);
 
       final events = report['attEvents'] as List<Object?>;
       expect(events, hasLength(2));
