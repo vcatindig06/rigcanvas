@@ -38,6 +38,11 @@ void main() {
     expect(find.text('KPT Pro Control Center'), findsOneWidget);
     expect(find.text('HARDWARE WRITE LOCKED'), findsOneWidget);
     expect(find.text('Export local preset-library backup'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Write disabled · No transfer bytes generated'),
+      350,
+    );
     expect(find.text('Write disabled · No transfer bytes generated'), findsOneWidget);
 
     await tester.scrollUntilVisible(
