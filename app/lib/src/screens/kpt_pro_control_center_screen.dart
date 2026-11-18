@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../device/kpt_pro_native_file_inspector.dart';
+import '../device/kpt_pro_native_file_comparison.dart';
 import '../device/kpt_pro_write_plan.dart';
 import '../state/preset_controller.dart';
 
@@ -29,6 +30,11 @@ class _KptProControlCenterScreenState
   bool _inspectingFile = false;
   String? _inspectionError;
   KptProNativeFileInspection? _fileInspection;
+  bool _selectingComparisonFile = false;
+  Uint8List? _comparisonFirstBytes;
+  String? _comparisonFirstName;
+  String? _comparisonError;
+  KptProNativeFileComparison? _fileComparison;
 
   Future<void> _inspectNativeExport() async {
     setState(() {
@@ -51,6 +57,84 @@ class _KptProControlCenterScreenState
     } finally {
       if (mounted) setState(() => _inspectingFile = false);
     }
+  }
+
+  Future<void> _selectComparisonFirstFile() async {
+    setState(() {
+      _selectingComparisonFile = true;
+      _comparisonError = null;
+      _fileComparison = null;
+      _comparisonFirstBytes = null;
+      _comparisonFirstName = null;
+    });
+    try {
+      final file = await FilePicker.pickFile(type: FileType.any);
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        throw const FormatException('The selected original file is empty.');
+      }
+      if (bytes.length > maximumNativeFileComparisonTotalBytes) {
+        throw const FormatException(
+          'The selected file is larger than the 64 MiB comparison limit.',
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _comparisonFirstBytes = bytes;
+        _comparisonFirstName = file.name;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _comparisonError = error.toString());
+    } finally {
+      if (mounted) setState(() => _selectingComparisonFile = false);
+    }
+  }
+
+  Future<void> _selectComparisonSecondFile() async {
+    final firstBytes = _comparisonFirstBytes;
+    final firstName = _comparisonFirstName;
+    if (firstBytes == null || firstName == null) return;
+
+    setState(() {
+      _selectingComparisonFile = true;
+      _comparisonError = null;
+      _fileComparison = null;
+    });
+    try {
+      final file = await FilePicker.pickFile(type: FileType.any);
+      if (file == null) return;
+      final secondBytes = await file.readAsBytes();
+      final result = KptProNativeFileComparison.compare(
+        firstFilename: firstName,
+        firstBytes: firstBytes,
+        secondFilename: file.name,
+        secondBytes: secondBytes,
+      );
+      if (!mounted) return;
+      setState(() {
+        _fileComparison = result;
+        _comparisonFirstBytes = null;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _comparisonError = error.toString());
+    } finally {
+      if (mounted) setState(() => _selectingComparisonFile = false);
+    }
+  }
+
+  Future<void> _copyFileComparisonReport() async {
+    final comparison = _fileComparison;
+    if (comparison == null) return;
+    await Clipboard.setData(
+      ClipboardData(
+        text: const JsonEncoder.withIndent('  ').convert(comparison.toJson()),
+      ),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('File comparison report copied.')),
+    );
   }
 
   Future<void> _copyFileInspectionReport() async {
@@ -137,6 +221,22 @@ class _KptProControlCenterScreenState
               onCopyReport: _fileInspection == null
                   ? null
                   : _copyFileInspectionReport,
+            ),
+            const SizedBox(height: 12),
+            _NativeFileComparisonCard(
+              firstFilename: _comparisonFirstName,
+              comparison: _fileComparison,
+              busy: _selectingComparisonFile,
+              error: _comparisonError,
+              onSelectFirst:
+                  _selectingComparisonFile ? null : _selectComparisonFirstFile,
+              onSelectSecond: _selectingComparisonFile ||
+                      _comparisonFirstBytes == null
+                  ? null
+                  : _selectComparisonSecondFile,
+              onCopyReport: _fileComparison == null
+                  ? null
+                  : _copyFileComparisonReport,
             ),
             if (plan != null) ...[
               const SizedBox(height: 12),
@@ -314,6 +414,193 @@ class _NativeFileInspectionCard extends StatelessWidget {
               ),
               const Text(
                 'This report identifies a generic file container only. It does not confirm that the file is a KPT Pro patch or establish any write command.',
+                style: TextStyle(
+                  color: Color(0xFFFFB49B),
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NativeFileComparisonCard extends StatelessWidget {
+  const _NativeFileComparisonCard({
+    required this.firstFilename,
+    required this.comparison,
+    required this.busy,
+    required this.error,
+    required this.onSelectFirst,
+    required this.onSelectSecond,
+    required this.onCopyReport,
+  });
+
+  final String? firstFilename;
+  final KptProNativeFileComparison? comparison;
+  final bool busy;
+  final String? error;
+  final VoidCallback? onSelectFirst;
+  final VoidCallback? onSelectSecond;
+  final VoidCallback? onCopyReport;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionHeading(
+              icon: Icons.difference_outlined,
+              title: 'Compare two native exports',
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'Compare a baseline M-EFCS export with a second export after changing one setting. RigCanvas reports changed byte offsets and fingerprints locally. It does not decode what those bytes mean or contact the pedal.',
+              style: TextStyle(
+                color: Color(0xFF9AA4B2),
+                fontSize: 12,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (firstFilename != null)
+              Text(
+                'Original selected: $firstFilename',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFADB6C2),
+                  fontSize: 11,
+                ),
+              )
+            else
+              const Text(
+                'No original export selected.',
+                style: TextStyle(color: Color(0xFF8993A1), fontSize: 11),
+              ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: busy ? null : onSelectFirst,
+                icon: const Icon(Icons.file_open_outlined),
+                label: const Text('Choose original export'),
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: busy ? null : onSelectSecond,
+                icon: busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.compare_arrows),
+                label: Text(
+                  busy ? 'Comparing files…' : 'Choose edited export & compare',
+                ),
+              ),
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 9),
+              Text(
+                error!,
+                style: const TextStyle(
+                  color: Color(0xFFFFA38F),
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+            ],
+            if (comparison != null) ...[
+              const Divider(height: 22),
+              _InspectionRow(
+                label: 'Result',
+                value: comparison!.isIdentical
+                    ? 'Byte-identical files'
+                    : 'Different byte content',
+              ),
+              _InspectionRow(
+                label: 'Changed bytes',
+                value:
+                    '${comparison!.changedByteCount} / ${comparison!.comparedLength} (${comparison!.changedPercent.toStringAsFixed(4)}%)',
+              ),
+              _InspectionRow(
+                label: 'Size delta',
+                value: '${comparison!.sizeDeltaBytes} bytes',
+              ),
+              _InspectionRow(
+                label: 'Common prefix',
+                value: '${comparison!.commonPrefixBytes} bytes',
+              ),
+              _InspectionRow(
+                label: 'Common suffix',
+                value: '${comparison!.commonSuffixBytes} bytes',
+              ),
+              _InspectionRow(
+                label: 'Changed ranges',
+                value: '${comparison!.differenceRanges.length}'
+                    '${comparison!.omittedDifferenceRangeCount == 0 ? '' : ' shown; ${comparison!.omittedDifferenceRangeCount} more omitted'}',
+              ),
+              const SizedBox(height: 7),
+              if (comparison!.differenceRanges.isNotEmpty) ...[
+                const Text(
+                  'First changed ranges (offsets are zero-based)',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+                const SizedBox(height: 5),
+                for (final range in comparison!.differenceRanges.take(8))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 7),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${range.offsetLabel} · ${range.length} byte(s)',
+                          style: const TextStyle(
+                            color: Color(0xFFFFC078),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          'A: ${range.firstHexPreview.isEmpty ? "—" : range.firstHexPreview}',
+                          style: const TextStyle(
+                            color: Color(0xFFADB6C2),
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                          ),
+                        ),
+                        Text(
+                          'B: ${range.secondHexPreview.isEmpty ? "—" : range.secondHexPreview}',
+                          style: const TextStyle(
+                            color: Color(0xFFADB6C2),
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: onCopyReport,
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Copy comparison metadata'),
+                ),
+              ),
+              const Text(
+                'Offsets are observations, not decoded parameters. A changed checksum, timestamp, compression block, or file identifier can alter bytes unrelated to a control.',
                 style: TextStyle(
                   color: Color(0xFFFFB49B),
                   fontSize: 11,

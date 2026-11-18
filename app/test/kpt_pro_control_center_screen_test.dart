@@ -46,6 +46,14 @@ void main() {
     expect(find.text('Inspect M-EFCS export'), findsOneWidget);
 
     await tester.scrollUntilVisible(
+      find.text('Compare two native exports'),
+      280,
+    );
+    expect(find.text('Compare two native exports'), findsOneWidget);
+    expect(find.text('Choose original export'), findsOneWidget);
+    expect(find.text('Choose edited export & compare'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
       find.text('Write disabled · No transfer bytes generated'),
       350,
     );
