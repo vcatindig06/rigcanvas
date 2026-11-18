@@ -56,6 +56,12 @@ Important limitations:
 
 Source analysis: [Payload-enabled trace analysis](PAYLOAD_ANALYSIS_2026-11-17.md) and [Protocol investigation](PROTOCOL_INVESTIGATION.md).
 
+## Confirmed outer-frame parser milestone — 2026-11-18
+
+The existing 2026-11-17 payload capture has now been independently checked byte by byte. All 157 complete phone-to-pedal vendor frames and all 157 complete pedal-to-phone frames match the observed envelope: magic `00 59`, one command byte, a two-byte little-endian body length, a reserved byte (observed `00`), body bytes, and a one-byte checksum equal to the 8-bit complement of the body-byte sum. The two 848-byte response bodies are fragmented across five BLE notifications each and reassemble using the declared total length. A pure Dart parser/reassembler and tests have been added; it has no BLE transport, no command encoder, and cannot send data to the pedal. Details: [KPT Pro BLE frame format](KPT_PRO_FRAME_FORMAT.md).
+
+This result does not decode command semantics, the `0x23` body, preset slots, native patch storage, GATT UUID mapping, or write/commit behavior. The controlled action-correlated M-EFCS trace and native test export remain necessary before implementing even a device-side read operation.
+
 ## Required capture package
 
 Use the owner's working **M-EFCS Android v3.10.2311** and the physical KPT Pro. Capture with Android Bluetooth HCI snoop logging enabled before opening the connection. Select only the KPT Pro connection in RigCanvas's Android Bluetooth Trace Analyzer.
