@@ -142,3 +142,12 @@ The report adds a separate descriptorDiscovery map and descriptor counts while p
 Connection sessions now export their start/end frame and timestamp offsets, plus HCI disconnection status/reason when a successful Disconnection Complete event is captured. Partial ACL/L2CAP fragments are cleared when a connection ends or a connection handle is reused, preventing fragment data from one session being carried into another.
 
 These changes do not add any BLE writes, notification subscriptions, packet replay, or vendor command support. They also do not yet parse Enhanced ATT (EATT) dynamic bearers; MTU interpretation remains restricted to the ATT fixed channel currently handled by this parser.
+
+
+## EATT and repeated MTU interpretation update
+
+The analyzer now parses successful EATT channel setup from L2CAP Enhanced Credit Based Connection Request/Response signaling on the LE signaling CID (0x0005), using EATT fixed PSM 0x0027. It also routes ATT K-frame SDUs on established EATT dynamic CIDs, and tags events with their bearer identity. The original 2026-11-17 JSON report contains ATT events only; it does not expose the parsed L2CAP signaling exchanges or EATT bearer list. It is therefore still unknown whether an EATT bearer was established during that capture.
+
+Bluetooth Core v7.0 distinguishes the fixed LE ATT bearer (CID 0x0004) from dynamically allocated Enhanced ATT bearers. The EATT bearer ATT_MTU is derived from L2CAP channel MTU negotiation; the client ATT_EXCHANGE_MTU_REQ is specified to be sent only once during a connection. Thus EATT does not explain repeated ATT MTU exchange requests on the fixed bearer. The parser now reports the L2CAP CID and bearer type for each ATT event, warns on repeated requests within the same bearer/direction, and flags any ATT MTU exchange PDU observed on an Enhanced ATT bearer.
+
+References: [Bluetooth Core v7.0 L2CAP](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v7.0/out/en/host/logicallinkcontrol-andadaptationprotocol-l2cap--specification.html), [GATT](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v7.0/out/en/host/genericattribute-profile-gatt--specification.html), and [ATT](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v7.0/out/en/host/attributeprotocol-att--specification.html).
