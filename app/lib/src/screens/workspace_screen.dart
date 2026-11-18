@@ -8,6 +8,7 @@ import '../state/asset_controller.dart';
 import '../state/preset_controller.dart';
 import 'effect_block_editor_dialog.dart';
 import 'effect_model_picker_dialog.dart';
+import 'block_hardware_art.dart';
 
 enum WorkspaceMode { preset, scene, stomp, hybrid }
 
@@ -143,13 +144,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     () => controller.updateBlock(block.copyWith(enabled: !block.enabled)),
   );
 
-  String get _description => switch (_mode) {
-    WorkspaceMode.preset => 'Edit the loaded rig. Drag blocks between slots or add a new block.',
-    WorkspaceMode.scene => 'Recall a saved snapshot of this preset. Grid layout and block settings are restored together.',
-    WorkspaceMode.stomp => 'A–H toggle the first eight blocks in preset order. These are local controls only.',
-    WorkspaceMode.hybrid => 'A–D recall scenes. E–H toggle the first four blocks in preset order.',
-  };
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -191,13 +185,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     mode: _mode,
                     onChanged: (mode) => setState(() => _mode = mode),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _description,
-                    style: const TextStyle(color: Color(0xFF9AA4B2), fontSize: 12),
-                  ),
-                  const SizedBox(height: 11),
-                  const _SafetyNotice(),
                   if (_mode == WorkspaceMode.scene) ...[
                     const SizedBox(height: 14),
                     _ScenePads(
@@ -275,13 +262,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     onMove: (id, row, column) => _mutate(
                       () => controller.moveBlockToSlot(id, row, column),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  const _GridRoutingNote(),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Local preset editor · Changes are saved on this device. Nothing is sent to the KPT Pro.',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF788391)),
                   ),
                 ],
               ),
@@ -579,7 +559,6 @@ class _GridSlot extends StatelessWidget {
           asset: asset,
           highlighted: highlighted,
           allowEdit: editable,
-          showToggle: mode == WorkspaceMode.stomp || mode == WorkspaceMode.hybrid,
           onTap: () {
             if (mode == WorkspaceMode.stomp || mode == WorkspaceMode.hybrid) {
               onToggle(block!);
@@ -673,7 +652,6 @@ class _GridEffectCard extends StatelessWidget {
     required this.asset,
     required this.highlighted,
     required this.allowEdit,
-    required this.showToggle,
     required this.onTap,
     required this.onEdit,
     required this.onRemove,
@@ -683,7 +661,6 @@ class _GridEffectCard extends StatelessWidget {
   final RigAsset? asset;
   final bool highlighted;
   final bool allowEdit;
-  final bool showToggle;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onRemove;
@@ -710,9 +687,9 @@ class _GridEffectCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
-        key: ValueKey('grid-block-${block.id}'),
+        key: ValueKey('grid-block-' + block.id),
         margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.fromLTRB(6, 5, 4, 5),
+        padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
         decoration: BoxDecoration(
           color: enabled
               ? Color.lerp(tint, const Color(0xFF14191F), 0.72)
@@ -732,24 +709,21 @@ class _GridEffectCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(block.family.icon, size: 16, color: enabled ? tint : const Color(0xFF8993A1)),
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: enabled ? const Color(0xFF57E59B) : const Color(0xFF626B77),
+                  ),
+                ),
                 const Spacer(),
-                if (showToggle)
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: enabled ? const Color(0xFF57E59B) : const Color(0xFF626B77),
-                    ),
-                  )
-                else if (allowEdit)
+                if (allowEdit)
                   PopupMenuButton<String>(
                     tooltip: '',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 130),
                     iconSize: 16,
-                    tooltip: '',
                     onSelected: (value) {
                       if (value == 'edit') onEdit();
                       if (value == 'remove') onRemove();
@@ -762,52 +736,48 @@ class _GridEffectCard extends StatelessWidget {
                   ),
               ],
             ),
-            const Spacer(),
-            Text(
-              block.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: enabled ? Colors.white : const Color(0xFFA1A8B2),
-                fontSize: 10.5,
-                height: 1.12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            Text(
-              block.model.source.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: block.model.source == EffectModelSource.kptProFactory
-                    ? const Color(0xFFFFC078)
-                    : const Color(0xFFB7C4D1),
-                fontSize: 7,
-                letterSpacing: 0.25,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            if (asset != null)
-              Text(
-                block.family == EffectFamily.amplifier
-                    ? 'Capture: ${asset!.title}'
-                    : 'Cabinet IR: ${asset!.title}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFFB7C4D1), fontSize: 7),
-              ),
-            if (block.assetId != null && asset == null)
-              Text(
-                'Linked asset missing or incompatible with this block: ${block.assetId}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFFFF9A83),
-                  fontSize: 7,
-                  height: 1.05,
-                  fontWeight: FontWeight.w700,
+            Expanded(
+              child: Center(
+                child: BlockHardwareArt(
+                  key: ValueKey('block-art-' + block.family.name),
+                  family: block.family,
+                  accent: enabled ? tint : const Color(0xFF68717C),
+                  enabled: enabled,
                 ),
               ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    block.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: enabled ? Colors.white : const Color(0xFFA1A8B2),
+                      fontSize: 9.5,
+                      height: 1.1,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (block.assetId != null && asset == null)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 3),
+                    child: Semantics(
+                      label: 'Linked asset missing or incompatible',
+                      child: Text(
+                        'ASSET?',
+                        style: TextStyle(
+                          color: Color(0xFFFF9A83),
+                          fontSize: 6.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
@@ -969,7 +939,6 @@ class _ScenePad extends StatelessWidget {
                 height: 21,
                 child: IconButton(
                   padding: EdgeInsets.zero,
-                  tooltip: '',
                   onPressed: onDelete,
                   icon: const Icon(Icons.close, size: 12),
                 ),
@@ -1119,61 +1088,6 @@ class _SimulationPill extends StatelessWidget {
         letterSpacing: 0.8,
         fontWeight: FontWeight.w800,
       )),
-    );
-  }
-}
-
-class _SafetyNotice extends StatelessWidget {
-  const _SafetyNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        color: const Color(0xFF211B18),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF5B3B30)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: Color(0xFFFFA083), size: 17),
-          SizedBox(width: 9),
-          Expanded(child: Text(
-            'Local simulation only. Blocks, scenes and switches do not process audio or communicate with the KPT Pro.',
-            style: TextStyle(color: Color(0xFFE3B8A9), height: 1.35, fontSize: 11),
-          )),
-        ],
-      ),
-    );
-  }
-}
-
-class _GridRoutingNote extends StatelessWidget {
-  const _GridRoutingNote();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF15191F),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF303844)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.alt_route, size: 16, color: Color(0xFF9AA4B2)),
-          SizedBox(width: 8),
-          Expanded(child: Text(
-            'Grid v1 saves four independent local lanes. Splitter, mixer, cross-lane routing and audio processing are not implemented yet.',
-            style: TextStyle(color: Color(0xFF9AA4B2), fontSize: 10, height: 1.4),
-          )),
-        ],
-      ),
     );
   }
 }
