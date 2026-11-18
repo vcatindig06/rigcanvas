@@ -197,6 +197,9 @@ class KptBleAttEvent {
     this.serviceUuid,
     this.characteristicProperties,
     this.protocolDetails,
+    this.l2capCid,
+    this.attBearerId,
+    this.attBearerType,
     this.value = const <int>[],
     required this.pdu,
   });
@@ -213,6 +216,9 @@ class KptBleAttEvent {
   final String? serviceUuid;
   final int? characteristicProperties;
   final Map<String, Object?>? protocolDetails;
+  final int? l2capCid;
+  final int? attBearerId;
+  final String? attBearerType;
   final List<int> value;
   final List<int> pdu;
 
@@ -235,6 +241,10 @@ class KptBleAttEvent {
     'serviceUuid': serviceUuid,
     'characteristicUuid': attributeUuid,
     'characteristicProperties': characteristicProperties,
+    if (l2capCid != null)
+      'l2capCid': '0x${l2capCid!.toRadixString(16).padLeft(4, '0')}',
+    if (attBearerId != null) 'attBearerId': attBearerId,
+    if (attBearerType != null) 'attBearerType': attBearerType,
     if (protocolDetails != null) 'protocolDetails': protocolDetails,
     if (includePayload) 'valueHex': valueHex,
     if (includePayload) 'attPduHex': pduHex,
@@ -252,6 +262,7 @@ class KptProHciCapture {
     required this.attEvents,
     required this.characteristicDiscoveryBySession,
     required this.descriptorDiscoveryBySession,
+    required this.enhancedAttBearersBySession,
     required this.malformedHciPacketCount,
     required this.nonAttAclPacketCount,
   });
@@ -264,6 +275,7 @@ class KptProHciCapture {
   final List<KptBleAttEvent> attEvents;
   final Map<int, Map<String, Object?>> characteristicDiscoveryBySession;
   final Map<int, Map<String, Object?>> descriptorDiscoveryBySession;
+  final Map<int, List<_EattBearer>> enhancedAttBearersBySession;
   final int malformedHciPacketCount;
   final int nonAttAclPacketCount;
 
@@ -329,18 +341,23 @@ class KptProHciCapture {
         ).length,
         'descriptorDiscoveryEntries':
             _descriptorMapForSession(sessionId).length,
+        'enhancedAttBearerCount':
+            _enhancedAttBearersForSession(sessionId).length,
+        'enhancedAttEvents': events
+            .where((event) => event.attBearerType == 'Enhanced ATT bearer')
+            .length,
         // Retained for compatibility with earlier report readers; this counts
         // only simple Read Request/Read Response pairs, not GATT discovery.
         'readRequestsAndResponses': events.where(
           (event) => event.opcode == 0x0A || event.opcode == 0x0B,
         ).length,
       },
-      'protocolWarnings': [
-        if (events.where((event) => event.opcode == 0x02).length > 1)
-          'Multiple ATT Exchange MTU Requests were captured for one selected connection. Verify the HCI connection lifecycle and raw event sequence before interpreting MTU negotiation.',
-      ],
+      'protocolWarnings': _mtuProtocolWarnings(events),
       'characteristicDiscovery': _characteristicMapForSession(sessionId),
       'descriptorDiscovery': _descriptorMapForSession(sessionId),
+      'enhancedAttBearers': _enhancedAttBearersForSession(sessionId)
+          .map((bearer) => bearer.toJson())
+          .toList(growable: false),
       'attEvents': events.map(
         (event) => event.toJson(includePayload: includePayload),
       ).toList(growable: false),
@@ -357,6 +374,32 @@ class KptProHciCapture {
 
   Map<String, Object?> _descriptorMapForSession(int sessionId) =>
       descriptorDiscoveryBySession[sessionId] ?? const {};
+
+  List<_EattBearer> _enhancedAttBearersForSession(int sessionId) =>
+      enhancedAttBearersBySession[sessionId] ?? const [];
+
+  List<String> _mtuProtocolWarnings(List<KptBleAttEvent> events) {
+    final requestCounts = <String, int>{};
+    for (final event in events.where((item) => item.opcode == 0x02)) {
+      final cid = event.l2capCid ?? 0x0004;
+      final key = '$cid:${event.direction.index}';
+      requestCounts.update(key, (count) => count + 1, ifAbsent: () => 1);
+    }
+    final warnings = <String>[];
+    if (requestCounts.values.any((count) => count > 1)) {
+      warnings.add(
+        'Multiple ATT Exchange MTU Requests were captured on the same L2CAP ATT bearer and direction. The client MTU exchange request is specified to be sent only once during a connection; inspect the raw HCI lifecycle and bearer mapping.',
+      );
+    }
+    if (events.any((event) =>
+        (event.opcode == 0x02 || event.opcode == 0x03) &&
+        event.attBearerType == 'Enhanced ATT bearer')) {
+      warnings.add(
+        'An ATT Exchange MTU PDU was observed on an Enhanced ATT bearer. Enhanced ATT bearer MTU is derived from L2CAP channel negotiation, not an ATT MTU exchange.',
+      );
+    }
+    return warnings;
+  }
 }
 
 class _BtsnoopParserState {
@@ -369,6 +412,11 @@ class _BtsnoopParserState {
   final List<_MutableSession> _sessions = [];
   final List<KptBleAttEvent> _attEvents = [];
   final Map<String, _PendingL2cap> _pendingL2cap = {};
+  final Map<String, _PendingEattRequest> _pendingEattRequests = {};
+  final Map<String, _EattBearer> _eattBearersByDirectionalCid = {};
+  final Map<String, _PendingEattSdu> _pendingEattSdus = {};
+  final Map<int, List<_EattBearer>> _sessionEattBearers = {};
+  int _nextEattBearerId = 1;
   final Map<int, _ConnectionAttributeTable> _attributeTables = {};
   final Map<int, _ConnectionAttributeTable> _sessionAttributeTables = {};
   int malformedHciPacketCount = 0;
@@ -426,6 +474,7 @@ class _BtsnoopParserState {
       }
       _attributeTables.remove(handle);
       _clearPendingL2capForHandle(handle);
+      _clearEattStateForHandle(handle);
       return;
     }
     if (eventCode != 0x3E || packet.length < 5) return;
@@ -493,6 +542,7 @@ class _BtsnoopParserState {
       oldSession.endTimestampMicros = relativeTimestampMicros;
     }
     _clearPendingL2capForHandle(handle);
+    _clearEattStateForHandle(handle);
     final session = _MutableSession(
       id: _sessions.length,
       connectionHandle: handle,
@@ -513,6 +563,27 @@ class _BtsnoopParserState {
     final prefix = '$handle:';
     _pendingL2cap.removeWhere((key, _) => key.startsWith(prefix));
   }
+
+  void _clearEattStateForHandle(int handle) {
+    final prefix = '$handle:';
+    _pendingEattRequests.removeWhere((key, _) => key.startsWith(prefix));
+    _pendingEattSdus.removeWhere((key, _) => key.startsWith(prefix));
+    _eattBearersByDirectionalCid.removeWhere((key, _) => key.startsWith(prefix));
+  }
+
+  String _directionalCidKey(int handle, BtsnoopDirection direction, int cid) =>
+      '$handle:${direction.index}:$cid';
+
+  String _pendingEattRequestKey(
+    int handle,
+    BtsnoopDirection direction,
+    int identifier,
+  ) => '$handle:${direction.index}:$identifier';
+
+  BtsnoopDirection _oppositeDirection(BtsnoopDirection direction) =>
+      direction == BtsnoopDirection.hostToController
+          ? BtsnoopDirection.controllerToHost
+          : BtsnoopDirection.hostToController;
 
   void _consumeAcl(
     Uint8List packet,
@@ -562,20 +633,289 @@ class _BtsnoopParserState {
       completeL2cap = Uint8List.sublistView(payload, 0, 4 + l2capLength);
     }
 
-    if (completeL2cap == null || completeL2cap.length < 5) return;
+    if (completeL2cap == null || completeL2cap.length < 4) return;
     final cid = _u16le(completeL2cap, 2);
-    if (cid != 0x0004) {
+    final l2capPayload = Uint8List.sublistView(completeL2cap, 4);
+
+    if (cid == 0x0005) {
+      _consumeL2capSignaling(
+        l2capPayload,
+        handle: handle,
+        frameNumber: frameNumber,
+        relativeTimestampMicros: relativeTimestampMicros,
+        direction: direction,
+      );
+      return;
+    }
+
+    if (cid == 0x0004) {
+      _consumeAtt(
+        l2capPayload,
+        handle: handle,
+        frameNumber: frameNumber,
+        relativeTimestampMicros: relativeTimestampMicros,
+        direction: direction,
+        l2capCid: cid,
+        attBearerId: 0,
+        attBearerType: 'Unenhanced ATT fixed bearer',
+      );
+      return;
+    }
+
+    final bearer = _eattBearersByDirectionalCid[
+        _directionalCidKey(handle, direction, cid)];
+    if (bearer == null) {
       nonAttAclPacketCount++;
       return;
     }
-    final attPdu = Uint8List.sublistView(completeL2cap, 4);
+    final attPdu = _consumeEattKFrame(
+      l2capPayload,
+      handle: handle,
+      direction: direction,
+      cid: cid,
+    );
+    if (attPdu == null) return;
     _consumeAtt(
       attPdu,
       handle: handle,
       frameNumber: frameNumber,
       relativeTimestampMicros: relativeTimestampMicros,
       direction: direction,
+      l2capCid: cid,
+      attBearerId: bearer.id,
+      attBearerType: 'Enhanced ATT bearer',
     );
+  }
+
+  Uint8List? _consumeEattKFrame(
+    Uint8List payload, {
+    required int handle,
+    required BtsnoopDirection direction,
+    required int cid,
+  }) {
+    final key = _directionalCidKey(handle, direction, cid);
+    final pending = _pendingEattSdus[key];
+    if (pending != null) {
+      pending.bytes.addAll(payload);
+      if (pending.bytes.length > pending.expectedLength) {
+        _pendingEattSdus.remove(key);
+        malformedHciPacketCount++;
+        return null;
+      }
+      if (pending.bytes.length == pending.expectedLength) {
+        _pendingEattSdus.remove(key);
+        return Uint8List.fromList(pending.bytes);
+      }
+      return null;
+    }
+
+    if (payload.length < 2) {
+      malformedHciPacketCount++;
+      return null;
+    }
+    final sduLength = _u16le(payload, 0);
+    final firstSegment = payload.sublist(2);
+    if (firstSegment.length > sduLength) {
+      malformedHciPacketCount++;
+      return null;
+    }
+    if (firstSegment.length == sduLength) {
+      return Uint8List.fromList(firstSegment);
+    }
+    _pendingEattSdus[key] = _PendingEattSdu(
+      expectedLength: sduLength,
+      bytes: List<int>.from(firstSegment),
+    );
+    return null;
+  }
+
+  void _consumeL2capSignaling(
+    Uint8List payload, {
+    required int handle,
+    required int frameNumber,
+    required int relativeTimestampMicros,
+    required BtsnoopDirection direction,
+  }) {
+    var offset = 0;
+    while (offset < payload.length) {
+      if (payload.length - offset < 4) {
+        malformedHciPacketCount++;
+        return;
+      }
+      final code = payload[offset];
+      final identifier = payload[offset + 1];
+      final commandLength = _u16le(payload, offset + 2);
+      final dataStart = offset + 4;
+      final dataEnd = dataStart + commandLength;
+      if (dataEnd > payload.length) {
+        malformedHciPacketCount++;
+        return;
+      }
+      final commandData = Uint8List.sublistView(payload, dataStart, dataEnd);
+      if (code == 0x17) {
+        _recordEattConnectionRequest(
+          commandData,
+          handle: handle,
+          direction: direction,
+          identifier: identifier,
+          frameNumber: frameNumber,
+          relativeTimestampMicros: relativeTimestampMicros,
+        );
+      } else if (code == 0x18) {
+        _recordEattConnectionResponse(
+          commandData,
+          handle: handle,
+          direction: direction,
+          identifier: identifier,
+          frameNumber: frameNumber,
+          relativeTimestampMicros: relativeTimestampMicros,
+        );
+      } else if (code == 0x06 || code == 0x07) {
+        _removeEattChannelFromSignaling(
+          commandData,
+          handle: handle,
+          direction: direction,
+        );
+      }
+      offset = dataEnd;
+    }
+  }
+
+  void _recordEattConnectionRequest(
+    Uint8List data, {
+    required int handle,
+    required BtsnoopDirection direction,
+    required int identifier,
+    required int frameNumber,
+    required int relativeTimestampMicros,
+  }) {
+    // Enhanced Credit Based Connection Request:
+    // SPSM, MTU, MPS, Initial Credits, then 1–5 Source CIDs.
+    if (data.length < 10 || data.length > 18 || data.length.isOdd) {
+      malformedHciPacketCount++;
+      return;
+    }
+    final spsm = _u16le(data, 0);
+    if (spsm != 0x0027) return; // EATT fixed PSM.
+    final sourceCids = <int>[];
+    for (var offset = 8; offset < data.length; offset += 2) {
+      final cid = _u16le(data, offset);
+      if (cid == 0) {
+        malformedHciPacketCount++;
+        return;
+      }
+      sourceCids.add(cid);
+    }
+    _pendingEattRequests[_pendingEattRequestKey(
+      handle,
+      direction,
+      identifier,
+    )] = _PendingEattRequest(
+      sourceCids: sourceCids,
+      mtu: _u16le(data, 2),
+      mps: _u16le(data, 4),
+      credits: _u16le(data, 6),
+      frameNumber: frameNumber,
+      timestampMicros: relativeTimestampMicros,
+    );
+  }
+
+  void _recordEattConnectionResponse(
+    Uint8List data, {
+    required int handle,
+    required BtsnoopDirection direction,
+    required int identifier,
+    required int frameNumber,
+    required int relativeTimestampMicros,
+  }) {
+    // Enhanced Credit Based Connection Response:
+    // MTU, MPS, Initial Credits, Result, then 1–5 Destination CIDs.
+    if (data.length < 10 || data.length > 18 || data.isOdd) {
+      malformedHciPacketCount++;
+      return;
+    }
+    final requestDirection = _oppositeDirection(direction);
+    final requestKey = _pendingEattRequestKey(
+      handle,
+      requestDirection,
+      identifier,
+    );
+    final request = _pendingEattRequests.remove(requestKey);
+    if (request == null) return;
+    final result = _u16le(data, 6);
+    final destinationCids = <int>[];
+    for (var offset = 8; offset < data.length; offset += 2) {
+      destinationCids.add(_u16le(data, offset));
+    }
+    if (result != 0 || destinationCids.length != request.sourceCids.length) {
+      return;
+    }
+
+    final session = _activeSessions[handle];
+    if (session == null) return;
+    final responseMtu = _u16le(data, 0);
+    final responseMps = _u16le(data, 2);
+    for (var index = 0; index < request.sourceCids.length; index++) {
+      final sourceCid = request.sourceCids[index];
+      final destinationCid = destinationCids[index];
+      if (sourceCid == 0 || destinationCid == 0) continue;
+      final bearer = _EattBearer(
+        id: _nextEattBearerId++,
+        connectionHandle: handle,
+        sessionId: session.id,
+        requestIdentifier: identifier,
+        requestDirection: requestDirection,
+        sourceCid: sourceCid,
+        destinationCid: destinationCid,
+        requestMtu: request.mtu,
+        responseMtu: responseMtu,
+        requestMps: request.mps,
+        responseMps: responseMps,
+        requestCredits: request.credits,
+        responseCredits: _u16le(data, 4),
+        createdFrame: frameNumber,
+        createdTimestampMicros: relativeTimestampMicros,
+      );
+      _eattBearersByDirectionalCid[
+          _directionalCidKey(handle, requestDirection, destinationCid)] = bearer;
+      _eattBearersByDirectionalCid[
+          _directionalCidKey(
+            handle,
+            _oppositeDirection(requestDirection),
+            sourceCid,
+          )] = bearer;
+      _sessionEattBearers.putIfAbsent(session.id, () => []).add(bearer);
+    }
+  }
+
+  void _removeEattChannelFromSignaling(
+    Uint8List data, {
+    required int handle,
+    required BtsnoopDirection direction,
+  }) {
+    if (data.length != 4) return;
+    final destinationCid = _u16le(data, 0);
+    final sourceCid = _u16le(data, 2);
+    final bearer = _eattBearersByDirectionalCid[
+        _directionalCidKey(handle, direction, destinationCid)];
+    _eattBearersByDirectionalCid.remove(
+      _directionalCidKey(handle, direction, destinationCid),
+    );
+    _eattBearersByDirectionalCid.remove(
+      _directionalCidKey(handle, _oppositeDirection(direction), sourceCid),
+    );
+    if (bearer != null) {
+      _pendingEattSdus.remove(
+        _directionalCidKey(handle, direction, destinationCid),
+      );
+      _pendingEattSdus.remove(
+        _directionalCidKey(
+          handle,
+          _oppositeDirection(direction),
+          sourceCid,
+        ),
+      );
+    }
   }
 
   void _consumeAtt(
@@ -584,6 +924,9 @@ class _BtsnoopParserState {
     required int frameNumber,
     required int relativeTimestampMicros,
     required BtsnoopDirection direction,
+    required int l2capCid,
+    required int attBearerId,
+    required String attBearerType,
   }) {
     if (pdu.isEmpty) {
       malformedHciPacketCount++;
@@ -630,6 +973,9 @@ class _BtsnoopParserState {
       serviceUuid: metadata?.serviceUuid(table.services),
       characteristicProperties: metadata?.properties,
       protocolDetails: _attProtocolDetails(pdu),
+      l2capCid: l2capCid,
+      attBearerId: attBearerId,
+      attBearerType: attBearerType,
       value: List<int>.unmodifiable(value),
       pdu: List<int>.unmodifiable(pdu),
     ));
@@ -647,6 +993,10 @@ class _BtsnoopParserState {
       for (final session in sessions)
         session.id: _sessionAttributeTables[session.id]?.descriptorJson() ?? const {},
     };
+    final enhancedAttBearersBySession = <int, List<_EattBearer>>{
+      for (final session in sessions)
+        session.id: List.unmodifiable(_sessionEattBearers[session.id] ?? const []),
+    };
     final peripherals = _peripherals.values.toList(growable: false)
       ..sort((a, b) => (a.name ?? a.address).compareTo(b.name ?? b.address));
     return KptProHciCapture(
@@ -661,6 +1011,9 @@ class _BtsnoopParserState {
       ),
       descriptorDiscoveryBySession: Map.unmodifiable(
         descriptorDiscoveryBySession,
+      ),
+      enhancedAttBearersBySession: Map.unmodifiable(
+        enhancedAttBearersBySession,
       ),
       malformedHciPacketCount: malformedHciPacketCount,
       nonAttAclPacketCount: nonAttAclPacketCount,
@@ -866,6 +1219,91 @@ class _ConnectionAttributeTable {
     }
     return Map.unmodifiable(result);
   }
+}
+
+class _PendingEattRequest {
+  const _PendingEattRequest({
+    required this.sourceCids,
+    required this.mtu,
+    required this.mps,
+    required this.credits,
+    required this.frameNumber,
+    required this.timestampMicros,
+  });
+
+  final List<int> sourceCids;
+  final int mtu;
+  final int mps;
+  final int credits;
+  final int frameNumber;
+  final int timestampMicros;
+}
+
+class _PendingEattSdu {
+  _PendingEattSdu({required this.expectedLength, required this.bytes});
+
+  final int expectedLength;
+  final List<int> bytes;
+}
+
+class _EattBearer {
+  const _EattBearer({
+    required this.id,
+    required this.connectionHandle,
+    required this.sessionId,
+    required this.requestIdentifier,
+    required this.requestDirection,
+    required this.sourceCid,
+    required this.destinationCid,
+    required this.requestMtu,
+    required this.responseMtu,
+    required this.requestMps,
+    required this.responseMps,
+    required this.requestCredits,
+    required this.responseCredits,
+    required this.createdFrame,
+    required this.createdTimestampMicros,
+  });
+
+  final int id;
+  final int connectionHandle;
+  final int sessionId;
+  final int requestIdentifier;
+  final BtsnoopDirection requestDirection;
+  final int sourceCid;
+  final int destinationCid;
+  final int requestMtu;
+  final int responseMtu;
+  final int requestMps;
+  final int responseMps;
+  final int requestCredits;
+  final int responseCredits;
+  final int createdFrame;
+  final int createdTimestampMicros;
+
+  int get effectiveMtu => requestMtu < responseMtu ? requestMtu : responseMtu;
+  int get effectiveMps => requestMps < responseMps ? requestMps : responseMps;
+
+  Map<String, Object?> toJson() => {
+    'bearerId': id,
+    'type': 'Enhanced ATT bearer',
+    'eattPsm': '0x0027',
+    'requestIdentifier': requestIdentifier,
+    'initiatedBy': requestDirection.label,
+    'requestSourceCid': '0x${sourceCid.toRadixString(16).padLeft(4, '0')}',
+    'responseDestinationCid':
+        '0x${destinationCid.toRadixString(16).padLeft(4, '0')}',
+    'requestReceiveMtu': requestMtu,
+    'responseReceiveMtu': responseMtu,
+    'effectiveAttMtu': effectiveMtu,
+    'requestMps': requestMps,
+    'responseMps': responseMps,
+    'effectiveMps': effectiveMps,
+    'requestInitialCredits': requestCredits,
+    'responseInitialCredits': responseCredits,
+    'createdFrame': createdFrame,
+    'createdTimeFromCaptureStartMicros': createdTimestampMicros,
+  };
 }
 
 class _MutableSession {
