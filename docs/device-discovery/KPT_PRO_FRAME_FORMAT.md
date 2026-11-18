@@ -74,3 +74,12 @@ The code intentionally implements **parsing only**. It has no outgoing frame enc
 Before a read-only device operation can be considered, collect a fresh complete GATT discovery exchange so the exact service/characteristic/descriptor mapping is known. To understand any `0x23` body, collect a passive, timestamped M-EFCS trace correlated with one clearly recorded action on a disposable, backed-up test patch. Preserve a native M-EFCS-exported test file unchanged if its format is to be investigated.
 
 Do not replay captured packets or send guessed commands. Hardware writes stay disabled until KPT-specific request semantics, acknowledgements, immutable backup, readback comparison, and recovery behavior are independently verified.
+
+
+## Offline trace analyzer
+
+The Devices → Android Bluetooth Trace Analyzer now applies this parser to the selected connection's ATT value events. It keeps independent streams by direction, attribute handle, ATT bearer, and L2CAP CID; reconstructs notification fragments; validates the complete frame checksum; and reports raw command-byte counts, body lengths, ATT frame ranges, and capture-relative timestamps.
+
+Only captured ATT Write Requests, Write Commands, Notifications, and Indications are considered. Invalid candidates and streams still incomplete at the end of the capture are counted separately. The optional exported `protocolEnvelopeAnalysis` contains metadata only; the raw ATT values remain controlled by the existing payload-inclusion toggle.
+
+This is a diagnostic aid, not a command decoder. It does not map command IDs to reads, parameter edits, saves, imports, or acknowledgements. It does not build or transmit frames.

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../device/btsnoop_capture.dart';
+import '../device/kpt_pro_frame_analyzer.dart';
 
 class KptProHciCapturePanel extends StatefulWidget {
   const KptProHciCapturePanel({super.key});
@@ -75,12 +76,16 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
     final capture = _capture;
     final selectedId = _selectedSessionId;
     if (capture == null || selectedId == null) return;
-    final json = const JsonEncoder.withIndent('  ').convert(
-      capture.toJson(
-        sessionId: selectedId,
-        includePayload: _includePayload,
-      ),
+    final report = capture.toJson(
+      sessionId: selectedId,
+      includePayload: _includePayload,
     );
+    if (_includePayload) {
+      report['protocolEnvelopeAnalysis'] = KptProFrameAnalyzer.analyze(
+        capture.eventsForSession(selectedId),
+      ).toJson();
+    }
+    final json = const JsonEncoder.withIndent('  ').convert(report);
     await Clipboard.setData(ClipboardData(text: json));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -103,6 +108,9 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
     final selectedEvents = selectedSession == null
         ? const <KptBleAttEvent>[]
         : capture!.eventsForSession(selectedSession.id);
+    final frameAnalysis = selectedSession == null
+        ? null
+        : KptProFrameAnalyzer.analyze(selectedEvents);
     final writes = selectedEvents.where((event) => event.isWrite).length;
     final notifications =
         selectedEvents.where((event) => event.isNotification).length;
@@ -309,6 +317,10 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
                       text: 'No ATT packets were found for this connection. The selected log may begin after the connection was established or contain only Bluetooth audio traffic.',
                     ),
                   ),
+                if (frameAnalysis != null) ...[
+                  const SizedBox(height: 12),
+                  _KptFrameAnalysisPanel(analysis: frameAnalysis),
+                ],
                 if (selectedSession != null) ...[
                   const SizedBox(height: 8),
                   CheckboxListTile(
@@ -352,6 +364,96 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+class _KptFrameAnalysisPanel extends StatelessWidget {
+  const _KptFrameAnalysisPanel({required this.analysis});
+
+  final KptProFrameAnalysis analysis;
+
+  @override
+  Widget build(BuildContext context) {
+    final recentFrames = analysis.frames.reversed.take(5).toList();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF20262E),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF46515E)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'OBSERVED 00 59 FRAME ENVELOPE',
+            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Read-only parsing of captured ATT values. Command bytes are shown as raw identifiers, not interpreted operations.',
+            style: TextStyle(color: Color(0xFF9AA4B2), fontSize: 10, height: 1.35),
+          ),
+          const SizedBox(height: 9),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              _CaptureMetric('${analysis.completeFrameCount}', 'Valid frames'),
+              _CaptureMetric('${analysis.invalidFrameCount}', 'Invalid candidates'),
+              _CaptureMetric('${analysis.incompleteStreamCount}', 'Incomplete streams'),
+            ],
+          ),
+          if (analysis.commandSummaries.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text(
+              'Raw command counts',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 5),
+            for (final summary in analysis.commandSummaries.take(8))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '${summary.direction.label} · ${summary.attributeHandleLabel} · CMD ${summary.commandIdHex} × ${summary.count}',
+                  style: const TextStyle(color: Color(0xFFD3DAE3), fontSize: 10),
+                ),
+              ),
+          ],
+          if (recentFrames.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Latest capture positions',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 5),
+            for (final frame in recentFrames)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  'ATT ${frame.firstFrameNumber}–${frame.lastFrameNumber} · ${frame.commandIdHex} · ${frame.bodyLength} B · ${frame.fragmentCount} value(s)',
+                  style: const TextStyle(color: Color(0xFFD3DAE3), fontSize: 10),
+                ),
+              ),
+          ],
+          if (analysis.completeFrameCount == 0)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'No complete 00 59 frames were found in this selected connection. Confirm the selected connection and that its capture includes the vendor data stream.',
+                style: TextStyle(color: Color(0xFFFFC078), fontSize: 10, height: 1.35),
+              ),
+            ),
+          const SizedBox(height: 7),
+          const Text(
+            'This analysis does not identify parameter IDs, preset slots, acknowledgements, or command meanings. It never replays or sends frames.',
+            style: TextStyle(color: Color(0xFF9AA4B2), fontSize: 10, height: 1.35),
+          ),
+        ],
       ),
     );
   }

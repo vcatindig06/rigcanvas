@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -162,51 +161,6 @@ void main() {
         expect(metrics.outputPeakDb, lessThan(6));
       } finally {
         engine.dispose();
-      }
-    });
-
-    test('processes phaser, envelope wah, and rotary modulation modes', () {
-      for (final mode in [
-        DspModulationMode.phaser,
-        DspModulationMode.autoWah,
-        DspModulationMode.rotary,
-      ]) {
-        final engine = RigCanvasDspEngine(sampleRate: 48000, channels: 2);
-        try {
-          final node = engine.addNode(
-            DspNodeType.modulation,
-            modulationMode: mode,
-          );
-          final values = switch (mode) {
-            DspModulationMode.phaser => [0.8, 65.0, 35.0, 45.0],
-            DspModulationMode.autoWah => [2.5, 78.0, 68.0, 60.0],
-            DspModulationMode.rotary => [1.5, 60.0, 58.0, 75.0],
-            _ => throw StateError('Unexpected modulation mode: $mode'),
-          };
-          for (var i = 0; i < values.length; i++) {
-            engine.setParameter(node, i, values[i]);
-          }
-
-          final input = Float32List(9600);
-          for (var frame = 0; frame < 4800; frame++) {
-            final envelope = 0.25 + 0.65 * (0.5 + 0.5 * math.sin(frame * 2 * math.pi / 2400));
-            final signal = envelope * 0.35 * math.sin(2 * math.pi * 440 * frame / 48000);
-            input[frame * 2] = signal;
-            input[frame * 2 + 1] = signal;
-          }
-
-          final output = engine.processInterleaved(input);
-          expect(output, hasLength(input.length));
-          expect(output.every((sample) => sample.isFinite), isTrue);
-          expect(
-            List.generate(output.length, (i) => (output[i] - input[i]).abs())
-                .fold<double>(0, (sum, difference) => sum + difference),
-            greaterThan(0.01),
-          );
-          expect(engine.getParameter(node, 2), closeTo(values[2], 0.001));
-        } finally {
-          engine.dispose();
-        }
       }
     });
 

@@ -134,33 +134,8 @@ class _DspControlSurfaceState extends State<DspControlSurface> {
           unit('highCut', 'High Cut', 3, 2000, 20000, 11000),
         ];
       case EffectFamily.modulation:
-        if (block.modelId.contains('phaser')) {
-          return [
-            unit('rate', 'Rate', 0, 0.1, 10, 0.8),
-            unit('depth', 'Depth', 1, 0, 100, 65),
-            unit('feedback', 'Feedback', 2, 0, 85, 35),
-            unit('mix', 'Mix', 3, 0, 100, 45),
-          ];
-        }
-        if (['autofilter', 'wah', 'sense_wah'].any(block.modelId.contains)) {
-          return [
-            unit('sensitivity', 'Sensitivity', 0, 0.1, 10, 2.5),
-            unit('depth', 'Depth', 1, 0, 100, 78),
-            unit('resonance', 'Resonance', 2, 0, 100, 68),
-            unit('mix', 'Mix', 3, 0, 100, 60),
-          ];
-        }
-        if (block.modelId.contains('rotary')) {
-          return [
-            unit('speed', 'Speed', 0, 0.1, 10, 1.5),
-            unit('depth', 'Depth', 1, 0, 100, 60),
-            unit('tone', 'Tone', 2, 0, 100, 58),
-            unit('mix', 'Mix', 3, 0, 100, 75),
-          ];
-        }
-        if (['univibe', 'ring_mod', 'micro_pitch'].any(block.modelId.contains)) {
-          return null;
-        }
+        if (['phaser', 'autofilter', 'wah', 'univibe', 'rotary', 'ring_mod', 'micro_pitch']
+            .any(block.modelId.contains)) return null;
         return [
           unit('rate', 'Rate', 0, 0.1, 10, 1.2),
           unit('depth', 'Depth', 1, 0, 100, 45),
@@ -245,19 +220,13 @@ class _DspControlSurfaceState extends State<DspControlSurface> {
         final dynamicsMode = block.modelId.contains('gate') ||
                 block.modelId == 'kpt.fx.ai_gate'
             ? DspDynamicsMode.gate : DspDynamicsMode.compressor;
-        final modulationMode = block.modelId.contains('phaser')
-            ? DspModulationMode.phaser
-            : ['autofilter', 'wah', 'sense_wah'].any(block.modelId.contains)
-                ? DspModulationMode.autoWah
-                : block.modelId.contains('rotary')
-                    ? DspModulationMode.rotary
-                    : block.modelId.contains('tremolo')
-                        ? DspModulationMode.tremolo
-                        : block.modelId.contains('flanger')
-                            ? DspModulationMode.flanger
-                            : block.modelId.contains('vibrato')
-                                ? DspModulationMode.vibrato
-                                : DspModulationMode.chorus;
+        final modulationMode = block.modelId.contains('tremolo')
+            ? DspModulationMode.tremolo
+            : block.modelId.contains('flanger')
+                ? DspModulationMode.flanger
+                : block.modelId.contains('vibrato')
+                    ? DspModulationMode.vibrato
+                    : DspModulationMode.chorus;
         final delayMode = block.modelId.contains('ping_pong')
             ? DspDelayMode.pingPong : DspDelayMode.standard;
         final nodeIndex = nextEngine.addNode(

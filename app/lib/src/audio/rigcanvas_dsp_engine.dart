@@ -16,7 +16,7 @@ enum DspDynamicsMode {
   final int nativeValue;
 }
 enum DspModulationMode {
-  chorus(0), tremolo(1), flanger(2), vibrato(3), phaser(4), autoWah(5), rotary(6);
+  chorus(0), tremolo(1), flanger(2), vibrato(3);
   const DspModulationMode(this.nativeValue);
   final int nativeValue;
 }

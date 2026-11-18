@@ -100,6 +100,7 @@
 ### Patch read / edit / save / import implementation
 
 - [x] Reverse-engineer and document the outer KPT Pro frame envelope, little-endian body length, body checksum, and BLE-notification fragmentation using the 2026-11-17 payload capture; add a pure Dart parser/reassembler and regression tests. This establishes framing only, not command semantics.
+- [x] Integrate read-only frame-envelope analysis into the selected HCI capture session, preserving per-direction/per-handle stream boundaries and exposing raw command counts plus capture positions only.
 - [ ] Create a KPT-specific patch domain model from decoded device data. Preserve unknown fields and raw bytes so a read → save → read cycle does not discard unsupported settings.
 - [ ] Implement read-only device identity, capability reporting, preset-slot listing, and complete patch download first.
 - [ ] Build a hardware patch editor for the actual module order, enabled state, factory model selection, and per-model parameter names / values / units. Do not reuse generic RigCanvas DSP parameter scales as KPT Pro hardware values.
