@@ -235,3 +235,11 @@ A milestone is not complete because the UI exists. It must include:
 - Added generic modulation, delay, reverb, and EQ processing nodes to the shared C++ core; specialized unsupported variants remain explicitly skipped.
 - Updated UI messaging to distinguish loaded CAB WAVs, generic processing, and still-unavailable live audio/KPT Pro functionality.
 - GitHub Actions run [#90](https://github.com/vcatindig06/rigcanvas/actions/runs/43833693025) passed static analysis and all 80 Flutter tests, built and uploaded the Android APK with SHA-256 verification, and built and uploaded the Windows release. Manual Android/Windows smoke tests, DSP quality/performance tests, and live audio I/O remain outstanding.
+
+### DSP implementation log — 2026-11-18
+
+- Extended the shared native DSP modulation node with a four-stage all-pass phaser, envelope-responsive wah/autofilter, and a stereo-offset rotary-speaker approximation.
+- Added dedicated software-control labels and parameter mapping for phaser feedback, wah sensitivity/resonance, and rotary speed, while keeping the existing preset model IDs and native DSP ABI v3 stable.
+- Added regression coverage that processes a modulated stereo test signal through all three modes, checks finite output and non-identity processing, and verifies native parameter readback.
+- These are generic RigCanvas software effects shared by Android and Windows; they do not claim to reproduce KPT Pro factory algorithms or expression-pedal control.
+- **Next DSP focus:** implement and test distinct delay variants (ducking, tape-style, lo-fi, and dual) and specialized reverb algorithms only with documented control mappings and deterministic signal tests. Keep live audio I/O and physical KPT Pro writes disabled until their separate safety/performance gates are met.

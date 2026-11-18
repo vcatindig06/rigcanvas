@@ -14,12 +14,12 @@ The version-2 native C ABI exposes a bounded graph of up to 32 ordered nodes:
 - **Drive:** soft-clipping overdrive with gain, tone, level, and blend.
 - **Amplifier:** generic saturation with low, mid, high, presence, and master shaping.
 - **Cabinet:** FIR convolution with a mono IR shared across outputs or an independent stereo IR. Low cut, high cut, level, and dry/wet mix are provided.
-- **Modulation:** generic chorus / vibrato / flanger delay modulation and tremolo amplitude modulation.
+- **Modulation:** chorus, vibrato, flanger, tremolo, a four-stage all-pass phaser with feedback, an envelope-responsive state-variable wah/autofilter, and a stereo-offset rotary-speaker approximation.
 - **Delay:** standard delay and stereo ping-pong modes, with time, feedback, high-cut, and mix.
 - **Reverb:** a generic four-comb, damped room-style algorithm with decay, pre-delay, tone, and mix.
 - **EQ:** a generic four-band low / low-mid / high-mid / high equalizer with output level.
 
-The modulation implementation does not include phaser, wah/autofilter, Univibe, rotary, ring modulation, or pitch shifting. Specialized delay types such as reverse, ducking, tape, lo-fi, multi-tap, and granular are not implemented as their named algorithms. The generic reverb is not a spring, shimmer, cloud, swell, plate, or cathedral emulation. Unsupported catalog entries remain visibly skipped in the Audio page rather than being presented as completed algorithms.
+The modulation implementation now includes generic phaser, envelope-wah/autofilter, and rotary-speaker prototypes, but these are not reproductions of KPT Pro factory algorithms. The wah is envelope-responsive; it is not driven by a physical expression pedal. Univibe, ring modulation, and pitch shifting remain unsupported. Specialized delay types such as reverse, ducking, tape, lo-fi, multi-tap, and granular are not implemented as their named algorithms. The generic reverb is not a spring, shimmer, cloud, swell, plate, or cathedral emulation. Unsupported catalog entries remain visibly skipped in the Audio page rather than being presented as completed algorithms.
 
 ## Cabinet WAV loading
 
@@ -64,7 +64,7 @@ The signal is not captured from a physical guitar, microphone, audio interface, 
 - Monitoring, input/output gain staging, callback scheduling, underrun reporting, and audio-thread safety.
 - NAM/AM2 amp-capture runtime.
 - Model-specific KPT Pro, Fractal, Quad Cortex, Helix, or Kemper algorithms.
-- Phaser, wah/autofilter, Univibe, rotary, pitch, expression, and specialized delay/reverb algorithms.
+- Univibe, ring modulation, pitch shifting, physical expression-pedal control, and specialized delay/reverb algorithms.
 - Splitters, mixers, parallel graph routing, sidechain, and tail management.
 - KPT Pro device discovery, protocol mapping, preset transfer, and hardware control.
 

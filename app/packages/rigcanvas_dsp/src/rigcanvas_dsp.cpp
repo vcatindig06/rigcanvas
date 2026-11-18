@@ -12,7 +12,7 @@ constexpr uint32_t kAbiVersion = 3, kMaxChannels = 2, kMaxNodes = 32, kMaxIrFram
 constexpr float kPi = 3.14159265358979323846f, kSilenceDb = -120.0f;
 enum NodeType : int32_t { kDynamics=1, kDrive=2, kAmplifier=3, kCabinet=4, kModulation=5, kDelay=6, kReverb=7, kEqualizer=8 };
 enum DynamicsMode : int32_t { kGate=0, kCompressor=1 };
-enum ModulationMode : int32_t { kChorus=0, kTremolo=1, kFlanger=2, kVibrato=3 };
+enum ModulationMode : int32_t { kChorus=0, kTremolo=1, kFlanger=2, kVibrato=3, kPhaser=4, kAutoWah=5, kRotary=6 };
 enum DelayMode : int32_t { kStandardDelay=0, kPingPongDelay=1 };
 
 float clampf(float v,float lo,float hi){return std::max(lo,std::min(v,hi));}
@@ -29,6 +29,8 @@ struct Node {
   std::array<float,kMaxChannels> cabLow{},cabHigh{};
   std::vector<float> modBuffer; uint32_t modFrames=0,modPosition=0; double phase=0;
   std::array<float,kMaxChannels> modTone{};
+  std::array<std::array<float,4>,kMaxChannels> phaserState{};
+  std::array<float,kMaxChannels> phaserFeedback{},wahEnvelope{},wahLow{},wahBand{};
   std::vector<float> delayBuffer; uint32_t delayFrames=0,delayPosition=0;
   std::array<float,kMaxChannels> delayTone{};
   std::vector<float> preDelay; uint32_t preFrames=0,prePosition=0;
@@ -87,14 +89,89 @@ float readFractional(const std::vector<float>& b,size_t base,uint32_t write,uint
   float pos=static_cast<float>(write)-delay;if(pos<0)pos+=size;float floorPos=std::floor(pos);uint32_t a=static_cast<uint32_t>(floorPos)%size,bb=(a+1)%size;float f=pos-floorPos;float va=b[base+a];return va+(b[base+bb]-va)*f;
 }
 void processMod(Node& n,float* x,uint32_t ch,uint32_t sr){
-  float rate=clampf(n.p[0],0.1f,10),depth=clampf(n.p[1]/100,0,1),tone=clampf(n.p[2]/100,0,1),mix=clampf(n.p[3]/100,0,1),lfo=static_cast<float>(std::sin(n.phase));
-  n.phase+=2.0*static_cast<double>(kPi)*rate/static_cast<double>(sr);if(n.phase>=2.0*static_cast<double>(kPi))n.phase-=2.0*static_cast<double>(kPi);
-  if(n.mode==kTremolo){float gain=1-depth*(0.5f-0.5f*lfo);for(uint32_t c=0;c<ch;++c)x[c]*=(1-mix)+mix*gain;return;}
-  float baseMs=n.mode==kFlanger?1.5f:12.0f,depthMs=n.mode==kFlanger?4.0f:10.0f;
-  float delay=clampf((baseMs+depthMs*depth*(0.5f+0.5f*lfo))*sr/1000.0f,1,static_cast<float>(n.modFrames-2));
-  float coef=lpCoefficient(700+tone*10000,sr);
-  for(uint32_t c=0;c<ch;++c){float dry=x[c];size_t base=static_cast<size_t>(c)*n.modFrames;n.modBuffer[base+n.modPosition]=dry;float wet=readFractional(n.modBuffer,base,n.modPosition,n.modFrames,delay);n.modTone[c]+=coef*(wet-n.modTone[c]);x[c]=dry*(1-mix)+n.modTone[c]*mix;}
+  const float rate=clampf(n.p[0],0.1f,10),depth=clampf(n.p[1]/100,0,1),tone=clampf(n.p[2]/100,0,1),mix=clampf(n.p[3]/100,0,1);
+  const float lfo=static_cast<float>(std::sin(n.phase));
+  if(n.mode==kTremolo){
+    const float gain=1.0f-depth*(0.5f-0.5f*lfo);
+    for(uint32_t c=0;c<ch;++c)x[c]*=(1-mix)+mix*gain;
+    n.phase+=2.0*static_cast<double>(kPi)*rate/static_cast<double>(sr);
+    if(n.phase>=2.0*static_cast<double>(kPi))n.phase-=2.0*static_cast<double>(kPi);
+    return;
+  }
+  if(n.mode==kPhaser){
+    const float sweepHz=250.0f+2600.0f*depth*(0.5f+0.5f*lfo);
+    const float tangent=std::tan(kPi*sweepHz/static_cast<float>(sr));
+    const float coefficient=(1.0f-tangent)/(1.0f+tangent);
+    const float feedback=clampf(n.p[2]/100.0f,0.0f,0.85f);
+    for(uint32_t c=0;c<ch;++c){
+      const float dry=x[c];
+      float value=dry+n.phaserFeedback[c]*feedback;
+      for(uint32_t stage=0;stage<4;++stage){
+        const float y=coefficient*value+n.phaserState[c][stage];
+        n.phaserState[c][stage]=value-coefficient*y;
+        value=y;
+      }
+      n.phaserFeedback[c]=value;
+      const float wet=0.5f*(dry+value);
+      x[c]=dry*(1.0f-mix)+wet*mix;
+    }
+    n.phase+=2.0*static_cast<double>(kPi)*rate/static_cast<double>(sr);
+    if(n.phase>=2.0*static_cast<double>(kPi))n.phase-=2.0*static_cast<double>(kPi);
+    return;
+  }
+  if(n.mode==kAutoWah){
+    const float sensitivity=clampf(n.p[0],0.1f,10.0f);
+    const float resonance=clampf(n.p[2]/100.0f,0.0f,1.0f);
+    const float damping=2.0f-1.65f*resonance;
+    for(uint32_t c=0;c<ch;++c){
+      const float dry=x[c],detector=std::abs(dry);
+      const float envCoeff=smoothCoefficient(detector>n.wahEnvelope[c]?8.0f:120.0f,sr);
+      n.wahEnvelope[c]=envCoeff*n.wahEnvelope[c]+(1.0f-envCoeff)*detector;
+      const float envelope=clampf(n.wahEnvelope[c]*sensitivity*0.35f,0.0f,1.0f);
+      const float frequency=300.0f+2200.0f*depth*envelope;
+      const float f=clampf(2.0f*std::sin(kPi*frequency/static_cast<float>(sr)),0.001f,0.95f);
+      n.wahLow[c]+=f*n.wahBand[c];
+      const float high=dry-n.wahLow[c]-damping*n.wahBand[c];
+      n.wahBand[c]+=f*high;
+      const float wet=n.wahBand[c]*1.8f;
+      x[c]=dry*(1.0f-mix)+wet*mix;
+    }
+    return;
+  }
+  if(n.mode==kRotary){
+    const float coef=lpCoefficient(700.0f+tone*10000.0f,sr);
+    for(uint32_t c=0;c<ch;++c){
+      const float dry=x[c];
+      const float channelPhase=static_cast<float>(n.phase)+(c==0?0.0f:kPi);
+      const float channelLfo=std::sin(channelPhase);
+      const float delayMs=0.3f+1.8f*depth*(0.5f+0.5f*channelLfo);
+      const float delay=clampf(delayMs*sr/1000.0f,1.0f,static_cast<float>(n.modFrames-2));
+      const size_t base=static_cast<size_t>(c)*n.modFrames;
+      n.modBuffer[base+n.modPosition]=dry;
+      const float delayed=readFractional(n.modBuffer,base,n.modPosition,n.modFrames,delay);
+      n.modTone[c]+=coef*(delayed-n.modTone[c]);
+      const float rotorGain=0.82f+0.18f*(0.5f+0.5f*channelLfo);
+      x[c]=dry*(1.0f-mix)+n.modTone[c]*rotorGain*mix;
+    }
+    n.modPosition=(n.modPosition+1)%n.modFrames;
+    n.phase+=2.0*static_cast<double>(kPi)*rate/static_cast<double>(sr);
+    if(n.phase>=2.0*static_cast<double>(kPi))n.phase-=2.0*static_cast<double>(kPi);
+    return;
+  }
+  const float baseMs=n.mode==kFlanger?1.5f:12.0f,depthMs=n.mode==kFlanger?4.0f:10.0f;
+  const float delay=clampf((baseMs+depthMs*depth*(0.5f+0.5f*lfo))*sr/1000.0f,1.0f,static_cast<float>(n.modFrames-2));
+  const float coef=lpCoefficient(700.0f+tone*10000.0f,sr);
+  for(uint32_t c=0;c<ch;++c){
+    const float dry=x[c];
+    const size_t base=static_cast<size_t>(c)*n.modFrames;
+    n.modBuffer[base+n.modPosition]=dry;
+    const float wet=readFractional(n.modBuffer,base,n.modPosition,n.modFrames,delay);
+    n.modTone[c]+=coef*(wet-n.modTone[c]);
+    x[c]=dry*(1.0f-mix)+n.modTone[c]*mix;
+  }
   n.modPosition=(n.modPosition+1)%n.modFrames;
+  n.phase+=2.0*static_cast<double>(kPi)*rate/static_cast<double>(sr);
+  if(n.phase>=2.0*static_cast<double>(kPi))n.phase-=2.0*static_cast<double>(kPi);
 }
 void processDelay(Node& n,float* x,uint32_t ch,uint32_t sr){
   uint32_t delay=std::max(1U,std::min(n.delayFrames-1,static_cast<uint32_t>(clampf(n.p[0],1,2000)*sr/1000)));
@@ -151,7 +228,7 @@ void rg_engine_destroy(void* p){delete engineOf(p);}
 int32_t rg_engine_add_node(void* p,int32_t type,int32_t mode,int32_t enabled){
   Engine* e=engineOf(p);if(!e||e->nodes.size()>=kMaxNodes)return -1;if(type<kDynamics||type>kEqualizer)return -2;
   if(type==kDynamics&&mode!=kGate&&mode!=kCompressor)return -3;
-  if(type==kModulation&&(mode<kChorus||mode>kVibrato))return -4;
+  if(type==kModulation&&(mode<kChorus||mode>kRotary))return -4;
   if(type==kDelay&&mode!=kStandardDelay&&mode!=kPingPongDelay)return -5;
   if(type!=kDynamics&&type!=kModulation&&type!=kDelay&&mode!=0)return -6;
   try{e->nodes.emplace_back(type,mode,enabled!=0,e->channels,e->sampleRate);return static_cast<int32_t>(e->nodes.size()-1);}catch(...){return -7;}
