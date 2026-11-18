@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/preset_repository.dart';
@@ -276,6 +278,23 @@ class PresetController extends ChangeNotifier {
       throw const FormatException('There is no active preset to export.');
     }
     return PresetCodec.encode(current);
+  }
+
+  /// Exports all local presets, scenes, and Grid layouts in RigCanvas format.
+  /// Asset IDs are retained; actual NAM/AM2/IR files are not embedded.
+  /// This is not a native KPT Pro device backup or patch format.
+  String exportPresetLibraryBackupJson() {
+    if (_presets.isEmpty) {
+      throw const FormatException('There are no local presets to back up.');
+    }
+    return const JsonEncoder.withIndent('  ').convert({
+      'format': 'rigcanvas-preset-library-backup',
+      'backupSchemaVersion': 1,
+      'presetSchemaVersion': currentPresetSchemaVersion,
+      'createdAt': DateTime.now().toUtc().toIso8601String(),
+      'presets': _presets.map((preset) => preset.toJson()).toList(),
+      'assetFilesIncluded': false,
+    });
   }
 
   Future<void> _replaceActivePreset(RigPreset updatedPreset) async {

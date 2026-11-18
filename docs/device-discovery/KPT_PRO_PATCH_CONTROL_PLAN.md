@@ -82,6 +82,26 @@ RigCanvas now includes an optional **passive vendor-notification monitor**. Afte
 
 A second non-capture avenue is static inspection of an officially distributed M-EFCS APK/desktop package for public resource names, device identifiers, model tables, and protocol call structure. RigCanvas must use independently implemented interoperability code and must not copy proprietary app code or redistribute factory preset dumps. A package can be analyzed only when its binary itself is available; public store metadata does not disclose its internal protocol implementation.
 
+## Capture-free implementation milestone — 2026-11-18
+
+The Control Center now has a supported workflow that can advance without another BTSnoop/HCI capture:
+
+- **Local preset-library backup:** RigCanvas exports every local preset, scene snapshot, and Grid layout into one RigCanvas JSON backup. The schema version is recorded, and imported asset payload files are explicitly marked as not included. This is a local recovery copy only; it is not a KPT Pro backup, is not accepted by M-EFCS as a native patch, and does not contain NAM/AM2/IR file contents.
+- **Write-readiness preview:** a metadata-only planner summarizes the selected local preset and lists protocol, native-schema, transaction, recovery, and test-fixture blockers. It does not generate bytes and has no hardware-write method.
+- **Control Center UX:** a new Settings entry provides the local-backup action, a visible hardware-write lock, manual hardware references, and capture-free investigation routes. The same Flutter screen is shared by Android and Windows.
+- **No protocol borrowing:** Tank-G Control Center is used only as a workflow reference (preset organization, backups, before/after review, and explicit transfer status). Its f1/f2 layout remains a comparison hypothesis only; no Tank-G memory IDs, address units, preset schema, command IDs, or write transaction is copied.
+
+### Capture-free route order
+
+1. **Passive BLE observation:** use the existing BLE discovery and opt-in notification monitor. It sends no vendor request and may collect unsolicited state/catalog notifications only; it cannot force a patch read if the pedal is request-driven.
+2. **Official M-EFCS package inspection:** when the exact owner-provided or officially distributed APK/desktop package is available, inspect non-secret resources, device identifiers, model tables, file extensions, and call structure. Record observations as observed/inferred/unknown. Implement independent interoperability code; do not copy M-EFCS code or redistribute proprietary preset content. This package has not been inspected in this milestone.
+3. **Native tone export analysis:** a genuine M-EFCS-exported whole-patch file can be analyzed without HCI. Preserve its original name, extension, and bytes. First identify whether it is a complete preset/tone, AM2 AMP data, or CAB IR. No native whole-patch fixture is currently available in the repository.
+4. **Manual UI parameter inventory:** record each hardware module/model, displayed parameter label, unit, and range. This informs a separate KPT Pro editor, but does not reveal command IDs or prove write support.
+
+### Current implemented boundary
+
+The Control Center exports a RigCanvas local preset-library backup and shows a metadata-only write-readiness preview. It cannot read device slots, download a hardware backup, translate a RigCanvas graph into a KPT Pro patch, encode vendor commands, save to the pedal, or import/export native KPT Pro tone files. Vendor writes remain disabled on Android and Windows.
+
 ## Required capture package
 
 Use the owner's working **M-EFCS Android v3.10.2311** and the physical KPT Pro. Capture with Android Bluetooth HCI snoop logging enabled before opening the connection. Select only the KPT Pro connection in RigCanvas's Android Bluetooth Trace Analyzer.
