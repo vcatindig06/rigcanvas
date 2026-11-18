@@ -75,7 +75,7 @@ void main() {
 
       expect(
         () => KptProProtocolFrame.parse(
-          [0x00, 0x59, 0x23, 0x20, 0x00, 0x00],
+          [0x00, 0x59, 0x23, 0x20, 0x00, 0x00, 0x00],
           maxBodyLength: 16,
         ),
         throwsA(isA<FormatException>().having(
