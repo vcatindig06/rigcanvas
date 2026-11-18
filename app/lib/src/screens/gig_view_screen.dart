@@ -294,7 +294,7 @@ class _GigViewScreenState extends State<GigViewScreen> {
                     ),
                     const SizedBox(width: 8),
                     PopupMenuButton<String>(
-                      tooltip: 'Setlist actions',
+                      tooltip: '',
                       onSelected: (action) {
                         if (action == 'rename') _renameSetlist(setlist);
                         if (action == 'delete') _deleteSetlist(setlist);
@@ -384,13 +384,14 @@ class _GigViewScreenState extends State<GigViewScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        tooltip: 'Load local rig',
+                                        tooltip: '',
                                         onPressed: preset == null
                                             ? null
                                             : () => _recallRig(song),
                                         icon: const Icon(Icons.play_arrow),
                                       ),
                                       PopupMenuButton<String>(
+                                        tooltip: '',
                                         onSelected: (action) {
                                           if (action == 'edit') _editSong(song);
                                           if (action == 'remove') _deleteSong(song);

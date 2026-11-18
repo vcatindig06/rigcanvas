@@ -166,7 +166,7 @@ class _EffectModelPickerDialogState extends State<EffectModelPickerDialog> {
                 suffixIcon: _searchController.text.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: 'Clear search',
+                        tooltip: '',
                         onPressed: () {
                           _searchController.clear();
                           setState(() {});

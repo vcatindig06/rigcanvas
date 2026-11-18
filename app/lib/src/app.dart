@@ -9,11 +9,9 @@ import 'data/asset_repository.dart';
 import 'data/preset_repository.dart';
 import 'data/setlist_repository.dart';
 import 'screens/asset_library_screen.dart';
-import 'screens/audio_engine_screen.dart';
-import 'screens/feature_placeholder_screen.dart';
-import 'screens/device_discovery_screen.dart';
 import 'screens/gig_view_screen.dart';
 import 'screens/preset_library_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'state/asset_controller.dart';
 import 'state/preset_controller.dart';
@@ -98,6 +96,17 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
           surfaceTintColor: Colors.transparent,
           centerTitle: false,
         ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFF11161C),
+          indicatorColor: const Color(0xFF263A33),
+          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>(
+            (states) => const IconThemeData(color: Color(0xFFFF7956), size: 22),
+          ),
+        ),
+        navigationRailTheme: const NavigationRailThemeData(
+          selectedIconTheme: IconThemeData(color: Color(0xFFFF7956)),
+          unselectedIconTheme: IconThemeData(color: Color(0xFFFF7956)),
+        ),
       ),
       home: RigCanvasShell(
         presetController: _presetController,
@@ -134,41 +143,11 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
   int _selectedIndex = 0;
 
   static const _destinations = <NavigationDestination>[
-    NavigationDestination(
-      icon: Icon(Icons.queue_music_outlined),
-      selectedIcon: Icon(Icons.queue_music),
-      label: 'Gig',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.account_tree_outlined),
-      selectedIcon: Icon(Icons.account_tree),
-      label: 'Workspace',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.library_music_outlined),
-      selectedIcon: Icon(Icons.library_music),
-      label: 'Presets',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.folder_open_outlined),
-      selectedIcon: Icon(Icons.folder_open),
-      label: 'Assets',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.graphic_eq_outlined),
-      selectedIcon: Icon(Icons.graphic_eq),
-      label: 'Audio',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.usb_outlined),
-      selectedIcon: Icon(Icons.usb),
-      label: 'Devices',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.settings_outlined),
-      selectedIcon: Icon(Icons.settings),
-      label: 'Settings',
-    ),
+    NavigationDestination(icon: Icon(Icons.queue_music), selectedIcon: Icon(Icons.queue_music), label: 'Gig'),
+    NavigationDestination(icon: Icon(Icons.account_tree), selectedIcon: Icon(Icons.account_tree), label: 'Workspace'),
+    NavigationDestination(icon: Icon(Icons.library_music), selectedIcon: Icon(Icons.library_music), label: 'Presets'),
+    NavigationDestination(icon: Icon(Icons.folder), selectedIcon: Icon(Icons.folder), label: 'Assets'),
+    NavigationDestination(icon: Icon(Icons.settings), selectedIcon: Icon(Icons.settings), label: 'Settings'),
   ];
 
   Widget _pageForIndex() {
@@ -196,25 +175,15 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
           controller: widget.assetController,
         );
       case 4:
-        return AudioEngineScreen(
-          key: const ValueKey('audio-engine'),
-          controller: widget.presetController,
+        return SettingsScreen(
+          key: const ValueKey('settings'),
+          presetController: widget.presetController,
           assetController: widget.assetController,
-        );
-      case 5:
-        return DeviceDiscoveryScreen(
-          key: const ValueKey('devices'),
-          inventory: widget.usbInventory,
+          usbInventory: widget.usbInventory,
           hardwareGateway: widget.hardwareGateway,
         );
       default:
-        return const FeaturePlaceholderScreen(
-          key: ValueKey('settings'),
-          title: 'Settings',
-          description:
-              'Connection preferences, audio settings, appearance, and diagnostics will live here.',
-          icon: Icons.settings_outlined,
-        );
+        return const SizedBox.shrink();
     }
   }
 

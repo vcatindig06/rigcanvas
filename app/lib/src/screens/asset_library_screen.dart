@@ -264,7 +264,7 @@ class _AssetLibraryScreenState extends State<AssetLibraryScreen> {
                   suffixIcon: _searchController.text.isEmpty
                       ? null
                       : IconButton(
-                          tooltip: 'Clear search',
+                          tooltip: '',
                           onPressed: () {
                             _searchController.clear();
                             setState(() {});
@@ -393,7 +393,7 @@ class _AssetCard extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: asset.isFavorite ? 'Remove favorite' : 'Add favorite',
+                  tooltip: '',
                   onPressed: onFavorite,
                   icon: Icon(
                     asset.isFavorite ? Icons.star : Icons.star_border,
@@ -403,7 +403,7 @@ class _AssetCard extends StatelessWidget {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  tooltip: 'Asset actions',
+                  tooltip: '',
                   onSelected: (value) {
                     if (value == 'edit') onEdit();
                     if (value == 'delete') onDelete();

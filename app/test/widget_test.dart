@@ -92,6 +92,7 @@ void main() {
 
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).destinations, hasLength(5));
 
     await tester.tap(find.text('Workspace'));
     await tester.pumpAndSettle();
@@ -109,17 +110,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Gig View'), findsOneWidget);
 
-    await tester.tap(find.text('Devices'));
-    await tester.pumpAndSettle();
-    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
-
-    await tester.tap(find.text('Devices'));
-    await tester.pumpAndSettle();
-    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
-
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Connection preferences, audio settings, appearance, and diagnostics will live here.'), findsOneWidget);
+    expect(find.text('Audio'), findsOneWidget);
+    expect(find.text('Devices'), findsOneWidget);
+
+    await tester.tap(find.text('Devices'));
+    await tester.pumpAndSettle();
+    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+    expect(find.text('Software Audio Engine'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     tester.view.physicalSize = const Size(1280, 900);
     await tester.pumpAndSettle();
@@ -145,7 +151,17 @@ void main() {
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Connection preferences, audio settings, appearance, and diagnostics will live here.'), findsOneWidget);
+    expect(find.text('Devices'), findsOneWidget);
+    await tester.tap(find.text('Devices'));
+    await tester.pumpAndSettle();
+    expect(find.text('KPT Pro Hardware Discovery'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Audio'));
+    await tester.pumpAndSettle();
+    expect(find.text('Software Audio Engine'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
@@ -173,6 +189,9 @@ void main() {
     expect(find.text('KPT Pro · Disconnected'), findsOneWidget);
     expect(find.text('SIMULATION'), findsOneWidget);
     expect(find.text('Input Gate'), findsOneWidget);
+    expect(find.byKey(const ValueKey('block-art-gate')), findsOneWidget);
+    expect(find.byKey(const ValueKey('block-art-amplifier')), findsOneWidget);
+    expect(find.byKey(const ValueKey('block-art-cabinet')), findsOneWidget);
   });
 
   testWidgets('creates a setlist and adds a song in Gig View', (tester) async {
@@ -653,7 +672,7 @@ void main() {
 
     expect(find.text('Missing asset reference'), findsOneWidget);
     expect(
-      find.textContaining('Linked asset missing or incompatible with this block'),
+      find.text('ASSET?'),
       findsOneWidget,
     );
     final saveWithInvalidReference = tester.widget<FilledButton>(
@@ -712,6 +731,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Settings'));
+
+
+    await tester.pumpAndSettle();
+
 
     await tester.tap(find.text('Audio'));
     await tester.pumpAndSettle();
@@ -780,6 +805,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Settings'));
+
+
+    await tester.pumpAndSettle();
+
 
     await tester.tap(find.text('Audio'));
     await tester.pumpAndSettle();

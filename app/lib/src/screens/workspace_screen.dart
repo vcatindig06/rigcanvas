@@ -327,7 +327,7 @@ class _WorkspaceHeader extends StatelessWidget {
         _InfoPill(label: '${preset.scenes.length} SCENES'),
         const _SimulationPill(),
         PopupMenuButton<String>(
-          tooltip: 'Select preset',
+          tooltip: '',
           onSelected: onSelectPreset,
           itemBuilder: (context) => presets
               .map((item) => PopupMenuItem<String>(
@@ -745,10 +745,11 @@ class _GridEffectCard extends StatelessWidget {
                   )
                 else if (allowEdit)
                   PopupMenuButton<String>(
+                    tooltip: '',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 130),
                     iconSize: 16,
-                    tooltip: 'Block options',
+                    tooltip: '',
                     onSelected: (value) {
                       if (value == 'edit') onEdit();
                       if (value == 'remove') onRemove();
@@ -968,7 +969,7 @@ class _ScenePad extends StatelessWidget {
                 height: 21,
                 child: IconButton(
                   padding: EdgeInsets.zero,
-                  tooltip: 'Delete ${scene!.name}',
+                  tooltip: '',
                   onPressed: onDelete,
                   icon: const Icon(Icons.close, size: 12),
                 ),
