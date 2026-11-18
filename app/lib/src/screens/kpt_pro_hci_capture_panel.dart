@@ -128,6 +128,13 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
         : capture!.descriptorDiscoveryBySession[selectedSession.id] ??
             const <String, Object?>{};
     final descriptorCount = descriptorMap.length;
+    final eattBearers = selectedSession == null
+        ? const <KptBleEnhancedAttBearer>[]
+        : capture!.enhancedAttBearersBySession[selectedSession.id] ??
+            const <KptBleEnhancedAttBearer>[];
+    final eattEventCount = selectedEvents
+        .where((event) => event.attBearerType == 'Enhanced ATT bearer')
+        .length;
 
     return Card(
       child: Padding(
@@ -235,6 +242,8 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
                       _CaptureMetric('$attErrors', 'ATT errors'),
                       _CaptureMetric('$mtuRequests', 'MTU requests'),
                       _CaptureMetric('$descriptorCount', 'Descriptors'),
+                      _CaptureMetric('${eattBearers.length}', 'EATT bearers'),
+                      _CaptureMetric('$eattEventCount', 'EATT ATT events'),
                       _CaptureMetric(
                         '${selectedSession.startTimestampMicros} µs',
                         'Connection start offset',
@@ -264,6 +273,14 @@ class _KptProHciCapturePanelState extends State<KptProHciCapturePanel> {
                     child: _CaptureNotice(
                       color: Color(0xFFFFC078),
                       text: 'GATT discovery traffic is present, but no successful service/characteristic declaration map was captured. Attribute handles remain unmapped; capture the connection from before discovery or use a fresh GATT discovery session.',
+                    ),
+                  ),
+                if (selectedSession != null && eattBearers.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 9),
+                    child: _CaptureNotice(
+                      color: const Color(0xFF8ED8B5),
+                      text: 'Enhanced ATT channels were identified. Their ATT MTU comes from the negotiated L2CAP channel MTU; the report keeps each bearer and directional CID separate.',
                     ),
                   ),
                 if (selectedSession != null &&
