@@ -149,3 +149,20 @@ Write support remains disabled until:
 - Do not infer KPT Pro behavior from Tank-G/Tank-B packet captures.
 - Treat device dumps as potentially proprietary and as user data.
 - Keep private captures outside the public repository.
+
+## Phase 2.3 — Enhanced ATT bearer and L2CAP signaling analysis
+
+The parser now inspects LE L2CAP signaling traffic on CID 0x0005 and recognizes Enhanced Credit Based Connection Request/Response commands (codes 0x17/0x18) for the EATT fixed PSM 0x0027. On a successful response, source and destination CIDs are paired in request order and retained as one Enhanced ATT bearer. The report includes requester/responder receive MTU and MPS values, their effective minima, initial credits, directional CIDs, and the request identifier.
+
+ATT packets on established EATT dynamic CIDs are now routed through their matching bearer rather than being counted as unrelated non-ATT ACL traffic. The analyzer reassembles the L2CAP SDU from K-frames using the initial SDU Length field and tags each decoded ATT event with its L2CAP CID, bearer ID, and bearer type. L2CAP channel disconnection signaling removes the active CID mappings and pending partial SDUs. The existing fixed LE ATT channel (CID 0x0004) remains supported.
+
+The parser does not treat every dynamically allocated L2CAP channel as EATT: it only registers a channel when the EATT PSM 0x0027 negotiation succeeds. Rejected requests and unrelated PSMs do not create ATT bearers. The implementation is passive; it does not open channels or transmit signaling.
+
+**MTU interpretation update:** the Bluetooth Core Specification says the client ATT_EXCHANGE_MTU_REQ is sent only once during a connection, while the ATT_MTU of a dynamically allocated Enhanced ATT bearer is derived from the L2CAP channel MTU. Therefore an EATT bearer does not explain duplicate ATT MTU exchange PDUs on the fixed ATT channel. The analyzer now associates each ATT event with its bearer, groups repeated MTU requests by L2CAP CID and direction, and warns if an ATT MTU exchange is seen on an Enhanced ATT bearer. The previous payload-enabled owner report does not contain parsed L2CAP signaling metadata, so it remains unknown whether its capture established any EATT channels. Its two observed MTU requests still require raw HCI verification.
+
+This milestone adds tests for successful EATT setup and directional ATT traffic on the resulting CIDs, as well as a rejected EATT setup. It does not decode K-frame credit-control state, all L2CAP channel modes, or every possible ECFC edge case. It does not establish any KPT Pro vendor-command semantics.
+
+Specification references:
+- [Bluetooth Core v7.0, L2CAP §4.25–4.26](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v7.0/out/en/host/logicallinkcontrol-andadaptationprotocol-l2cap--specification.html) — Enhanced Credit Based Connection Request/Response.
+- [Bluetooth Core v7.0, GATT §5.3](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v7.0/out/en/host/genericattribute-profile-gatt--specification.html) — EATT channel establishment and MTU derivation.
+- [Bluetooth Core v7.0, ATT §3.2.8 and §3.4.2](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v7.0/out/en/host/attributeprotocol-att--specification.html) — MTU behavior and ATT exchange.
