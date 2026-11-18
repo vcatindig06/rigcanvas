@@ -65,7 +65,7 @@ A second read-only analysis pass found that the two recurring eight-byte phone-t
 - `04 00 00 00 20 38 00 00` → F1 `0x00000004`, F2 `0x00003820`; candidate fields memory `0x04`, 24-bit address `0x000000`, length `56`, space `2`.
 - `04 00 00 60 70 0A 00 00` → F1 `0x60000004`, F2 `0x00000A70`; candidate fields memory `0x04`, 24-bit address `0x600000`, length `10`, space `7`.
 
-This is a strong structural match, not confirmation of Tank-G semantics on KPT Pro. The parser/UI retain the entire words and full 24-bit address candidate, label every slice as a hypothesis, and do not call command `0x23` a read. The candidate extraction is covered by tests and included as metadata in the optional trace export.
+This is a strong structural match, not confirmation of Tank-G semantics on KPT Pro. The parser/UI retain the entire words and full 24-bit address candidate, apply the slices only to phone-to-pedal `0x23` ATT transfers, label every slice as a hypothesis, and do not call command `0x23` a read. The candidate extraction is covered by tests and included as metadata in the optional trace export.
 
 This result does not decode command semantics, preset slots, native patch storage, GATT UUID mapping, or write/commit behavior; the f1/f2 slices remain comparison-only candidates. The controlled action-correlated M-EFCS trace and native test export remain necessary before implementing even a device-side read operation.
 

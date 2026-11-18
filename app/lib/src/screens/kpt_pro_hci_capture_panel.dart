@@ -432,7 +432,7 @@ class _KptFrameAnalysisPanel extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Tank-G-style f1/f2 comparison only. These values are not confirmed KPT Pro memory fields and do not prove a read operation.',
+              'Phone-to-pedal traffic only; Tank-G-style f1/f2 comparison hypothesis. These values are not confirmed KPT Pro memory fields and do not prove a read operation.',
               style: TextStyle(color: Color(0xFFFFC078), fontSize: 10, height: 1.35),
             ),
             const SizedBox(height: 5),

@@ -61,7 +61,7 @@ Splitting each body into two 32-bit little-endian words produces the same *field
 
 The low nibble and upper 16 bits of the second word are zero in both examples, consistent with the comparison layout. This is a strong **structural protocol-family match**, but it does not establish that KPT Pro uses Tank-G memory IDs, address units, space meanings, request semantics, or the Tank-G preset map. The value `0x600000` is retained as a full 24-bit candidate; it is not truncated to a 16-bit address.
 
-RigCanvas now exposes the two raw words and these candidate slices in its offline trace analyzer and optional JSON export. The candidate is generated only for observed `0x23` frames with an eight-byte body. It is explicitly marked hypothesis-only. It does not label `0x23` as READ, identify preset slots, construct packets, or connect to BLE.
+RigCanvas now exposes the two raw words and these candidate slices in its offline trace analyzer and optional JSON export. The candidate is generated only for phone-to-pedal ATT value transfers with command byte `0x23` and an eight-byte body; identical pedal-to-phone notifications are deliberately excluded. It is explicitly marked hypothesis-only. It does not label `0x23` as READ, identify preset slots, construct packets, or connect to BLE.
 
 Reference used only for the comparison: [Tank-G Control Center](https://github.com/CamiloFerreira/tankg-control-center). Its protocol documentation applies to Tank-G hardware, not KPT Pro.
 

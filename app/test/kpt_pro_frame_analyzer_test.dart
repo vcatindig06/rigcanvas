@@ -281,9 +281,20 @@ void main() {
           handle: 0x0062,
           value: _makeFrame(0x23, [1, 2, 3, 4]),
         ),
+        _event(
+          frame: 3,
+          timestampMicros: 300,
+          direction: BtsnoopDirection.controllerToHost,
+          opcode: 0x1B,
+          handle: 0x0064,
+          value: _makeFrame(
+            0x23,
+            [0x04, 0x00, 0x00, 0x00, 0x20, 0x38, 0x00, 0x00],
+          ),
+        ),
       ]);
 
-      expect(analysis.frames, hasLength(2));
+      expect(analysis.frames, hasLength(3));
       expect(analysis.frames.every((frame) => frame.f1f2LayoutCandidate == null), isTrue);
       expect(analysis.f1f2CandidateSummaries, isEmpty);
     });

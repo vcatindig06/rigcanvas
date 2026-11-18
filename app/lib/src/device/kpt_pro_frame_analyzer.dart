@@ -295,7 +295,10 @@ class KptProFrameAnalyzer {
             firstTimestampMicros: firstEvent.relativeTimestampMicros,
             lastTimestampMicros: event.relativeTimestampMicros,
             fragmentCount: startsInEarlierEvent ? pendingFragments : 1,
-            f1f2LayoutCandidate: KptProF1F2LayoutCandidate.tryParse(parsed),
+            f1f2LayoutCandidate:
+                event.direction == BtsnoopDirection.hostToController
+                ? KptProF1F2LayoutCandidate.tryParse(parsed)
+                : null,
           ),
         );
       }
