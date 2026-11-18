@@ -400,7 +400,7 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
               ),
             ],
             const SizedBox(height: 8),
-              if (_report!.hasKptProVendorNotifyCharacteristic) ...[
+              if (connected && _report!.hasKptProVendorNotifyCharacteristic) ...[
                 const Divider(height: 18),
                 const Text(
                   'PASSIVE PEDAL NOTIFICATION MONITOR',
