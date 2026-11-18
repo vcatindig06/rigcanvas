@@ -113,3 +113,9 @@ Linked cabinet WAVs are loaded from the Asset Library for the offline test. The 
 These are generic RigCanvas prototypes, **not** emulations of KPT Pro factory algorithms or other manufacturers' DSP. The phaser, envelope wah/autofilter, and rotary effects are newly implemented generic algorithms; wah is envelope-responsive and is not controlled by a physical expression pedal. Catalog names remain labels; Univibe, ring modulation, pitch, ducking/reverse/tape/lo-fi delay, and spring/shimmer/cloud reverb remain unsupported and are explicitly skipped. The current linear-interpolation resampler and direct FIR convolution are not production-grade live-audio implementations.
 
 The engine is still offline: it does not capture a guitar or microphone, open an audio interface, or play through speakers/headphones. NAM/AM2 capture execution and KPT Pro device control remain unimplemented. See [DSP engine architecture](docs/architecture/DSP_ENGINE.md).
+
+## Current development priority — native KPT Pro patch control
+
+The next major milestone is the physical KPT Pro workflow: read device presets, edit hardware parameters, save a patch to the pedal, and import/export native tone files. Generic RigCanvas DSP work is paused until this workflow is verified on the owner's KPT Pro firmware baseline. The existing four-row/eight-slot Workspace and RigCanvas JSON preset files remain local software features; they are not a representation of the pedal's seven-module chain or a hardware patch transfer format.
+
+Implementation status and required evidence: [KPT Pro Patch Control plan](docs/device-discovery/KPT_PRO_PATCH_CONTROL_PLAN.md).

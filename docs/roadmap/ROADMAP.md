@@ -82,14 +82,43 @@
 - [ ] Reconfirm the selected connection's GATT declaration map so ATT handles can be mapped to AE41/AE42 within the same session.
 - [ ] Identify message framing, length fields, sequence/acknowledgement behavior and any fragmentation from payload evidence; do not replay packets or issue writes.
 
-## Milestone 3 — KPT Pro read-only editor
+## Milestone 3 — KPT Pro native patch control (current priority)
 
-- [ ] Device identity and firmware display.
-- [ ] Capability negotiation.
-- [ ] Read preset list and download a backup.
-- [ ] Parse only confirmed preset formats.
-- [ ] Compare local and device presets.
-- [ ] Add verified preset write support only after the hardware safety gate.
+**Product priority:** pause further catalog/DSP expansion and complete a genuine KPT Pro patch workflow first: read the pedal's patches, edit a real device patch, save it back, and import/export the pedal's native tone files. RigCanvas-local JSON presets are not KPT Pro patch files and must remain clearly separate.
+
+### Evidence and protocol gates
+
+- [ ] Capture a fresh complete M-EFCS connection from connect through disconnect, including successful service, characteristic, and descriptor discovery.
+- [ ] Correlate a controlled, single-parameter edit in M-EFCS with the exact outgoing and incoming ATT messages.
+- [ ] Correlate Save to a disposable user slot with its request, acknowledgement, and subsequent readback.
+- [ ] Correlate a native tone/preset export and import operation; preserve the exact source filename, extension, and original bytes.
+- [ ] Document vendor characteristic UUIDs, framing, message lengths, sequence/correlation fields, fragmentation, checksums, timeouts, acknowledgement behavior, and error responses as observed / inferred / unknown.
+- [ ] Confirm the exact 7-module hardware model (FX, AMP, MOD, DLY, REV, CAB, EXT), reordering rules, and the meaning of the manual's additional “7+1” wording. Do not map the local four-row/eight-slot Grid directly onto the pedal.
+- [ ] Confirm preset-slot numbering and factory/user boundaries on the physical firmware baseline; never assume an occupied slot is safe to overwrite.
+- [ ] Keep all device writes disabled until a valid backup, disposable test slot, verified transaction response, readback, and recovery procedure exist.
+
+### Patch read / edit / save / import implementation
+
+- [ ] Create a KPT-specific patch domain model from decoded device data. Preserve unknown fields and raw bytes so a read → save → read cycle does not discard unsupported settings.
+- [ ] Implement read-only device identity, capability reporting, preset-slot listing, and complete patch download first.
+- [ ] Build a hardware patch editor for the actual module order, enabled state, factory model selection, and per-model parameter names / values / units. Do not reuse generic RigCanvas DSP parameter scales as KPT Pro hardware values.
+- [ ] Implement local patch editing and a before/after change view without sending writes.
+- [ ] Add verified save-to-device and swap operations only after the protocol transaction and recovery gates above pass.
+- [ ] Add native KPT Pro tone-file import/export only after a real M-EFCS-exported sample establishes the container, version, checksum, and payload structure.
+- [ ] Treat AMP capture / AM2 data and CAB IR imports as separate file families from a complete preset/patch. Do not infer that “A2 support” names a file extension.
+- [ ] Verify read → export → import-to-test-slot → readback round trips on the owner's exact KPT Pro hardware and firmware, without altering factory slots.
+- [ ] Add fixtures from sanitized test-patch files, byte-preservation tests, malformed/truncated-file tests, parameter-range tests, transaction timeout/retry tests, and Android/Windows parity tests.
+
+### Current implementation boundary
+
+- RigCanvas can scan and inspect a BLE GATT profile and read allowlisted standard Device Information fields when exposed.
+- The current hardware gateway does not subscribe to the vendor notification characteristic, read vendor patch data, or send vendor writes.
+- The existing Preset Library imports/exports only the `rigcanvas-preset` JSON format. The UI explicitly warns that these files are not device presets.
+- The 2026-11-17 payload capture contains repeated writes and notifications, but no successful characteristic declaration map and no user-action correlation. The repeated byte patterns are not yet decoded commands. No packet may be replayed or repurposed as a guessed patch command.
+
+### Current blocker / required owner evidence
+
+See [KPT Pro Patch Control — Evidence and Implementation Plan](../device-discovery/KPT_PRO_PATCH_CONTROL_PLAN.md) for the controlled M-EFCS capture procedure and exact files needed to implement the real patch workflow.
 
 ## Milestone 4 — performance workflow
 
@@ -243,3 +272,10 @@ A milestone is not complete because the UI exists. It must include:
 - Added regression coverage that processes a modulated stereo test signal through all three modes, checks finite output and non-identity processing, and verifies native parameter readback.
 - These are generic RigCanvas software effects shared by Android and Windows; they do not claim to reproduce KPT Pro factory algorithms or expression-pedal control.
 - **Next DSP focus:** implement and test distinct delay variants (ducking, tape-style, lo-fi, and dual) and specialized reverb algorithms only with documented control mappings and deterministic signal tests. Keep live audio I/O and physical KPT Pro writes disabled until their separate safety/performance gates are met.
+
+### Priority change — 2026-11-18
+
+- Reprioritized the product around genuine KPT Pro patch control: read device slots, edit actual hardware parameters, save patches to the pedal, and import/export native tone data.
+- Paused further generic offline DSP expansion until the KPT Pro read/edit/save/import path has passed hardware verification.
+- Confirmed the distinction between RigCanvas JSON presets and KPT Pro device patches. The existing local import/export flow must not be labelled or treated as hardware synchronization.
+- The next implementation input is a fresh M-EFCS action-correlated BLE capture plus an exact M-EFCS-exported test patch file. No undocumented vendor writes will be sent before the request/response protocol and recovery path are verified.
