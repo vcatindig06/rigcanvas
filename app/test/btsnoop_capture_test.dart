@@ -105,6 +105,102 @@ void main() {
       expect(event.characteristicProperties, 0x1C);
     });
 
+    test('discovers an EATT bearer and parses ATT PDUs on its directional CIDs', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_l2capPacket([
+          0x17, 0x01, 0x0A, 0x00, // Credit Based Connection Request.
+          0x27, 0x00, // EATT PSM.
+          0x00, 0x01, // Requester receive MTU: 256.
+          0xFB, 0x00, // Requester receive MPS: 251.
+          0x10, 0x00, // Requester initial credits.
+          0x40, 0x00, // Requester source CID.
+        ], cid: 0x0005), flags: 0, timestamp: 1200),
+        _record(_l2capPacket([
+          0x18, 0x01, 0x0A, 0x00, // Credit Based Connection Response.
+          0xC8, 0x00, // Responder receive MTU: 200.
+          0xC8, 0x00, // Responder receive MPS: 200.
+          0x10, 0x00, // Responder initial credits.
+          0x00, 0x00, // Success.
+          0x41, 0x00, // Responder destination CID.
+        ], cid: 0x0005), flags: 1, timestamp: 1300),
+        _record(_l2capPacket([
+          0x04, 0x00, // L2CAP SDU length.
+          0x52, 0x01, 0x00, 0xAA, // ATT Write Command.
+        ], cid: 0x0041), flags: 0, timestamp: 1400),
+        _record(_l2capPacket([
+          0x04, 0x00, // L2CAP SDU length.
+          0x1B, 0x01, 0x00, 0xBB, // ATT Handle Value Notification.
+        ], cid: 0x0040), flags: 1, timestamp: 1500),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      final bearers = report['enhancedAttBearers'] as List<Object?>;
+      expect(bearers, hasLength(1));
+      final bearer = bearers.single as Map<String, Object?>;
+      expect(bearer['eattPsm'], '0x0027');
+      expect(bearer['requestSourceCid'], '0x0040');
+      expect(bearer['responseDestinationCid'], '0x0041');
+      expect(bearer['requestReceiveMtu'], 256);
+      expect(bearer['responseReceiveMtu'], 200);
+      expect(bearer['effectiveAttMtu'], 200);
+      expect(bearer['effectiveMps'], 200);
+
+      final events = report['attEvents'] as List<Object?>;
+      expect(events, hasLength(2));
+      final outbound = events[0] as Map<String, Object?>;
+      final inbound = events[1] as Map<String, Object?>;
+      expect(outbound['operation'], 'Write Command');
+      expect(outbound['l2capCid'], '0x0041');
+      expect(outbound['attBearerType'], 'Enhanced ATT bearer');
+      expect(outbound['attBearerId'], bearer['bearerId']);
+      expect(outbound.containsKey('attPduHex'), isFalse);
+      expect(inbound['operation'], 'Handle Value Notification');
+      expect(inbound['l2capCid'], '0x0040');
+      expect(inbound['attBearerType'], 'Enhanced ATT bearer');
+      expect(inbound['attBearerId'], bearer['bearerId']);
+
+      final summary = report['summary'] as Map<String, Object?>;
+      expect(summary['enhancedAttBearerCount'], 1);
+      expect(summary['enhancedAttEvents'], 2);
+    });
+
+    test('does not register a rejected EATT channel', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_l2capPacket([
+          0x17, 0x02, 0x0A, 0x00,
+          0x27, 0x00,
+          0x00, 0x01,
+          0xFB, 0x00,
+          0x10, 0x00,
+          0x40, 0x00,
+        ], cid: 0x0005), flags: 0, timestamp: 1200),
+        _record(_l2capPacket([
+          0x18, 0x02, 0x0A, 0x00,
+          0xC8, 0x00,
+          0xC8, 0x00,
+          0x10, 0x00,
+          0x02, 0x00, // SPSM not supported.
+          0x00, 0x00,
+        ], cid: 0x0005), flags: 1, timestamp: 1300),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      expect(report['enhancedAttBearers'], isEmpty);
+      expect((report['summary'] as Map)['enhancedAttBearerCount'], 0);
+    });
+
     test('maps a discovered CCCD descriptor to its characteristic', () {
       final capture = BtsnoopCaptureParser.parse(_capture([
         _record(_advertisement(), flags: 1, timestamp: 1000),
@@ -485,6 +581,25 @@ List<int> _uuid128Bytes(String uuid) {
       hex.substring((15 - index) * 2, (15 - index) * 2 + 2),
       radix: 16,
     ),
+  );
+}
+
+Uint8List _l2capPacket(
+  List<int> payload, {
+  required int cid,
+  int connectionHandle = 11,
+}) {
+  final l2cap = <int>[
+    payload.length & 0xFF,
+    (payload.length >> 8) & 0xFF,
+    cid & 0xFF,
+    (cid >> 8) & 0xFF,
+    ...payload,
+  ];
+  return _aclPacketRaw(
+    l2cap,
+    packetBoundary: 2,
+    connectionHandle: connectionHandle,
   );
 }
 
