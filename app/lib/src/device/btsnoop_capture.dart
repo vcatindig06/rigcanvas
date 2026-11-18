@@ -275,7 +275,7 @@ class KptProHciCapture {
   final List<KptBleAttEvent> attEvents;
   final Map<int, Map<String, Object?>> characteristicDiscoveryBySession;
   final Map<int, Map<String, Object?>> descriptorDiscoveryBySession;
-  final Map<int, List<_EattBearer>> enhancedAttBearersBySession;
+  final Map<int, List<KptBleEnhancedAttBearer>> enhancedAttBearersBySession;
   final int malformedHciPacketCount;
   final int nonAttAclPacketCount;
 
@@ -375,7 +375,7 @@ class KptProHciCapture {
   Map<String, Object?> _descriptorMapForSession(int sessionId) =>
       descriptorDiscoveryBySession[sessionId] ?? const {};
 
-  List<_EattBearer> _enhancedAttBearersForSession(int sessionId) =>
+  List<KptBleEnhancedAttBearer> _enhancedAttBearersForSession(int sessionId) =>
       enhancedAttBearersBySession[sessionId] ?? const [];
 
   List<String> _mtuProtocolWarnings(List<KptBleAttEvent> events) {
@@ -413,9 +413,9 @@ class _BtsnoopParserState {
   final List<KptBleAttEvent> _attEvents = [];
   final Map<String, _PendingL2cap> _pendingL2cap = {};
   final Map<String, _PendingEattRequest> _pendingEattRequests = {};
-  final Map<String, _EattBearer> _eattBearersByDirectionalCid = {};
+  final Map<String, KptBleEnhancedAttBearer> _eattBearersByDirectionalCid = {};
   final Map<String, _PendingEattSdu> _pendingEattSdus = {};
-  final Map<int, List<_EattBearer>> _sessionEattBearers = {};
+  final Map<int, List<KptBleEnhancedAttBearer>> _sessionEattBearers = {};
   int _nextEattBearerId = 1;
   final Map<int, _ConnectionAttributeTable> _attributeTables = {};
   final Map<int, _ConnectionAttributeTable> _sessionAttributeTables = {};
@@ -859,7 +859,7 @@ class _BtsnoopParserState {
       final sourceCid = request.sourceCids[index];
       final destinationCid = destinationCids[index];
       if (sourceCid == 0 || destinationCid == 0) continue;
-      final bearer = _EattBearer(
+      final bearer = KptBleEnhancedAttBearer(
         id: _nextEattBearerId++,
         connectionHandle: handle,
         sessionId: session.id,
@@ -993,7 +993,7 @@ class _BtsnoopParserState {
       for (final session in sessions)
         session.id: _sessionAttributeTables[session.id]?.descriptorJson() ?? const {},
     };
-    final enhancedAttBearersBySession = <int, List<_EattBearer>>{
+    final enhancedAttBearersBySession = <int, List<KptBleEnhancedAttBearer>>{
       for (final session in sessions)
         session.id: List.unmodifiable(_sessionEattBearers[session.id] ?? const []),
     };
@@ -1246,8 +1246,8 @@ class _PendingEattSdu {
   final List<int> bytes;
 }
 
-class _EattBearer {
-  const _EattBearer({
+class KptBleEnhancedAttBearer {
+  const KptBleEnhancedAttBearer({
     required this.id,
     required this.connectionHandle,
     required this.sessionId,
