@@ -762,7 +762,7 @@ class _GridEffectCard extends StatelessWidget {
                   ),
                 ),
                 if (block.assetId != null && asset == null)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(left: 3),
                     child: Semantics(
                       label: 'Linked asset missing or incompatible',
