@@ -69,6 +69,19 @@ This is a strong structural match, not confirmation of Tank-G semantics on KPT P
 
 This result does not decode command semantics, preset slots, native patch storage, GATT UUID mapping, or write/commit behavior; the f1/f2 slices remain comparison-only candidates. The controlled action-correlated M-EFCS trace and native test export remain necessary before implementing even a device-side read operation.
 
+## Alternative path when no new HCI capture is available
+
+RigCanvas now includes an optional **passive vendor-notification monitor**. After a fresh BLE connection and runtime GATT discovery, it checks for the reported AE40 service and AE42 characteristic. If AE42 advertises Notify or Indicate, the user can explicitly start monitoring.
+
+- The monitor listens for AE42 notification values and applies the existing offline `00 59` frame parser/reassembler.
+- Enabling a BLE notification subscription configures the characteristic's Client Characteristic Configuration Descriptor (CCCD). It does **not** send a KPT vendor command, read a vendor value, or write a preset.
+- Raw values and validated frame envelopes can be copied from the Devices screen. Command bytes remain uninterpreted.
+- Monitoring is opt-in, stops on disconnect, and does not transmit requests. It may reveal device-initiated model catalogs, state updates, or other unsolicited data if the firmware emits them.
+
+**Limit:** if the KPT Pro only sends patch data in response to an M-EFCS request, passive monitoring will not retrieve those patches. This route cannot replace request/response correlation, patch read, save, import, or export evidence.
+
+A second non-capture avenue is static inspection of an officially distributed M-EFCS APK/desktop package for public resource names, device identifiers, model tables, and protocol call structure. RigCanvas must use independently implemented interoperability code and must not copy proprietary app code or redistribute factory preset dumps. A package can be analyzed only when its binary itself is available; public store metadata does not disclose its internal protocol implementation.
+
 ## Required capture package
 
 Use the owner's working **M-EFCS Android v3.10.2311** and the physical KPT Pro. Capture with Android Bluetooth HCI snoop logging enabled before opening the connection. Select only the KPT Pro connection in RigCanvas's Android Bluetooth Trace Analyzer.

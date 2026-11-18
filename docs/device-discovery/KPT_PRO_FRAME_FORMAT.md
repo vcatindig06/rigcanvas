@@ -71,7 +71,7 @@ Reference used only for the comparison: [Tank-G Control Center](https://github.c
 
 Unframed notifications received while idle are ignored. A partial frame can be discarded with `reset()` after a disconnect. The parser enforces a configurable maximum body length (default 8192 bytes) before buffering an advertised body.
 
-The implementation has no BLE dependency and does not subscribe, read, write, replay, or construct a vendor command. The test helper that creates synthetic frames exists only inside the test suite.
+The pure parser has no BLE dependency and does not read, write, replay, or construct a vendor command. The separate opt-in BLE monitor can subscribe to the discovered AE42 Notify/Indicate characteristic and pass incoming values to the parser; it does not send vendor requests. The test helper that creates synthetic frames exists only inside the test suite.
 
 ## Still unknown — do not infer
 
@@ -91,7 +91,7 @@ The public Tank-G protocol research was useful as a candidate comparison, but no
 
 ## Safety boundary and next evidence
 
-The code intentionally implements **parsing only**. It has no outgoing frame encoder, command builder, BLE notification subscription, preset read operation, or hardware write operation.
+The parser intentionally implements **decoding only** and has no outgoing frame encoder, command builder, preset read operation, or hardware write operation. A separate opt-in gateway feature can subscribe to AE42 notifications without sending vendor data.
 
 Before a read-only device operation can be considered, collect a fresh complete GATT discovery exchange so the exact service/characteristic/descriptor mapping is known. To understand any `0x23` body, collect a passive, timestamped M-EFCS trace correlated with one clearly recorded action on a disposable, backed-up test patch. Preserve a native M-EFCS-exported test file unchanged if its format is to be investigated.
 

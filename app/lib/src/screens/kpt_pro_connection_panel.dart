@@ -19,6 +19,10 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
   final Map<String, NearbyKptBleDevice> _devices = {};
   StreamSubscription<KptBluetoothAdapterState>? _stateSubscription;
   StreamSubscription<NearbyKptBleDevice>? _discoverySubscription;
+  StreamSubscription<KptProVendorNotification>? _vendorNotificationSubscription;
+  final List<KptProVendorNotification> _vendorNotifications = [];
+  bool _vendorMonitorEnabled = false;
+  String? _vendorMonitorMessage;
   bool _scanning = false;
   String? _busyDeviceId;
   String? _error;
@@ -35,12 +39,20 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
     _discoverySubscription = widget.gateway.discoveries.listen((device) {
       if (mounted) setState(() => _devices[device.id] = device);
     });
+    _vendorNotificationSubscription = widget.gateway.vendorNotifications.listen((notification) {
+      if (!mounted) return;
+      setState(() {
+        _vendorNotifications.add(notification);
+        if (_vendorNotifications.length > 30) _vendorNotifications.removeAt(0);
+      });
+    });
   }
 
   @override
   void dispose() {
     unawaited(_stateSubscription?.cancel());
     unawaited(_discoverySubscription?.cancel());
+    unawaited(_vendorNotificationSubscription?.cancel());
     super.dispose();
   }
 
@@ -92,6 +104,9 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
       _error = null;
       _report = null;
       _deviceInformation = null;
+      _vendorMonitorEnabled = false;
+      _vendorMonitorMessage = null;
+      _vendorNotifications.clear();
     });
     try {
       final report = await widget.gateway.connectAndInspect(device.id);
@@ -105,6 +120,71 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
       });
     }
   }
+
+  Future<void> _startVendorMonitor() async {
+    setState(() {
+      _busyDeviceId = _report?.device.id;
+      _error = null;
+      _vendorMonitorMessage = null;
+      _vendorNotifications.clear();
+    });
+    try {
+      final result = await widget.gateway.startVendorNotificationMonitor();
+      if (mounted) setState(() {
+        _vendorMonitorEnabled = result.enabled;
+        _vendorMonitorMessage = result.message;
+      });
+    } catch (error) {
+      if (mounted) setState(() {
+        _vendorMonitorEnabled = false;
+        _error = 'Read-only notification monitor could not start: $error';
+      });
+    } finally {
+      if (mounted) setState(() => _busyDeviceId = null);
+    }
+  }
+
+  Future<void> _stopVendorMonitor() async {
+    setState(() {
+      _busyDeviceId = _report?.device.id;
+      _error = null;
+    });
+    try {
+      await widget.gateway.stopVendorNotificationMonitor();
+      if (mounted) setState(() {
+        _vendorMonitorEnabled = false;
+        _vendorMonitorMessage = 'Passive vendor notification monitoring stopped.';
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Stopping notification monitor failed: $error');
+    } finally {
+      if (mounted) setState(() => _busyDeviceId = null);
+    }
+  }
+
+  Future<void> _copyVendorNotifications() async {
+    final report = <String, Object?>{
+      'reportType': 'RigCanvas passive KPT Pro vendor notification observation',
+      'connectionDeviceName': _report?.device.name,
+      'notifications': _vendorNotifications.map((item) => item.toJson()).toList(),
+      'safety': {
+        'vendorCharacteristicValuesRead': false,
+        'vendorCharacteristicValuesWritten': false,
+        'vendorCommandsSent': false,
+        'onlyGattNotificationSubscriptionConfigured': true,
+      },
+    };
+    await Clipboard.setData(
+      ClipboardData(text: const JsonEncoder.withIndent('  ').convert(report)),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Observed KPT Pro notifications copied.')),
+    );
+  }
+
+  String _hexPreview(List<int> bytes) =>
+      bytes.take(24).map((value) => value.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
 
   Future<void> _readStandardIdentity() async {
     setState(() {
@@ -131,6 +211,9 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
       if (mounted) setState(() {
         _report = null;
         _deviceInformation = null;
+        _vendorMonitorEnabled = false;
+        _vendorMonitorMessage = null;
+        _vendorNotifications.clear();
       });
     } catch (error) {
       if (mounted) setState(() => _error = 'Disconnect failed: $error');
@@ -174,7 +257,7 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
             Text(_adapterMessage, style: const TextStyle(color: Color(0xFFB8C0CC), fontSize: 12)),
             const SizedBox(height: 10),
             const Text(
-              'Connect to the KPT Pro, inspect its service/characteristic map, and read standard Device Information fields where available. No GATT writes or pedal commands are sent.',
+              'Connect to the KPT Pro and inspect its GATT map. Standard identity fields are read only when exposed. The optional listener configures AE42 notifications; vendor values are never written and no pedal commands are sent.',
               style: TextStyle(color: Color(0xFF9AA4B2), fontSize: 11, height: 1.45),
             ),
             const SizedBox(height: 12),
@@ -317,8 +400,83 @@ class _KptProConnectionPanelState extends State<KptProConnectionPanel> {
               ),
             ],
             const SizedBox(height: 8),
+              if (_report!.hasKptProVendorNotifyCharacteristic) ...[
+                const Divider(height: 18),
+                const Text(
+                  'PASSIVE PEDAL NOTIFICATION MONITOR',
+                  style: TextStyle(fontSize: 10, letterSpacing: 0.9, fontWeight: FontWeight.w800, color: Color(0xFF9CC7A4)),
+                ),
+                const SizedBox(height: 5),
+                const Text(
+                  'Subscribes to the discovered AE40/AE42 Notify characteristic only. This configures the BLE notification subscription; it does not read or write vendor values or send a pedal command.',
+                  style: TextStyle(color: Color(0xFF9AA4B2), fontSize: 10, height: 1.4),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    key: const ValueKey('start-kpt-vendor-notify-monitor'),
+                    onPressed: _busyDeviceId == null && !_vendorMonitorEnabled ? _startVendorMonitor : null,
+                    icon: const Icon(Icons.hearing, size: 17),
+                    label: const Text('Start passive notification monitor'),
+                  ),
+                ),
+                if (_vendorMonitorEnabled)
+                  OutlinedButton.icon(
+                    key: const ValueKey('stop-kpt-vendor-notify-monitor'),
+                    onPressed: _busyDeviceId == null ? _stopVendorMonitor : null,
+                    icon: const Icon(Icons.stop_circle_outlined, size: 16),
+                    label: const Text('Stop monitoring'),
+                  ),
+                if (_vendorMonitorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(_vendorMonitorMessage!, style: const TextStyle(color: Color(0xFF9CC7A4), fontSize: 10)),
+                  ),
+                if (_vendorNotifications.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(child: Text('${_vendorNotifications.length} observed notification value(s)', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700))),
+                      TextButton.icon(
+                        key: const ValueKey('copy-kpt-vendor-notifications'),
+                        onPressed: _copyVendorNotifications,
+                        icon: const Icon(Icons.copy, size: 14),
+                        label: const Text('Copy bytes'),
+                      ),
+                    ],
+                  ),
+                  for (final item in _vendorNotifications.reversed.take(8))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: const Color(0xFF101419), borderRadius: BorderRadius.circular(8)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${item.receivedAt.toLocal().toIso8601String().split('T').last.split('.').first} · ${item.value.length} byte(s) · ${item.frames.length} validated frame(s)',
+                              style: const TextStyle(color: Color(0xFF9CC7A4), fontSize: 9, fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(_hexPreview(item.value), style: const TextStyle(color: Color(0xFFD3DAE3), fontSize: 9)),
+                            for (final frame in item.frames)
+                              Text(
+                                'CMD 0x${frame.commandId.toRadixString(16).padLeft(2, '0').toUpperCase()} · body ${frame.bodyLength} B · checksum valid',
+                                style: const TextStyle(color: Color(0xFF9CC7A4), fontSize: 9),
+                              ),
+                            if (item.frameParseError != null)
+                              Text('Frame parse warning: ${item.frameParseError}', style: const TextStyle(color: Color(0xFFFFB08E), fontSize: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ],
             const Text(
-              'Safety boundary: vendor-specific GATT reads, characteristic writes, preset changes, firmware commands, and flash operations are disabled.',
+              'Safety boundary: vendor-specific value reads/writes, preset changes, firmware commands, and flash operations remain disabled.',
               style: TextStyle(color: Color(0xFF818B99), fontSize: 10, height: 1.4),
             ),
           ],

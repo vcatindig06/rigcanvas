@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:bluetooth_low_energy/bluetooth_low_energy.dart';
 import 'package:flutter/foundation.dart';
 
+import 'kpt_pro_protocol.dart';
+
 enum KptBluetoothAdapterState { unknown, unsupported, unauthorized, poweredOff, poweredOn }
 
 @immutable
@@ -55,6 +57,55 @@ class KptProDeviceInformation {
   };
 }
 
+/// One vendor-characteristic notification received after the user starts
+/// the optional passive monitor. Raw bytes are retained for local diagnostics.
+@immutable
+class KptProVendorNotification {
+  KptProVendorNotification({
+    required this.receivedAt,
+    required List<int> value,
+    required List<KptProProtocolFrame> frames,
+    this.frameParseError,
+  }) : value = List<int>.unmodifiable(value),
+       frames = List<KptProProtocolFrame>.unmodifiable(frames);
+
+  final DateTime receivedAt;
+  final List<int> value;
+  final List<KptProProtocolFrame> frames;
+  final String? frameParseError;
+
+  String get valueHex => value.map(_hexByte).join(' ');
+
+  Map<String, Object?> toJson() => {
+    'receivedAt': receivedAt.toUtc().toIso8601String(),
+    'valueLengthBytes': value.length,
+    'valueHex': valueHex,
+    'validatedFrames': frames.map((frame) => {
+      'commandId': '0x${frame.commandId.toRadixString(16).padLeft(2, '0').toUpperCase()}',
+      'bodyLengthBytes': frame.bodyLength,
+      'checksumValid': true,
+      'rawFrameHex': frame.rawBytes.map(_hexByte).join(' '),
+    }).toList(),
+    'frameParseError': frameParseError,
+  };
+
+  static String _hexByte(int value) =>
+      value.toRadixString(16).padLeft(2, '0').toUpperCase();
+}
+
+@immutable
+class KptProVendorMonitorInfo {
+  const KptProVendorMonitorInfo({
+    required this.enabled,
+    required this.characteristicUuid,
+    required this.message,
+  });
+
+  final bool enabled;
+  final String characteristicUuid;
+  final String message;
+}
+
 @immutable
 class KptProGattReport {
   const KptProGattReport({required this.device, required this.services, required this.capturedAt});
@@ -63,6 +114,14 @@ class KptProGattReport {
   final DateTime capturedAt;
 
   bool get hasDeviceInformationService => services.any((s) => _isBluetoothUuid(s.uuid, '180a'));
+
+  /// True only when AE40 contains AE42 with Notify or Indicate in this GATT map.
+  bool get hasKptProVendorNotifyCharacteristic => services.any((service) =>
+      _isBluetoothUuid(service.uuid, 'ae40') &&
+      service.characteristics.any((characteristic) =>
+          _isBluetoothUuid(characteristic.uuid, 'ae42') &&
+          (characteristic.properties.contains('notify') ||
+              characteristic.properties.contains('indicate'))));
 
   Map<String, Object?> toJson({KptProDeviceInformation? deviceInformation}) => {
     'reportType': 'RigCanvas read-only KPT Pro BLE/GATT inspection',
@@ -76,8 +135,9 @@ class KptProGattReport {
     'gattServices': services.map((s) => s.toJson()).toList(),
     'standardDeviceInformation': deviceInformation?.toJson(),
     'safety': {
-      'gattWritesSent': false,
-      'vendorCharacteristicsRead': false,
+      'vendorCharacteristicValuesRead': false,
+      'vendorCharacteristicValuesWritten': false,
+      'vendorNotificationSubscriptionAtInspection': false,
       'presetCommandsSent': false,
       'firmwareOperationsSent': false,
     },
@@ -88,10 +148,13 @@ abstract interface class KptProHardwareGateway {
   KptBluetoothAdapterState get adapterState;
   Stream<KptBluetoothAdapterState> get adapterStateChanges;
   Stream<NearbyKptBleDevice> get discoveries;
+  Stream<KptProVendorNotification> get vendorNotifications;
   Future<void> startDiscovery();
   Future<void> stopDiscovery();
   Future<KptProGattReport> connectAndInspect(String deviceId);
   Future<KptProDeviceInformation> readStandardDeviceInformation();
+  Future<KptProVendorMonitorInfo> startVendorNotificationMonitor();
+  Future<void> stopVendorNotificationMonitor();
   Future<void> disconnect();
   Future<void> dispose();
 }
@@ -105,6 +168,8 @@ class SimulationKptProHardwareGateway implements KptProHardwareGateway {
   @override
   Stream<NearbyKptBleDevice> get discoveries => const Stream.empty();
   @override
+  Stream<KptProVendorNotification> get vendorNotifications => const Stream.empty();
+  @override
   Future<void> startDiscovery() async => throw UnsupportedError('Bluetooth is unavailable in simulation mode.');
   @override
   Future<void> stopDiscovery() async {}
@@ -113,18 +178,23 @@ class SimulationKptProHardwareGateway implements KptProHardwareGateway {
   @override
   Future<KptProDeviceInformation> readStandardDeviceInformation() async => throw UnsupportedError('Hardware inspection is unavailable in simulation mode.');
   @override
+  Future<KptProVendorMonitorInfo> startVendorNotificationMonitor() async => throw UnsupportedError('Vendor notification monitoring is unavailable in simulation mode.');
+  @override
+  Future<void> stopVendorNotificationMonitor() async {}
+  @override
   Future<void> disconnect() async {}
   @override
   Future<void> dispose() async {}
 }
 
-/// BLE central adapter with deliberately restricted read access.
-/// There is no vendor-characteristic read, write, or notification operation.
+/// BLE central adapter with read-only inspection and an opt-in passive vendor
+/// Notify monitor. It never reads/writes vendor values or sends pedal commands.
 class BluetoothKptProHardwareGateway implements KptProHardwareGateway {
   BluetoothKptProHardwareGateway({CentralManager? manager}) : _manager = manager ?? CentralManager() {
     _stateSubscription = _manager.stateChanged.listen((event) {
       if (!_disposed) _stateController.add(_mapState(event.state));
     });
+    _notificationSubscription = _manager.characteristicNotified.listen(_handleVendorNotification);
     _discoverySubscription = _manager.discovered.listen((event) {
       if (_disposed) return;
       String? name;
@@ -150,13 +220,18 @@ class BluetoothKptProHardwareGateway implements KptProHardwareGateway {
   final Map<String, NearbyKptBleDevice> _devices = {};
   final StreamController<KptBluetoothAdapterState> _stateController = StreamController.broadcast();
   final StreamController<NearbyKptBleDevice> _discoveryController = StreamController.broadcast();
+  final StreamController<KptProVendorNotification> _vendorNotificationController = StreamController.broadcast();
   late final StreamSubscription<BluetoothLowEnergyStateChangedEventArgs> _stateSubscription;
   late final StreamSubscription<DiscoveredEventArgs> _discoverySubscription;
+  late final StreamSubscription<GATTCharacteristicNotifiedEventArgs> _notificationSubscription;
   bool _scanning = false;
   bool _disposed = false;
   Peripheral? _connectedPeripheral;
   NearbyKptBleDevice? _connectedDevice;
   List<GATTService> _connectedServices = const [];
+  GATTCharacteristic? _vendorNotifyCharacteristic;
+  bool _vendorNotificationMonitorEnabled = false;
+  KptProNotificationFrameReassembler? _vendorFrameReassembler;
 
   @override
   KptBluetoothAdapterState get adapterState => _mapState(_manager.state);
@@ -164,6 +239,8 @@ class BluetoothKptProHardwareGateway implements KptProHardwareGateway {
   Stream<KptBluetoothAdapterState> get adapterStateChanges => _stateController.stream;
   @override
   Stream<NearbyKptBleDevice> get discoveries => _discoveryController.stream;
+  @override
+  Stream<KptProVendorNotification> get vendorNotifications => _vendorNotificationController.stream;
 
   @override
   Future<void> startDiscovery() async {
@@ -214,6 +291,109 @@ class BluetoothKptProHardwareGateway implements KptProHardwareGateway {
       _connectedServices = const [];
       rethrow;
     }
+  }
+
+  /// Enables Notify/Indicate on discovered AE40/AE42. This configures the
+  /// BLE CCCD only; it does not read/write vendor values or send a KPT command.
+  @override
+  Future<KptProVendorMonitorInfo> startVendorNotificationMonitor() async {
+    _ensureAlive();
+    final peripheral = _connectedPeripheral;
+    if (peripheral == null) {
+      throw StateError('Connect to the pedal before monitoring vendor notifications.');
+    }
+    if (_vendorNotificationMonitorEnabled && _vendorNotifyCharacteristic != null) {
+      return KptProVendorMonitorInfo(
+        enabled: true,
+        characteristicUuid: _vendorNotifyCharacteristic!.uuid.toString(),
+        message: 'Passive vendor notification monitoring is already active.',
+      );
+    }
+
+    GATTCharacteristic? target;
+    for (final service in _connectedServices) {
+      if (!_isBluetoothUuid(service.uuid.toString(), 'ae40')) continue;
+      for (final characteristic in service.characteristics) {
+        if (_isBluetoothUuid(characteristic.uuid.toString(), 'ae42')) {
+          target = characteristic;
+          break;
+        }
+      }
+    }
+    if (target == null) {
+      throw StateError('The discovered KPT vendor service does not contain characteristic AE42.');
+    }
+    final canNotify = target.properties.contains(GATTCharacteristicProperty.notify);
+    final canIndicate = target.properties.contains(GATTCharacteristicProperty.indicate);
+    if (!canNotify && !canIndicate) {
+      throw StateError('AE42 does not advertise Notify or Indicate in this GATT session.');
+    }
+
+    _vendorFrameReassembler = KptProNotificationFrameReassembler();
+    _vendorNotifyCharacteristic = target;
+    // Enable the event handler before the asynchronous CCCD operation starts.
+    _vendorNotificationMonitorEnabled = true;
+    try {
+      await _manager.setCharacteristicNotifyState(peripheral, target, state: true);
+    } catch (_) {
+      _resetVendorNotificationMonitor();
+      rethrow;
+    }
+    return KptProVendorMonitorInfo(
+      enabled: true,
+      characteristicUuid: target.uuid.toString(),
+      message: 'Listening passively for pedal notifications. No vendor command was sent.',
+    );
+  }
+
+  @override
+  Future<void> stopVendorNotificationMonitor() async {
+    final peripheral = _connectedPeripheral;
+    final characteristic = _vendorNotifyCharacteristic;
+    if (!_vendorNotificationMonitorEnabled || peripheral == null || characteristic == null) {
+      _resetVendorNotificationMonitor();
+      return;
+    }
+    try {
+      await _manager.setCharacteristicNotifyState(peripheral, characteristic, state: false);
+    } finally {
+      _resetVendorNotificationMonitor();
+    }
+  }
+
+  void _handleVendorNotification(GATTCharacteristicNotifiedEventArgs event) {
+    if (_disposed || !_vendorNotificationMonitorEnabled) return;
+    final peripheral = _connectedPeripheral;
+    final characteristic = _vendorNotifyCharacteristic;
+    if (peripheral == null || characteristic == null) return;
+    if (event.peripheral.uuid.toString() != peripheral.uuid.toString()) return;
+    if (!_isBluetoothUuid(event.characteristic.uuid.toString(), 'ae42')) return;
+
+    final value = event.value.toList(growable: false);
+    var frames = const <KptProProtocolFrame>[];
+    String? parseError;
+    try {
+      frames = _vendorFrameReassembler?.addNotification(value) ??
+          const <KptProProtocolFrame>[];
+    } on FormatException catch (error) {
+      parseError = error.message;
+      _vendorFrameReassembler?.reset();
+    }
+    if (!_vendorNotificationController.isClosed) {
+      _vendorNotificationController.add(KptProVendorNotification(
+        receivedAt: DateTime.now(),
+        value: value,
+        frames: frames,
+        frameParseError: parseError,
+      ));
+    }
+  }
+
+  void _resetVendorNotificationMonitor() {
+    _vendorNotificationMonitorEnabled = false;
+    _vendorNotifyCharacteristic = null;
+    _vendorFrameReassembler?.reset();
+    _vendorFrameReassembler = null;
   }
 
   @override
@@ -288,8 +468,10 @@ class BluetoothKptProHardwareGateway implements KptProHardwareGateway {
     final peripheral = _connectedPeripheral;
     if (peripheral == null) return;
     try {
+      try { await stopVendorNotificationMonitor(); } catch (_) { /* link may already be lost */ }
       await _manager.disconnect(peripheral);
     } finally {
+      _resetVendorNotificationMonitor();
       _connectedPeripheral = null;
       _connectedDevice = null;
       _connectedServices = const [];
@@ -303,17 +485,21 @@ class BluetoothKptProHardwareGateway implements KptProHardwareGateway {
       try { await _manager.stopDiscovery(); } catch (_) { /* adapter already stopped */ }
     }
     if (_connectedPeripheral != null) {
+      try { await stopVendorNotificationMonitor(); } catch (_) { /* connection dropped */ }
       try { await _manager.disconnect(_connectedPeripheral!); } catch (_) { /* connection dropped */ }
     }
     _scanning = false;
     _connectedPeripheral = null;
     _connectedDevice = null;
     _connectedServices = const [];
+    _resetVendorNotificationMonitor();
     _disposed = true;
     await _stateSubscription.cancel();
     await _discoverySubscription.cancel();
+    await _notificationSubscription.cancel();
     await _stateController.close();
     await _discoveryController.close();
+    await _vendorNotificationController.close();
   }
 
   KptProGattReport _buildReport() {

@@ -102,6 +102,8 @@
 - [x] Reverse-engineer and document the outer KPT Pro frame envelope, little-endian body length, body checksum, and BLE-notification fragmentation using the 2026-11-17 payload capture; add a pure Dart parser/reassembler and regression tests. This establishes framing only, not command semantics.
 - [x] Integrate read-only frame-envelope analysis into the selected HCI capture session, preserving per-direction/per-handle stream boundaries and exposing raw command counts plus capture positions only.
 - [x] Add comparison-only f1/f2 word slicing for the two recurring eight-byte CMD 0x23 body variants; expose full raw words and candidate fields in the offline analyzer without assigning KPT Pro command semantics.
+- [x] Add an opt-in passive AE40/AE42 notification monitor. Parse incoming notifications only; configure/disable BLE Notify subscription and never send KPT vendor commands.
+- [ ] Confirm whether the KPT Pro emits useful model, status, or preset data without a request; passive monitoring cannot retrieve data that is only returned on demand.
 - [ ] Verify the f1/f2 field meanings and correlate CMD 0x23 with a named M-EFCS action using a new controlled trace.
 - [ ] Create a KPT-specific patch domain model from decoded device data. Preserve unknown fields and raw bytes so a read → save → read cycle does not discard unsupported settings.
 - [ ] Implement read-only device identity, capability reporting, preset-slot listing, and complete patch download first.
@@ -116,7 +118,7 @@
 ### Current implementation boundary
 
 - RigCanvas can scan and inspect a BLE GATT profile and read allowlisted standard Device Information fields when exposed.
-- The current hardware gateway does not subscribe to the vendor notification characteristic, read vendor patch data, or send vendor writes. A separate offline parser validates captured KPT Pro frames and checksums, and displays a comparison-only f1/f2 field-slice hypothesis for two recurring 0x23 body variants; it is not connected to the BLE gateway and cannot read or write the pedal.
+- The current hardware gateway can opt in to a passive AE42 notification subscription and parse incoming frame envelopes, but it does not issue vendor requests, read vendor patch data, or send vendor writes. A separate offline parser validates captured KPT Pro frames and checksums, and displays a comparison-only f1/f2 field-slice hypothesis for two recurring 0x23 body variants; it is not connected to the BLE gateway and cannot read or write the pedal.
 - The existing Preset Library imports/exports only the `rigcanvas-preset` JSON format. The UI explicitly warns that these files are not device presets.
 - The 2026-11-17 payload capture contains repeated writes and notifications, but no successful characteristic declaration map and no user-action correlation. The repeated byte patterns are not yet decoded commands. No packet may be replayed or repurposed as a guessed patch command.
 
