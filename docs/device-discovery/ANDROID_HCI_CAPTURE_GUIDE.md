@@ -101,3 +101,12 @@ The existing payload-enabled report shows repeated writes to ATT handle `0x0062`
 - Do not share a full bug report, serial number, or other Bluetooth device traffic.
 - Captured commands are evidence only. Do not replay any captured write, notification, or firmware-related packet.
 - This milestone performs offline analysis only; it does not write to the KPT Pro.
+
+
+## Enhanced ATT capture notes
+
+The analyzer now also inspects L2CAP signaling on CID 0x0005 for successful EATT channel setup using PSM 0x0027. It associates the negotiated source/destination CIDs and decodes ATT traffic on those channels separately from the fixed ATT channel CID 0x0004. The selected report includes each identified EATT bearer and the L2CAP-derived effective MTU.
+
+No payload export is required for EATT channel establishment metadata. Keep the payload toggle off for the next full connect-to-disconnect GATT discovery capture. The report will show whether EATT was negotiated, which CIDs were assigned, and whether the repeated ATT MTU exchanges occurred on the fixed bearer or an Enhanced ATT bearer.
+
+The analyzer does not send L2CAP signaling and does not initiate EATT. It only decodes the HCI trace.
