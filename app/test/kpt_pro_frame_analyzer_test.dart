@@ -215,6 +215,78 @@ void main() {
         {0x0062, 0x0064},
       );
     });
+    test('slices observed 0x23 eight-byte bodies as Tank-G-style candidates only', () {
+      final firstBody = [0x04, 0x00, 0x00, 0x00, 0x20, 0x38, 0x00, 0x00];
+      final secondBody = [0x04, 0x00, 0x00, 0x60, 0x70, 0x0A, 0x00, 0x00];
+      final analysis = KptProFrameAnalyzer.analyze([
+        _event(
+          frame: 10,
+          timestampMicros: 1000,
+          direction: BtsnoopDirection.hostToController,
+          opcode: 0x52,
+          handle: 0x0062,
+          value: _makeFrame(0x23, firstBody),
+        ),
+        _event(
+          frame: 11,
+          timestampMicros: 2000,
+          direction: BtsnoopDirection.hostToController,
+          opcode: 0x52,
+          handle: 0x0062,
+          value: _makeFrame(0x23, secondBody),
+        ),
+      ]);
+
+      final first = analysis.frames[0].f1f2LayoutCandidate!;
+      expect(first.firstWordLittleEndian, 0x00000004);
+      expect(first.secondWordLittleEndian, 0x00003820);
+      expect(first.memoryIdCandidate, 4);
+      expect(first.addressCandidate, 0);
+      expect(first.lengthCandidate, 0x38);
+      expect(first.spaceCandidate, 2);
+      expect(first.reservedLowNibbleCandidate, 0);
+      expect(first.upper16BitsCandidate, 0);
+      expect(first.rawBodyHex, '04 00 00 00 20 38 00 00');
+
+      final second = analysis.frames[1].f1f2LayoutCandidate!;
+      expect(second.firstWordLittleEndian, 0x60000004);
+      expect(second.addressCandidate, 0x600000);
+      expect(second.secondWordLittleEndian, 0x00000A70);
+      expect(second.lengthCandidate, 0x0A);
+      expect(second.spaceCandidate, 7);
+      expect(analysis.f1f2CandidateSummaries, hasLength(2));
+      expect(
+        analysis.toJson()['f1f2FieldSliceComparisonOnly'],
+        isA<Map<String, Object?>>()
+            .having((value) => value['hypothesisOnly'], 'hypothesisOnly', isTrue)
+            .having((value) => value['kptProLayoutConfirmed'], 'confirmed', isFalse),
+      );
+    });
+
+    test('does not create f1/f2 candidates for other command IDs or body sizes', () {
+      final analysis = KptProFrameAnalyzer.analyze([
+        _event(
+          frame: 1,
+          timestampMicros: 100,
+          direction: BtsnoopDirection.hostToController,
+          opcode: 0x52,
+          handle: 0x0062,
+          value: _makeFrame(0x11, List<int>.filled(8, 0)),
+        ),
+        _event(
+          frame: 2,
+          timestampMicros: 200,
+          direction: BtsnoopDirection.hostToController,
+          opcode: 0x52,
+          handle: 0x0062,
+          value: _makeFrame(0x23, [1, 2, 3, 4]),
+        ),
+      ]);
+
+      expect(analysis.frames, hasLength(2));
+      expect(analysis.frames.every((frame) => frame.f1f2LayoutCandidate == null), isTrue);
+      expect(analysis.f1f2CandidateSummaries, isEmpty);
+    });
   });
 }
 

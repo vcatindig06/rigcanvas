@@ -424,6 +424,27 @@ class _KptFrameAnalysisPanel extends StatelessWidget {
                 ),
               ),
           ],
+          if (analysis.f1f2CandidateSummaries.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text(
+              '8-byte CMD 0x23 field-slice candidates',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Tank-G-style f1/f2 comparison only. These values are not confirmed KPT Pro memory fields and do not prove a read operation.',
+              style: TextStyle(color: Color(0xFFFFC078), fontSize: 10, height: 1.35),
+            ),
+            const SizedBox(height: 5),
+            for (final summary in analysis.f1f2CandidateSummaries.take(5))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Text(
+                  'F1 ${summary.candidate.firstWordHex} · mem? ${summary.candidate.memoryIdCandidate} · addr? ${summary.candidate.addressCandidateHex}  |  F2 ${summary.candidate.secondWordHex} · len? ${summary.candidate.lengthCandidate} · space? ${summary.candidate.spaceCandidate}  × ${summary.count}',
+                  style: const TextStyle(color: Color(0xFFD3DAE3), fontSize: 10),
+                ),
+              ),
+          ],
           if (recentFrames.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text(

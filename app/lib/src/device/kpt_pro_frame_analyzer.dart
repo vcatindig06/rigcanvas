@@ -19,6 +19,7 @@ class KptProObservedFrame {
     required this.firstTimestampMicros,
     required this.lastTimestampMicros,
     required this.fragmentCount,
+    required this.f1f2LayoutCandidate,
   });
 
   final BtsnoopDirection direction;
@@ -30,6 +31,7 @@ class KptProObservedFrame {
   final int firstTimestampMicros;
   final int lastTimestampMicros;
   final int fragmentCount;
+  final KptProF1F2LayoutCandidate? f1f2LayoutCandidate;
 
   int get durationMicros => lastTimestampMicros - firstTimestampMicros;
 
@@ -50,6 +52,7 @@ class KptProObservedFrame {
     'firstTimeFromCaptureStartMicros': firstTimestampMicros,
     'lastTimeFromCaptureStartMicros': lastTimestampMicros,
     'fragmentCount': fragmentCount,
+    'f1f2LayoutCandidate': f1f2LayoutCandidate?.toJson(),
   };
 }
 
@@ -86,6 +89,23 @@ class KptProCommandSummary {
   };
 }
 
+/// Count of repeated observed f1/f2 word pairs. These are comparison candidates,
+/// not decoded KPT Pro operations.
+@immutable
+class KptProF1F2CandidateSummary {
+  const KptProF1F2CandidateSummary({
+    required this.candidate,
+    required this.count,
+  });
+
+  final KptProF1F2LayoutCandidate candidate;
+  final int count;
+  Map<String, Object?> toJson() => {
+    ...candidate.toJson(),
+    'observedFrameCount': count,
+  };
+}
+
 /// Read-only analysis of the observed 00 59 frame envelope in one ATT session.
 @immutable
 class KptProFrameAnalysis {
@@ -94,13 +114,15 @@ class KptProFrameAnalysis {
     required this.invalidFrameCount,
     required this.incompleteStreamCount,
     required this.analyzedValueEventCount,
-  }) : commandSummaries = _buildCommandSummaries(frames);
+  }) : commandSummaries = _buildCommandSummaries(frames),
+       f1f2CandidateSummaries = _buildF1F2CandidateSummaries(frames);
 
   final List<KptProObservedFrame> frames;
   final int invalidFrameCount;
   final int incompleteStreamCount;
   final int analyzedValueEventCount;
   final List<KptProCommandSummary> commandSummaries;
+  final List<KptProF1F2CandidateSummary> f1f2CandidateSummaries;
 
   int get completeFrameCount => frames.length;
 
@@ -112,6 +134,15 @@ class KptProFrameAnalysis {
     'analyzedValueEvents': analyzedValueEventCount,
     'commandIdentifiersAreUninterpreted': true,
     'commands': commandSummaries.map((item) => item.toJson()).toList(),
+    'f1f2FieldSliceComparisonOnly': {
+      'hypothesisOnly': true,
+      'kptProLayoutConfirmed': false,
+      'candidateFrameCount': f1f2CandidateSummaries.fold<int>(
+        0,
+        (total, item) => total + item.count,
+      ),
+      'candidates': f1f2CandidateSummaries.map((item) => item.toJson()).toList(),
+    },
     'frames': frames.map((item) => item.toJson()).toList(),
     'safety': {
       'captureOnly': true,
@@ -120,6 +151,26 @@ class KptProFrameAnalysis {
       'hardwareWritesPerformed': false,
     },
   };
+
+  static List<KptProF1F2CandidateSummary> _buildF1F2CandidateSummaries(
+    List<KptProObservedFrame> frames,
+  ) {
+    final grouped = <String, List<KptProF1F2LayoutCandidate>>{};
+    for (final frame in frames) {
+      final candidate = frame.f1f2LayoutCandidate;
+      if (candidate == null) continue;
+      final key = '${candidate.firstWordHex}:${candidate.secondWordHex}';
+      grouped.putIfAbsent(key, () => <KptProF1F2LayoutCandidate>[]).add(candidate);
+    }
+    return List<KptProF1F2CandidateSummary>.unmodifiable(
+      grouped.values.map(
+        (items) => KptProF1F2CandidateSummary(
+          candidate: items.first,
+          count: items.length,
+        ),
+      ),
+    );
+  }
 
   static List<KptProCommandSummary> _buildCommandSummaries(
     List<KptProObservedFrame> frames,
@@ -244,6 +295,7 @@ class KptProFrameAnalyzer {
             firstTimestampMicros: firstEvent.relativeTimestampMicros,
             lastTimestampMicros: event.relativeTimestampMicros,
             fragmentCount: startsInEarlierEvent ? pendingFragments : 1,
+            f1f2LayoutCandidate: KptProF1F2LayoutCandidate.tryParse(parsed),
           ),
         );
       }

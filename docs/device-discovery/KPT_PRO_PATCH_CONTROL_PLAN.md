@@ -60,7 +60,14 @@ Source analysis: [Payload-enabled trace analysis](PAYLOAD_ANALYSIS_2026-11-17.md
 
 The existing 2026-11-17 payload capture has now been independently checked byte by byte. All 157 complete phone-to-pedal vendor frames and all 157 complete pedal-to-phone frames match the observed envelope: magic `00 59`, one command byte, a two-byte little-endian body length, a reserved byte (observed `00`), body bytes, and a one-byte checksum equal to the 8-bit complement of the body-byte sum. The two 848-byte response bodies are fragmented across five BLE notifications each and reassemble using the declared total length. A pure Dart parser/reassembler and tests have been added; it has no BLE transport, no command encoder, and cannot send data to the pedal. The Devices screen also applies the parser to imported selected-connection ATT values and reports direction/handle-scoped raw command counts, frame lengths, ATT frame ranges, capture offsets, invalid candidates, and incomplete streams; command meanings remain undecoded. Details: [KPT Pro BLE frame format](KPT_PRO_FRAME_FORMAT.md).
 
-This result does not decode command semantics, the `0x23` body, preset slots, native patch storage, GATT UUID mapping, or write/commit behavior. The controlled action-correlated M-EFCS trace and native test export remain necessary before implementing even a device-side read operation.
+A second read-only analysis pass found that the two recurring eight-byte phone-to-pedal `0x23` bodies (76 occurrences each) split into two 32-bit little-endian words with the same f1/f2 bit-packing shape used in the separate Tank-G Control Center reverse-engineering project. The comparison-only slices are:
+
+- `04 00 00 00 20 38 00 00` → F1 `0x00000004`, F2 `0x00003820`; candidate fields memory `0x04`, 24-bit address `0x000000`, length `56`, space `2`.
+- `04 00 00 60 70 0A 00 00` → F1 `0x60000004`, F2 `0x00000A70`; candidate fields memory `0x04`, 24-bit address `0x600000`, length `10`, space `7`.
+
+This is a strong structural match, not confirmation of Tank-G semantics on KPT Pro. The parser/UI retain the entire words and full 24-bit address candidate, label every slice as a hypothesis, and do not call command `0x23` a read. The candidate extraction is covered by tests and included as metadata in the optional trace export.
+
+This result does not decode command semantics, preset slots, native patch storage, GATT UUID mapping, or write/commit behavior; the f1/f2 slices remain comparison-only candidates. The controlled action-correlated M-EFCS trace and native test export remain necessary before implementing even a device-side read operation.
 
 ## Required capture package
 

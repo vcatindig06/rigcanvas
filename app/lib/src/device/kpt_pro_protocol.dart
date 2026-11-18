@@ -112,6 +112,106 @@ class KptProProtocolFrame {
   static String _hex(int value) => value.toRadixString(16).padLeft(2, '0').toUpperCase();
 }
 
+/// Comparison-only f1/f2 field slicing for observed 8-byte KPT Pro 0x23 bodies.
+///
+/// The split and bit positions mirror a separately reverse-engineered Tank-G
+/// frame-family hypothesis. A structural match is not proof that KPT Pro uses
+/// the same memory map or command semantics. In particular, this class does
+/// not identify a read, preset, slot, write, or commit operation.
+class KptProF1F2LayoutCandidate {
+  const KptProF1F2LayoutCandidate({
+    required this.firstWordLittleEndian,
+    required this.secondWordLittleEndian,
+    required this.memoryIdCandidate,
+    required this.addressCandidate,
+    required this.lengthCandidate,
+    required this.spaceCandidate,
+    required this.reservedLowNibbleCandidate,
+    required this.upper16BitsCandidate,
+    required this.rawBodyBytes,
+  });
+
+  /// Returns a candidate only for the exact observed CMD 0x23 / 8-byte shape.
+  /// All extracted values remain labelled as candidates.
+  static KptProF1F2LayoutCandidate? tryParse(KptProProtocolFrame frame) {
+    if (frame.commandId != 0x23 || frame.bodyLength != 8) return null;
+
+    final body = frame.bodyBytes;
+    final firstWord = _readUint32LittleEndian(body, 0);
+    final secondWord = _readUint32LittleEndian(body, 4);
+    return KptProF1F2LayoutCandidate(
+      firstWordLittleEndian: firstWord,
+      secondWordLittleEndian: secondWord,
+      memoryIdCandidate: firstWord & 0xFF,
+      addressCandidate: (firstWord >> 8) & 0xFFFFFF,
+      lengthCandidate: (secondWord >> 8) & 0xFF,
+      spaceCandidate: (secondWord >> 4) & 0x0F,
+      reservedLowNibbleCandidate: secondWord & 0x0F,
+      upper16BitsCandidate: (secondWord >> 16) & 0xFFFF,
+      rawBodyBytes: List<int>.unmodifiable(body),
+    );
+  }
+
+  /// Raw first 32-bit word, interpreted as little-endian for comparison only.
+  final int firstWordLittleEndian;
+
+  /// Raw second 32-bit word, interpreted as little-endian for comparison only.
+  final int secondWordLittleEndian;
+
+  /// Candidate low-byte field under the Tank-G-style f1 split.
+  final int memoryIdCandidate;
+
+  /// Candidate 24-bit field under the Tank-G-style f1 split.
+  final int addressCandidate;
+
+  /// Candidate byte field under the Tank-G-style f2 split.
+  final int lengthCandidate;
+
+  /// Candidate nibble field under the Tank-G-style f2 split.
+  final int spaceCandidate;
+
+  /// Preserved low nibble; zero in the two recurring observed examples.
+  final int reservedLowNibbleCandidate;
+
+  /// Preserved high 16 bits; zero in the two recurring observed examples.
+  final int upper16BitsCandidate;
+
+  /// Original eight body bytes, retained unchanged.
+  final List<int> rawBodyBytes;
+
+  String get firstWordHex => _hex32(firstWordLittleEndian);
+  String get secondWordHex => _hex32(secondWordLittleEndian);
+  String get addressCandidateHex =>
+      '0x${addressCandidate.toRadixString(16).padLeft(6, '0').toUpperCase()}';
+  String get rawBodyHex => rawBodyBytes.map(_hex8).join(' ');
+
+  Map<String, Object?> toJson() => {
+    'hypothesisOnly': true,
+    'layout': 'Tank-G-style f1/f2 comparison; not confirmed for KPT Pro',
+    'firstWordLittleEndian': firstWordHex,
+    'secondWordLittleEndian': secondWordHex,
+    'memoryIdCandidate': memoryIdCandidate,
+    'addressCandidate': addressCandidateHex,
+    'lengthCandidate': lengthCandidate,
+    'spaceCandidate': spaceCandidate,
+    'reservedLowNibbleCandidate': reservedLowNibbleCandidate,
+    'upper16BitsCandidate': upper16BitsCandidate,
+    'rawBodyHex': rawBodyHex,
+  };
+
+  static int _readUint32LittleEndian(List<int> bytes, int offset) =>
+      bytes[offset] |
+      (bytes[offset + 1] << 8) |
+      (bytes[offset + 2] << 16) |
+      (bytes[offset + 3] << 24);
+
+  static String _hex32(int value) =>
+      '0x${value.toRadixString(16).padLeft(8, '0').toUpperCase()}';
+
+  static String _hex8(int value) =>
+      value.toRadixString(16).padLeft(2, '0').toUpperCase();
+}
+
 /// Reassembles KPT Pro frames split across BLE value notifications.
 ///
 /// Notifications that do not start a KPT Pro frame are ignored while idle.

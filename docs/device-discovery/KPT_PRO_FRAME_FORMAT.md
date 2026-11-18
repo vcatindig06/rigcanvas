@@ -43,6 +43,28 @@ The sum is over the body bytes only. It does not include the magic, command iden
 
 These counts validate the framing hypothesis for this one KPT Pro trace. They do not establish compatibility with other firmware versions, devices, or transports.
 
+## Comparison-only f1/f2 body hypothesis
+
+Two distinct phone-to-pedal frames use command byte `0x23` and an eight-byte body. Each exact payload variant appears 76 times in the supplied capture:
+
+| Observed eight-byte body | F1 word (little-endian) | F2 word (little-endian) |
+|---|---:|---:|
+| `04 00 00 00 20 38 00 00` | `0x00000004` | `0x00003820` |
+| `04 00 00 60 70 0A 00 00` | `0x60000004` | `0x00000A70` |
+
+Splitting each body into two 32-bit little-endian words produces the same *field packing shape* used by the independent Tank-G Control Center reverse-engineering project: `f1 = address << 8 | memory` and `f2 = length << 8 | space << 4`. Applying those bit slices to the KPT bytes yields the following **candidates**, not confirmed KPT Pro values:
+
+| Body | Memory candidate | 24-bit address candidate | Length candidate | Space candidate |
+|---|---:|---:|---:|---:|
+| First | `0x04` | `0x000000` | `0x38` (56) | `0x2` |
+| Second | `0x04` | `0x600000` | `0x0A` (10) | `0x7` |
+
+The low nibble and upper 16 bits of the second word are zero in both examples, consistent with the comparison layout. This is a strong **structural protocol-family match**, but it does not establish that KPT Pro uses Tank-G memory IDs, address units, space meanings, request semantics, or the Tank-G preset map. The value `0x600000` is retained as a full 24-bit candidate; it is not truncated to a 16-bit address.
+
+RigCanvas now exposes the two raw words and these candidate slices in its offline trace analyzer and optional JSON export. The candidate is generated only for observed `0x23` frames with an eight-byte body. It is explicitly marked hypothesis-only. It does not label `0x23` as READ, identify preset slots, construct packets, or connect to BLE.
+
+Reference used only for the comparison: [Tank-G Control Center](https://github.com/CamiloFerreira/tankg-control-center). Its protocol documentation applies to Tank-G hardware, not KPT Pro.
+
 ## Reassembly behavior implemented
 
 `KptProNotificationFrameReassembler` accepts notification payloads from an already-selected stream. It waits for the `00 59` magic, reads the declared length after the header is available, appends continuation notification bytes, and returns a frame only after the complete frame is present and the checksum validates.
@@ -56,7 +78,7 @@ The implementation has no BLE dependency and does not subscribe, read, write, re
 This capture does **not** establish:
 
 - the semantic meaning of command identifiers `0x11` or `0x23`;
-- the meaning of fields inside any `0x23` body, including address-like or length-like values;
+- the meaning of fields inside any `0x23` body. The two eight-byte variants now have comparison-only f1/f2 bit-slice candidates, but their KPT Pro semantics, address units, memory IDs, and space values remain unverified;
 - whether the repeated `0x23` exchanges are discovery, polling, status, parameter reads, or another operation;
 - how a user preset, slot number, effect order, parameter, enabled state, or patch name is encoded;
 - the preset slot map, patch length, factory/user boundaries, or any native tone-file schema;
@@ -82,4 +104,4 @@ The Devices → Android Bluetooth Trace Analyzer now applies this parser to the 
 
 Only captured ATT Write Requests, Write Commands, Notifications, and Indications are considered. Invalid candidates and streams still incomplete at the end of the capture are counted separately. The optional exported `protocolEnvelopeAnalysis` contains metadata only; the raw ATT values remain controlled by the existing payload-inclusion toggle.
 
-This is a diagnostic aid, not a command decoder. It does not map command IDs to reads, parameter edits, saves, imports, or acknowledgements. It does not build or transmit frames.
+This is a diagnostic aid, not a command decoder. It displays an explicitly unconfirmed f1/f2 field-slice hypothesis for the observed eight-byte 0x23 bodies, but it does not map command IDs to reads, parameter edits, saves, imports, or acknowledgements. It does not build or transmit frames.
