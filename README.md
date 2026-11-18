@@ -60,7 +60,7 @@ The initial app opens in **Simulation Workspace**. Reordering blocks and togglin
 
 ## Hardware safety
 
-Do not flash firmware, replay undocumented traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
+The KPT Pro captured-frame parser is offline only; it does not communicate with the pedal. Do not flash firmware, replay captured traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
 
 ## Roadmap
 
