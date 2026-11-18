@@ -830,7 +830,7 @@ class _BtsnoopParserState {
   }) {
     // Enhanced Credit Based Connection Response:
     // MTU, MPS, Initial Credits, Result, then 1–5 Destination CIDs.
-    if (data.length < 10 || data.length > 18 || data.isOdd) {
+    if (data.length < 10 || data.length > 18 || data.length.isOdd) {
       malformedHciPacketCount++;
       return;
     }
@@ -1282,7 +1282,6 @@ class KptBleEnhancedAttBearer {
   final int createdTimestampMicros;
 
   int get effectiveMtu => requestMtu < responseMtu ? requestMtu : responseMtu;
-  int get effectiveMps => requestMps < responseMps ? requestMps : responseMps;
 
   Map<String, Object?> toJson() => {
     'bearerId': id,
@@ -1298,7 +1297,6 @@ class KptBleEnhancedAttBearer {
     'effectiveAttMtu': effectiveMtu,
     'requestMps': requestMps,
     'responseMps': responseMps,
-    'effectiveMps': effectiveMps,
     'requestInitialCredits': requestCredits,
     'responseInitialCredits': responseCredits,
     'createdFrame': createdFrame,
