@@ -139,6 +139,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('start-kpt-vendor-notify-monitor')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('start-kpt-vendor-notify-monitor')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('start-kpt-vendor-notify-monitor')));
     await tester.pumpAndSettle();
     expect(gateway.monitorStartCalls, 1);
@@ -156,6 +158,8 @@ void main() {
     expect(find.textContaining('CMD 0x11'), findsOneWidget);
     expect(find.byKey(const ValueKey('copy-kpt-vendor-notifications')), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const ValueKey('stop-kpt-vendor-notify-monitor')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('stop-kpt-vendor-notify-monitor')));
     await tester.pumpAndSettle();
     expect(gateway.monitorStopCalls, 1);
