@@ -749,24 +749,43 @@ class _GridEffectCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    block.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: enabled ? Colors.white : const Color(0xFFA1A8B2),
-                      fontSize: 9.5,
-                      height: 1.1,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        block.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: enabled ? Colors.white : const Color(0xFFA1A8B2),
+                          fontSize: 9.5,
+                          height: 1.1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (asset != null)
+                        Text(
+                          block.family == EffectFamily.amplifier
+                              ? 'Capture: ${asset!.title}'
+                              : 'Cabinet IR: ${asset!.title}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFB7C4D1),
+                            fontSize: 6.5,
+                            height: 1.05,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 if (block.assetId != null && asset == null)
                   Padding(
-                    padding: EdgeInsets.only(left: 3),
+                    padding: const EdgeInsets.only(left: 3),
                     child: Semantics(
                       label: 'Linked asset missing or incompatible',
-                      child: Text(
+                      child: const Text(
                         'ASSET?',
                         style: TextStyle(
                           color: Color(0xFFFF9A83),
