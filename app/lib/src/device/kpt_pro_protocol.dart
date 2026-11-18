@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 /// One KPT Pro vendor-protocol frame decoded from captured bytes.
 ///
 /// The current format definition is based on the owner's KPT Pro BLE trace
@@ -103,10 +101,6 @@ class KptProProtocolFrame {
   int get bodyLength => bodyBytes.length;
   int get frameLength => rawBytes.length;
 
-  /// Always true for successfully parsed frames; the parser rejects invalid
-  /// checksums instead of returning a partly trusted frame.
-  bool get checksumValid => true;
-
   static int _checksumForBody(List<int> body) {
     var sum = 0;
     for (final byte in body) {
@@ -203,6 +197,11 @@ class KptProNotificationFrameReassembler {
           maxBodyLength: maxBodyLength,
         ));
         _pending.removeRange(0, expectedLength);
+      }
+      if (_pending.length == 1 && _pending.single != KptProProtocolFrame.magic0) {
+        throw const FormatException(
+          'Unexpected trailing byte after a KPT Pro frame.',
+        );
       }
     } on FormatException {
       _pending.clear();
