@@ -10,7 +10,7 @@ class FakeKptGateway implements KptProHardwareGateway {
   KptBluetoothAdapterState state = KptBluetoothAdapterState.poweredOn;
   final states = StreamController<KptBluetoothAdapterState>.broadcast();
   final devices = StreamController<NearbyKptBleDevice>.broadcast();
-  final notifications = StreamController<KptProVendorNotification>.broadcast();
+  final notifications = StreamController<KptProVendorNotification>.broadcast(sync: true);
   int scanCalls = 0;
   int connectCalls = 0;
   int readCalls = 0;
@@ -153,6 +153,7 @@ void main() {
       frames: [KptProProtocolFrame.parse(rawFrame)],
     ));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
 
     expect(find.textContaining('1 observed notification value(s)'), findsOneWidget);
     expect(find.textContaining('CMD 0x11'), findsOneWidget);
