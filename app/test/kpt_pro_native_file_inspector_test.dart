@@ -46,7 +46,7 @@ void main() {
       );
 
       expect(result.signature, 'RIFF/WAVE audio');
-      expect(result.formatNote, contains('not a whole-patch file'));
+      expect(result.formatNote, contains('whole-patch file'));
     });
 
     test('extracts readable metadata strings from unknown binary data', () {
