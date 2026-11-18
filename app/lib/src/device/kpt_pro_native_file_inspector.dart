@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
+import 'package:crypto/crypto.dart' as crypto;
 
 const int maximumNativePatchFileInspectionBytes = 64 * 1024 * 1024;
 const int _maximumEntropySampleBytes = 64 * 1024;
@@ -104,7 +104,7 @@ class KptProNativeFileInspection {
       filename: cleanName,
       extension: extension,
       fileSizeBytes: bytes.length,
-      sha256: sha256.convert(bytes).toString(),
+      sha256: crypto.sha256.convert(bytes).toString(),
       signature: signature,
       formatNote: note,
       hexPreview: bytes

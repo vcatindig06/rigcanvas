@@ -39,12 +39,6 @@ class _KptProControlCenterScreenState
     try {
       final file = await FilePicker.pickFile(type: FileType.any);
       if (file == null) return;
-      if (file.size < 1 ||
-          file.size > maximumNativePatchFileInspectionBytes) {
-        throw const FormatException(
-          'Choose a non-empty file that is 64 MiB or smaller.',
-        );
-      }
       final bytes = await file.readAsBytes();
       final result = KptProNativeFileInspection.inspect(
         filename: file.name,
