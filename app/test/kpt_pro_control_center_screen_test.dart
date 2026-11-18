@@ -39,8 +39,18 @@ void main() {
     expect(find.text('HARDWARE WRITE LOCKED'), findsOneWidget);
     expect(find.text('Export local preset-library backup'), findsOneWidget);
     expect(find.text('Write disabled · No transfer bytes generated'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Passive BLE notification monitor'),
+      350,
+    );
     expect(find.text('Passive BLE notification monitor'), findsOneWidget);
     expect(find.text('Official M-EFCS package inspection'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Native exported patch-file analysis'),
+      350,
+    );
     expect(find.text('Native exported patch-file analysis'), findsOneWidget);
   });
 }
