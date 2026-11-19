@@ -1,8 +1,9 @@
 import 'dart:convert';
 
 import 'effect_block.dart';
+import 'rig_grid.dart';
 
-const int currentPresetSchemaVersion = 1;
+const int currentPresetSchemaVersion = 3;
 const int maximumPresetBlocks = 32;
 const int maximumPresetScenes = 64;
 
@@ -12,19 +13,22 @@ class RigScene {
     required this.name,
     required this.createdAt,
     required this.blocks,
+    this.grid = const RigGrid(),
   });
 
   final String id;
   final String name;
   final DateTime createdAt;
   final List<EffectBlock> blocks;
+  final RigGrid grid;
 
-  RigScene copyWith({String? name, List<EffectBlock>? blocks}) {
+  RigScene copyWith({String? name, List<EffectBlock>? blocks, RigGrid? grid}) {
     return RigScene(
       id: id,
       name: name ?? this.name,
       createdAt: createdAt,
       blocks: blocks ?? this.blocks,
+      grid: grid ?? this.grid,
     );
   }
 }
@@ -38,6 +42,7 @@ class RigPreset {
     required this.updatedAt,
     required this.blocks,
     this.scenes = const <RigScene>[],
+    this.grid = const RigGrid(),
     this.target = 'local-workspace',
   });
 
@@ -48,6 +53,7 @@ class RigPreset {
   final DateTime updatedAt;
   final List<EffectBlock> blocks;
   final List<RigScene> scenes;
+  final RigGrid grid;
   final String target;
 
   RigPreset copyWith({
@@ -57,6 +63,7 @@ class RigPreset {
     DateTime? updatedAt,
     List<EffectBlock>? blocks,
     List<RigScene>? scenes,
+    RigGrid? grid,
     String? target,
   }) {
     return RigPreset(
@@ -67,6 +74,7 @@ class RigPreset {
       updatedAt: updatedAt ?? DateTime.now().toUtc(),
       blocks: blocks ?? this.blocks,
       scenes: scenes ?? this.scenes,
+      grid: grid ?? this.grid,
       target: target ?? this.target,
     );
   }
@@ -81,6 +89,7 @@ class RigPreset {
       'target': target,
       'blocks': blocks.map(_blockToJson).toList(),
       'scenes': scenes.map(_sceneToJson).toList(),
+      'grid': grid.toJson(),
     };
   }
 
@@ -118,6 +127,10 @@ class RigPreset {
     }
 
     final blocks = rawBlocks.map(_blockFromJson).toList();
+    final grid = RigGrid.fromJson(
+      value['grid'],
+      blockIds: blocks.map((block) => block.id),
+    );
     final blockIds = blocks.map((block) => block.id).toSet();
     if (blockIds.length != blocks.length) {
       throw const FormatException('Preset contains duplicate effect block IDs.');
@@ -137,6 +150,7 @@ class RigPreset {
       updatedAt: updatedAt,
       blocks: blocks,
       scenes: scenes,
+      grid: grid,
       target: target,
     );
   }
@@ -147,6 +161,7 @@ class RigPreset {
       'name': scene.name,
       'createdAt': scene.createdAt.toUtc().toIso8601String(),
       'blocks': scene.blocks.map(_blockToJson).toList(),
+      'grid': scene.grid.toJson(),
     };
   }
 
@@ -168,6 +183,10 @@ class RigPreset {
     }
 
     final blocks = rawBlocks.map(_blockFromJson).toList();
+    final grid = RigGrid.fromJson(
+      value['grid'],
+      blockIds: blocks.map((block) => block.id),
+    );
     final ids = blocks.map((block) => block.id).toSet();
     if (ids.length != blocks.length) {
       throw const FormatException('Scene contains duplicate effect block IDs.');
@@ -178,6 +197,7 @@ class RigPreset {
       name: name.trim(),
       createdAt: createdAt,
       blocks: blocks,
+      grid: grid,
     );
   }
 
@@ -185,6 +205,7 @@ class RigPreset {
     return {
       'id': block.id,
       'name': block.name,
+      'modelId': block.modelId,
       'family': block.family.name,
       'description': block.description,
       'enabled': block.enabled,
@@ -207,10 +228,17 @@ class RigPreset {
       allowEmpty: true,
     );
     final familyName = _readString(value, 'family', maximumLength: 32);
+    final rawModelId = value['modelId'];
     final enabled = value['enabled'];
     final rawParameters = value['parameters'];
     final rawAssetId = value['assetId'];
 
+    if (rawModelId != null &&
+        (rawModelId is! String ||
+            rawModelId.trim().isEmpty ||
+            rawModelId.length > 128)) {
+      throw const FormatException('Effect block model identifier is invalid.');
+    }
     if (enabled is! bool) {
       throw const FormatException('Effect block enabled flag must be boolean.');
     }
@@ -272,6 +300,11 @@ class RigPreset {
     return EffectBlock(
       id: id,
       name: name,
+      modelId: EffectModelCatalog.resolveId(
+        family,
+        modelId: rawModelId as String?,
+        legacyName: name,
+      ),
       family: family,
       description: description,
       enabled: enabled,
@@ -309,13 +342,15 @@ class RigPreset {
 
   factory RigPreset.starter({DateTime? now}) {
     final timestamp = (now ?? DateTime.now()).toUtc();
+    final blocks = EffectBlock.demoChain();
     return RigPreset(
       id: 'preset-starter',
       name: 'Sunday Clean + Ambient',
       description: 'Starter workspace · edit and customize this preset.',
       createdAt: timestamp,
       updatedAt: timestamp,
-      blocks: EffectBlock.demoChain(),
+      blocks: blocks,
+      grid: RigGrid.fromBlockIds(blocks.map((block) => block.id)),
     );
   }
 }
@@ -339,7 +374,10 @@ class PresetCodec {
     if (decoded['format'] != 'rigcanvas-preset') {
       throw const FormatException('This is not a RigCanvas preset file.');
     }
-    if (decoded['schemaVersion'] != currentPresetSchemaVersion) {
+    final schemaVersion = decoded['schemaVersion'];
+    if (schemaVersion != 1 &&
+        schemaVersion != 2 &&
+        schemaVersion != currentPresetSchemaVersion) {
       throw FormatException(
         'Unsupported preset schema version: ${decoded['schemaVersion']}.',
       );

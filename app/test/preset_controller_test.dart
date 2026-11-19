@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rigcanvas/src/data/preset_repository.dart';
 import 'package:rigcanvas/src/models/rig_preset.dart';
@@ -58,6 +60,22 @@ void main() {
 
       expect(controller.activePreset!.blocks[1].parameters['gain'], 72);
       expect(repository.stored.first.blocks[1].parameters['gain'], 72);
+    });
+
+    test('exports a complete local preset-library backup', () async {
+      await controller.captureScene(name: 'Backup Scene');
+
+      final decoded = jsonDecode(controller.exportPresetLibraryBackupJson())
+          as Map<String, dynamic>;
+
+      expect(decoded['format'], 'rigcanvas-preset-library-backup');
+      expect(decoded['backupSchemaVersion'], 1);
+      expect(decoded['presetSchemaVersion'], currentPresetSchemaVersion);
+      expect(decoded['assetFilesIncluded'], isFalse);
+      expect(decoded['presets'], hasLength(1));
+      final preset = (decoded['presets'] as List).single as Map<String, dynamic>;
+      expect(preset['scenes'], hasLength(1));
+      expect(preset['grid'], isA<Map<String, dynamic>>());
     });
 
     test('does not discard a preset when an imported file is invalid', () async {

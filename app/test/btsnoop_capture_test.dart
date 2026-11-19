@@ -1,0 +1,633 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:rigcanvas/src/device/btsnoop_capture.dart';
+
+void main() {
+  group('BtsnoopCaptureParser', () {
+    test('identifies KPT Pro advertising and filters ATT traffic by connection', () {
+      final bytes = _capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([
+          0x11, 0x06, // Read By Group Type Response, 6-byte entries.
+          0x20, 0x00, // Service start handle.
+          0x30, 0x00, // Service end handle.
+          0x40, 0xAE, // Service UUID 0xAE40.
+        ]), flags: 1, timestamp: 1150),
+        _record(_aclPacket([
+          0x09, 0x07, // Read By Type Response, 7-byte entries.
+          0x22, 0x00, // Attribute handle (characteristic declaration).
+          0x04,       // Write Without Response property.
+          0x25, 0x00, // Characteristic value handle.
+          0x41, 0xAE, // UUID 0xAE41.
+        ]), flags: 1, timestamp: 1200),
+        _record(_aclPacket([
+          0x52, 0x25, 0x00, 0xAA, 0xBB,
+        ]), flags: 0, timestamp: 1300),
+        _record(_aclPacket([
+          0x1B, 0x25, 0x00, 0x01, 0x02,
+        ]), flags: 1, timestamp: 1400),
+      ]);
+
+      final capture = BtsnoopCaptureParser.parse(bytes);
+
+      expect(capture.packetCount, 6);
+      expect(capture.connectionSessions, hasLength(1));
+      final session = capture.connectionSessions.single;
+      expect(session.deviceName, 'KPTPRO_BLE');
+      expect(session.looksLikeKptPro, isTrue);
+      expect(capture.suggestedKptProSessionId(), session.id);
+      expect(session.peerAddress, 'A1:B2:C3:D4:E5:F6');
+      expect(session.maskedAddress, '**:**:**:**:E5:F6');
+
+      final events = capture.eventsForSession(session.id);
+      expect(events, hasLength(4));
+      expect(events[0].opcodeName, 'Read By Group Type Response');
+      expect(events[1].opcodeName, 'Read By Type Response');
+      expect(events[2].opcodeName, 'Write Command');
+      expect(events[2].direction, BtsnoopDirection.hostToController);
+      expect(events[2].attributeHandle, 0x25);
+      expect(events[2].attributeUuid, '0000ae41-0000-1000-8000-00805f9b34fb');
+      expect(events[2].serviceUuid, '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(events[2].characteristicProperties, 0x04);
+      expect(events[2].valueHex, 'AA BB');
+
+      final filtered = capture.toJson(
+        sessionId: session.id,
+        includePayload: true,
+      );
+      final characteristicMap =
+          filtered['characteristicDiscovery'] as Map<String, Object?>;
+      final ae41 = characteristicMap['0x0025'] as Map<String, Object?>;
+      expect(ae41['serviceUuid'], '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(ae41['characteristicUuid'], '0000ae41-0000-1000-8000-00805f9b34fb');
+      expect(ae41['properties'], 0x04);
+      expect(events[3].opcodeName, 'Handle Value Notification');
+      expect(events[3].direction, BtsnoopDirection.controllerToHost);
+      expect(events[3].valueHex, '01 02');
+      expect(capture.writeCount, 1);
+      expect(capture.notificationCount, 1);
+    });
+
+    test('maps a 128-bit BLE-MIDI characteristic to its service', () {
+      const midiService =
+          '03b80e5a-ede8-4b33-a751-6ce34ec4c700';
+      const midiCharacteristic =
+          '7772e5db-3868-4112-a1a9-f2669d106bf3';
+      final serviceUuidBytes = _uuid128Bytes(midiService);
+      final characteristicUuidBytes = _uuid128Bytes(midiCharacteristic);
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([
+          0x11, 0x14, // Read By Group Type Response, 20-byte entries.
+          0x40, 0x00, // Service start handle.
+          0x50, 0x00, // Service end handle.
+          ...serviceUuidBytes,
+        ]), flags: 1, timestamp: 1200),
+        _record(_aclPacket([
+          0x09, 0x15, // Read By Type Response, 21-byte entries.
+          0x41, 0x00, // Characteristic declaration handle.
+          0x1C,       // Read, write without response, notify.
+          0x42, 0x00, // Characteristic value handle.
+          ...characteristicUuidBytes,
+        ]), flags: 1, timestamp: 1300),
+        _record(_aclPacket([
+          0x52, 0x42, 0x00, 0x80, 0x80, 0x90,
+        ]), flags: 0, timestamp: 1400),
+      ]));
+
+      final event = capture.attEvents.last;
+      expect(event.attributeUuid, midiCharacteristic);
+      expect(event.serviceUuid, midiService);
+      expect(event.characteristicProperties, 0x1C);
+    });
+
+    test('discovers an EATT bearer and parses ATT PDUs on its directional CIDs', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_l2capPacket([
+          0x17, 0x01, 0x0A, 0x00, // Credit Based Connection Request.
+          0x27, 0x00, // EATT PSM.
+          0x00, 0x01, // Requester receive MTU: 256.
+          0xFB, 0x00, // Requester receive MPS: 251.
+          0x10, 0x00, // Requester initial credits.
+          0x40, 0x00, // Requester source CID.
+        ], cid: 0x0005), flags: 0, timestamp: 1200),
+        _record(_l2capPacket([
+          0x18, 0x01, 0x0A, 0x00, // Credit Based Connection Response.
+          0xC8, 0x00, // Responder receive MTU: 200.
+          0xC8, 0x00, // Responder receive MPS: 200.
+          0x10, 0x00, // Responder initial credits.
+          0x00, 0x00, // Success.
+          0x41, 0x00, // Responder destination CID.
+        ], cid: 0x0005), flags: 1, timestamp: 1300),
+        _record(_l2capPacket([
+          0x04, 0x00, // L2CAP SDU length.
+          0x52, 0x01, 0x00, 0xAA, // ATT Write Command.
+        ], cid: 0x0041), flags: 0, timestamp: 1400),
+        _record(_l2capPacket([
+          0x04, 0x00, // L2CAP SDU length.
+          0x1B, 0x01, 0x00, 0xBB, // ATT Handle Value Notification.
+        ], cid: 0x0040), flags: 1, timestamp: 1500),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      final bearers = report['enhancedAttBearers'] as List<Object?>;
+      expect(bearers, hasLength(1));
+      final bearer = bearers.single as Map<String, Object?>;
+      expect(bearer['eattPsm'], '0x0027');
+      expect(bearer['requestSourceCid'], '0x0040');
+      expect(bearer['responseDestinationCid'], '0x0041');
+      expect(bearer['requestReceiveMtu'], 256);
+      expect(bearer['responseReceiveMtu'], 200);
+      expect(bearer['effectiveAttMtu'], 200);
+      expect(bearer['requestMps'], 251);
+      expect(bearer['responseMps'], 200);
+
+      final events = report['attEvents'] as List<Object?>;
+      expect(events, hasLength(2));
+      final outbound = events[0] as Map<String, Object?>;
+      final inbound = events[1] as Map<String, Object?>;
+      expect(outbound['operation'], 'Write Command');
+      expect(outbound['l2capCid'], '0x0041');
+      expect(outbound['attBearerType'], 'Enhanced ATT bearer');
+      expect(outbound['attBearerId'], bearer['bearerId']);
+      expect(outbound.containsKey('attPduHex'), isFalse);
+      expect(inbound['operation'], 'Handle Value Notification');
+      expect(inbound['l2capCid'], '0x0040');
+      expect(inbound['attBearerType'], 'Enhanced ATT bearer');
+      expect(inbound['attBearerId'], bearer['bearerId']);
+
+      final summary = report['summary'] as Map<String, Object?>;
+      expect(summary['enhancedAttBearerCount'], 1);
+      expect(summary['enhancedAttEvents'], 2);
+    });
+
+    test('does not register a rejected EATT channel', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_l2capPacket([
+          0x17, 0x02, 0x0A, 0x00,
+          0x27, 0x00,
+          0x00, 0x01,
+          0xFB, 0x00,
+          0x10, 0x00,
+          0x40, 0x00,
+        ], cid: 0x0005), flags: 0, timestamp: 1200),
+        _record(_l2capPacket([
+          0x18, 0x02, 0x0A, 0x00,
+          0xC8, 0x00,
+          0xC8, 0x00,
+          0x10, 0x00,
+          0x02, 0x00, // SPSM not supported.
+          0x00, 0x00,
+        ], cid: 0x0005), flags: 1, timestamp: 1300),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      expect(report['enhancedAttBearers'], isEmpty);
+      expect((report['summary'] as Map)['enhancedAttBearerCount'], 0);
+    });
+
+    test('maps a discovered CCCD descriptor to its characteristic', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([
+          0x11, 0x06,
+          0x20, 0x00,
+          0x30, 0x00,
+          0x40, 0xAE,
+        ]), flags: 1, timestamp: 1200),
+        _record(_aclPacket([
+          0x09, 0x07,
+          0x22, 0x00,
+          0x04,
+          0x25, 0x00,
+          0x41, 0xAE,
+        ]), flags: 1, timestamp: 1300),
+        _record(_aclPacket([
+          0x04, // Find Information Request.
+          0x26, 0x00, // Start handle.
+          0x30, 0x00, // End handle.
+        ]), flags: 0, timestamp: 1400),
+        _record(_aclPacket([
+          0x05, // Find Information Response.
+          0x01, // 16-bit UUID format.
+          0x26, 0x00, // Descriptor handle.
+          0x02, 0x29, // Client Characteristic Configuration UUID 0x2902.
+        ]), flags: 1, timestamp: 1500),
+        _record(_aclPacket([
+          0x12, 0x26, 0x00, 0x01, 0x00,
+        ]), flags: 0, timestamp: 1600),
+        _record(_aclPacket([0x13]), flags: 1, timestamp: 1700),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      final descriptors =
+          report['descriptorDiscovery'] as Map<String, Object?>;
+      final cccd = descriptors['0x0026'] as Map<String, Object?>;
+
+      expect(cccd['uuid'], '00002902-0000-1000-8000-00805f9b34fb');
+      expect(cccd['descriptorType'], 'Client Characteristic Configuration');
+      expect(cccd['serviceUuid'], '0000ae40-0000-1000-8000-00805f9b34fb');
+      expect(cccd['characteristicValueHandle'], '0x0025');
+      expect(cccd['characteristicUuid'],
+          '0000ae41-0000-1000-8000-00805f9b34fb');
+
+      final events = report['attEvents'] as List<Object?>;
+      final findRequest = events[2] as Map<String, Object?>;
+      final findResponse = events[3] as Map<String, Object?>;
+      expect(findRequest['protocolDetails'], {
+        'startHandle': '0x0026',
+        'endHandle': '0x0030',
+      });
+      final responseDetails =
+          findResponse['protocolDetails'] as Map<String, Object?>;
+      expect(responseDetails['entryCount'], 1);
+      expect((responseDetails['entries'] as List).single, {
+        'handle': '0x0026',
+        'uuid': '00002902-0000-1000-8000-00805f9b34fb',
+        'descriptorType': 'Client Characteristic Configuration',
+      });
+      expect((report['summary'] as Map)['descriptorDiscoveryEntries'], 1);
+    });
+
+    test('records BLE connection start and disconnect lifecycle timestamps', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([0x52, 0x25, 0x00, 0xAA]), flags: 0, timestamp: 1150),
+        _record(_disconnectionComplete(handle: 11, reason: 0x13),
+            flags: 1, timestamp: 1200),
+        _record(_connectionComplete(), flags: 1, timestamp: 1300),
+      ]));
+
+      expect(capture.connectionSessions, hasLength(2));
+      final first = capture.connectionSessions[0];
+      final second = capture.connectionSessions[1];
+      final firstJson = first.toJson();
+
+      expect(first.startTimestampMicros, 100);
+      expect(first.endTimestampMicros, 200);
+      expect(first.disconnectStatus, 0);
+      expect(first.disconnectReason, 0x13);
+      expect(firstJson['disconnectReasonName'],
+          'Remote User Terminated Connection');
+      expect(second.startTimestampMicros, 300);
+      expect(second.endFrame, isNull);
+      expect(second.endTimestampMicros, isNull);
+      expect(capture.eventsForSession(first.id), hasLength(1));
+      expect(capture.eventsForSession(second.id), isEmpty);
+    });
+
+    test('exports safe ATT discovery, error and MTU metadata without payload bytes', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([
+          0x08, // Read By Type Request.
+          0x01, 0x00, // Start handle.
+          0xFF, 0xFF, // End handle.
+          0x03, 0x28, // Characteristic declaration UUID 0x2803.
+        ]), flags: 0, timestamp: 1200),
+        _record(_aclPacket([
+          0x01, // Error Response.
+          0x08, // Read By Type Request failed.
+          0x01, 0x00, // Attribute handle in error.
+          0x0A, // Attribute Not Found.
+        ]), flags: 1, timestamp: 1300),
+        _record(_aclPacket([0x02, 0xF7, 0x00]), flags: 0, timestamp: 1400),
+        _record(_aclPacket([0x03, 0xF7, 0x00]), flags: 1, timestamp: 1500),
+        _record(_aclPacket([0x02, 0xF7, 0x00]), flags: 0, timestamp: 1600),
+        _record(_aclPacket([0x03, 0xF7, 0x00]), flags: 1, timestamp: 1700),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final report = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      final events = report['attEvents'] as List<Object?>;
+      final request = events[0] as Map<String, Object?>;
+      final error = events[1] as Map<String, Object?>;
+      final mtuRequest = events[2] as Map<String, Object?>;
+      final mtuResponse = events[3] as Map<String, Object?>;
+
+      expect(request['protocolDetails'], {
+        'startHandle': '0x0001',
+        'endHandle': '0xffff',
+        'attributeTypeUuid':
+            '00002803-0000-1000-8000-00805f9b34fb',
+      });
+      expect(error['protocolDetails'], {
+        'requestOpcodeInError': '0x08',
+        'requestOperation': 'Read By Type Request',
+        'attributeHandleInError': '0x0001',
+        'errorCode': '0x0a',
+        'error': 'Attribute Not Found',
+      });
+      expect(mtuRequest['protocolDetails'], {'receiveMtu': 247});
+      expect(mtuResponse['protocolDetails'], {'receiveMtu': 247});
+      final summary = report['summary'] as Map<String, Object?>;
+      expect(summary['attributeValueReadRequestsAndResponses'], 0);
+      expect(summary['gattDiscoveryRequestsAndResponses'], 1);
+      expect(summary['attErrorResponses'], 1);
+      expect(summary['readRequestsAndResponses'], 0);
+      expect(summary['mtuExchangeRequests'], 2);
+      expect(summary['mtuExchangeResponses'], 2);
+      expect(report['protocolWarnings'], hasLength(1));
+      expect((report['protocolWarnings'] as List).single, contains('Multiple ATT Exchange MTU Requests'));
+      expect(request.containsKey('attPduHex'), isFalse);
+      expect(error.containsKey('valueHex'), isFalse);
+    });
+
+    test('keeps ATT payloads from other Bluetooth devices out of the selected session', () {
+      final otherAddress = <int>[0x10, 0x20, 0x30, 0x40, 0x50, 0x60];
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(
+          _advertisement(name: 'HEADPHONES', address: otherAddress),
+          flags: 1,
+          timestamp: 1200,
+        ),
+        _record(
+          _connectionComplete(handle: 12, address: otherAddress),
+          flags: 1,
+          timestamp: 1300,
+        ),
+        _record(
+          _aclPacket([0x52, 0x25, 0x00, 0xAA], connectionHandle: 11),
+          flags: 0,
+          timestamp: 1400,
+        ),
+        _record(
+          _aclPacket([0x52, 0x26, 0x00, 0xDE, 0xAD], connectionHandle: 12),
+          flags: 0,
+          timestamp: 1500,
+        ),
+      ]));
+
+      expect(capture.connectionSessions, hasLength(2));
+      final kptSession = capture.connectionSessions.firstWhere(
+        (session) => session.looksLikeKptPro,
+      );
+      final otherSession = capture.connectionSessions.firstWhere(
+        (session) => !session.looksLikeKptPro,
+      );
+      expect(capture.eventsForSession(kptSession.id), hasLength(1));
+      expect(capture.eventsForSession(otherSession.id), hasLength(1));
+
+      final filtered = jsonEncode(capture.toJson(
+        sessionId: kptSession.id,
+        includePayload: true,
+      ));
+      expect(filtered, contains('AA'));
+      expect(filtered, isNot(contains('DE AD')));
+      expect(filtered, isNot(contains('HEADPHONES')));
+    });
+
+    test('exports only the selected connection and redacts peer address', () {
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(_aclPacket([0x52, 0x25, 0x00, 0xDE, 0xAD]), flags: 0, timestamp: 1200),
+      ]));
+
+      final session = capture.connectionSessions.single;
+      final withoutPayload = capture.toJson(
+        sessionId: session.id,
+        includePayload: false,
+      );
+      final encodedWithoutPayload = jsonEncode(withoutPayload);
+      expect(encodedWithoutPayload, contains('peerAddressRedacted'));
+      expect(encodedWithoutPayload, contains('otherBluetoothConnectionsExcluded'));
+      expect(encodedWithoutPayload, isNot(contains('DE AD')));
+      expect(encodedWithoutPayload, contains('**:**:**:**:E5:F6'));
+
+      final withPayload = capture.toJson(
+        sessionId: session.id,
+        includePayload: true,
+      );
+      expect(jsonEncode(withPayload), contains('DE AD'));
+      expect(
+        () => capture.toJson(sessionId: 99, includePayload: false),
+        throwsArgumentError,
+      );
+    });
+
+    test('accepts an empty valid capture', () {
+      final capture = BtsnoopCaptureParser.parse(_capture(const []));
+      expect(capture.packetCount, 0);
+      expect(capture.connectionSessions, isEmpty);
+      expect(capture.attEvents, isEmpty);
+    });
+
+    test('rejects invalid magic, unsupported data-link type and truncated records', () {
+      expect(
+        () => BtsnoopCaptureParser.parse(Uint8List.fromList([1, 2, 3])),
+        throwsFormatException,
+      );
+
+      final wrongType = _capture(const [], dataLinkType: 1003);
+      expect(() => BtsnoopCaptureParser.parse(wrongType), throwsFormatException);
+
+      final truncated = Uint8List.fromList([
+        ..._capture(const []),
+        0x00,
+        0x01,
+      ]);
+      expect(() => BtsnoopCaptureParser.parse(truncated), throwsFormatException);
+    });
+
+    test('tracks a fragmented L2CAP ATT packet across ACL records', () {
+      final pdu = <int>[0x52, 0x25, 0x00, 0x01, 0x02, 0x03, 0x04];
+      final l2cap = <int>[pdu.length, 0x00, 0x04, 0x00, ...pdu];
+      final first = _aclPacketRaw(
+        l2cap.sublist(0, 7),
+        packetBoundary: 2,
+      );
+      final continuation = _aclContinuation(l2cap.sublist(7));
+      final capture = BtsnoopCaptureParser.parse(_capture([
+        _record(_advertisement(), flags: 1, timestamp: 1000),
+        _record(_connectionComplete(), flags: 1, timestamp: 1100),
+        _record(first, flags: 0, timestamp: 1200),
+        _record(continuation, flags: 0, timestamp: 1300),
+      ]));
+
+      expect(capture.attEvents, hasLength(1));
+      expect(capture.attEvents.single.valueHex, '01 02 03 04');
+    });
+  });
+}
+
+Uint8List _capture(
+  List<_BtsnoopRecord> records, {
+  int dataLinkType = 1002,
+}) {
+  final length = 16 + records.fold<int>(
+    0,
+    (sum, record) => sum + 24 + record.packet.length,
+  );
+  final bytes = Uint8List(length);
+  const magic = [0x62, 0x74, 0x73, 0x6E, 0x6F, 0x6F, 0x70, 0x00];
+  bytes.setRange(0, 8, magic);
+  final data = ByteData.sublistView(bytes);
+  data.setUint32(8, 1, Endian.big);
+  data.setUint32(12, dataLinkType, Endian.big);
+  var offset = 16;
+  for (var index = 0; index < records.length; index++) {
+    final record = records[index];
+    final packet = record.packet;
+    data.setUint32(offset, packet.length, Endian.big);
+    data.setUint32(offset + 4, packet.length, Endian.big);
+    data.setUint32(offset + 8, record.flags, Endian.big);
+    data.setUint32(offset + 12, 0, Endian.big);
+    data.setUint64(offset + 16, record.timestamp, Endian.big);
+    offset += 24;
+    bytes.setRange(offset, offset + packet.length, packet);
+    offset += packet.length;
+  }
+  return bytes;
+}
+
+class _BtsnoopRecord {
+  const _BtsnoopRecord(this.packet, this.flags, this.timestamp);
+  final Uint8List packet;
+  final int flags;
+  final int timestamp;
+}
+
+_BtsnoopRecord _record(
+  List<int> packet, {
+  required int flags,
+  required int timestamp,
+}) => _BtsnoopRecord(Uint8List.fromList(packet), flags, timestamp);
+
+Uint8List _advertisement({
+  String name = 'KPTPRO_BLE',
+  List<int> address = const [0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1],
+}) {
+  final nameBytes = utf8.encode(name);
+  final ad = <int>[nameBytes.length + 1, 0x09, ...nameBytes];
+  final params = <int>[
+    0x02, // LE Advertising Report subevent.
+    0x01, // One report.
+    0x00, // Connectable undirected advertising.
+    0x01, // Random address.
+    ...address,
+    ad.length,
+    ...ad,
+    0xC9, // -55 dBm.
+  ];
+  return Uint8List.fromList([0x04, 0x3E, params.length, ...params]);
+}
+
+Uint8List _disconnectionComplete({
+  int handle = 11,
+  int reason = 0x13,
+}) {
+  final params = <int>[
+    0x00, // Successful Disconnection Complete status.
+    handle & 0xFF,
+    (handle >> 8) & 0xFF,
+    reason,
+  ];
+  return Uint8List.fromList([0x04, 0x05, params.length, ...params]);
+}
+
+Uint8List _connectionComplete({
+  int handle = 11,
+  List<int> address = const [0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1],
+}) {
+  final params = <int>[
+    0x01, // LE Connection Complete subevent.
+    0x00, // Success.
+    handle & 0xFF,
+    (handle >> 8) & 0xFF,
+    0x00, // Central role.
+    0x01, // Random peer address.
+    ...address,
+    0x18, 0x00, // Connection interval.
+    0x00, 0x00, // Peripheral latency.
+    0xC8, 0x00, // Supervision timeout.
+    0x00, // Clock accuracy.
+  ];
+  return Uint8List.fromList([0x04, 0x3E, params.length, ...params]);
+}
+
+List<int> _uuid128Bytes(String uuid) {
+  final hex = uuid.replaceAll('-', '').toLowerCase();
+  return List<int>.generate(
+    16,
+    (index) => int.parse(
+      hex.substring((15 - index) * 2, (15 - index) * 2 + 2),
+      radix: 16,
+    ),
+  );
+}
+
+Uint8List _l2capPacket(
+  List<int> payload, {
+  required int cid,
+  int connectionHandle = 11,
+}) {
+  final l2cap = <int>[
+    payload.length & 0xFF,
+    (payload.length >> 8) & 0xFF,
+    cid & 0xFF,
+    (cid >> 8) & 0xFF,
+    ...payload,
+  ];
+  return _aclPacketRaw(
+    l2cap,
+    packetBoundary: 2,
+    connectionHandle: connectionHandle,
+  );
+}
+
+Uint8List _aclPacket(List<int> attPdu, {int connectionHandle = 11}) {
+  final l2cap = <int>[attPdu.length, 0x00, 0x04, 0x00, ...attPdu];
+  return _aclPacketRaw(
+    l2cap,
+    packetBoundary: 2,
+    connectionHandle: connectionHandle,
+  );
+}
+
+Uint8List _aclPacketRaw(
+  List<int> payload, {
+  required int packetBoundary,
+  int connectionHandle = 11,
+}) {
+  final flags = (connectionHandle & 0x0FFF) | (packetBoundary << 12);
+  return Uint8List.fromList([
+    0x02,
+    flags & 0xFF,
+    (flags >> 8) & 0xFF,
+    payload.length & 0xFF,
+    (payload.length >> 8) & 0xFF,
+    ...payload,
+  ]);
+}
+
+Uint8List _aclContinuation(List<int> payload) =>
+    _aclPacketRaw(payload, packetBoundary: 1);

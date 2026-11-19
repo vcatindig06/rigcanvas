@@ -1,14 +1,17 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:rigcanvas_usb_inventory/rigcanvas_usb_inventory.dart';
+
+import 'device/kpt_pro_ble_gateway.dart';
 
 import 'data/asset_repository.dart';
 import 'data/preset_repository.dart';
 import 'data/setlist_repository.dart';
 import 'screens/asset_library_screen.dart';
-import 'screens/feature_placeholder_screen.dart';
 import 'screens/gig_view_screen.dart';
 import 'screens/preset_library_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'state/asset_controller.dart';
 import 'state/preset_controller.dart';
@@ -19,12 +22,16 @@ class RigCanvasApp extends StatefulWidget {
     this.repository,
     this.setlistRepository,
     this.assetRepository,
+    this.usbInventory = const UsbDeviceInventory(),
+    this.hardwareGateway = const SimulationKptProHardwareGateway(),
     super.key,
   });
 
   final PresetRepository? repository;
   final SetlistRepository? setlistRepository;
   final AssetRepository? assetRepository;
+  final UsbDeviceInventoryClient usbInventory;
+  final KptProHardwareGateway hardwareGateway;
 
   @override
   State<RigCanvasApp> createState() => _RigCanvasAppState();
@@ -54,6 +61,7 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
 
   @override
   void dispose() {
+    unawaited(widget.hardwareGateway.dispose());
     _presetController.dispose();
     _setlistController.dispose();
     _assetController.dispose();
@@ -88,11 +96,24 @@ class _RigCanvasAppState extends State<RigCanvasApp> {
           surfaceTintColor: Colors.transparent,
           centerTitle: false,
         ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFF11161C),
+          indicatorColor: const Color(0xFF263A33),
+          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>(
+            (states) => const IconThemeData(color: Color(0xFFFF7956), size: 22),
+          ),
+        ),
+        navigationRailTheme: const NavigationRailThemeData(
+          selectedIconTheme: IconThemeData(color: Color(0xFFFF7956)),
+          unselectedIconTheme: IconThemeData(color: Color(0xFFFF7956)),
+        ),
       ),
       home: RigCanvasShell(
         presetController: _presetController,
         setlistController: _setlistController,
         assetController: _assetController,
+        usbInventory: widget.usbInventory,
+        hardwareGateway: widget.hardwareGateway,
       ),
     );
   }
@@ -103,12 +124,16 @@ class RigCanvasShell extends StatefulWidget {
     required this.presetController,
     required this.setlistController,
     required this.assetController,
+    required this.usbInventory,
+    required this.hardwareGateway,
     super.key,
   });
 
   final PresetController presetController;
   final SetlistController setlistController;
   final AssetController assetController;
+  final UsbDeviceInventoryClient usbInventory;
+  final KptProHardwareGateway hardwareGateway;
 
   @override
   State<RigCanvasShell> createState() => _RigCanvasShellState();
@@ -118,31 +143,11 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
   int _selectedIndex = 0;
 
   static const _destinations = <NavigationDestination>[
-    NavigationDestination(
-      icon: Icon(Icons.queue_music_outlined),
-      selectedIcon: Icon(Icons.queue_music),
-      label: 'Gig',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.account_tree_outlined),
-      selectedIcon: Icon(Icons.account_tree),
-      label: 'Workspace',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.library_music_outlined),
-      selectedIcon: Icon(Icons.library_music),
-      label: 'Presets',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.folder_open_outlined),
-      selectedIcon: Icon(Icons.folder_open),
-      label: 'Assets',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.settings_outlined),
-      selectedIcon: Icon(Icons.settings),
-      label: 'Settings',
-    ),
+    NavigationDestination(icon: Icon(Icons.queue_music), selectedIcon: Icon(Icons.queue_music), label: 'Gig'),
+    NavigationDestination(icon: Icon(Icons.account_tree), selectedIcon: Icon(Icons.account_tree), label: 'Workspace'),
+    NavigationDestination(icon: Icon(Icons.library_music), selectedIcon: Icon(Icons.library_music), label: 'Presets'),
+    NavigationDestination(icon: Icon(Icons.folder), selectedIcon: Icon(Icons.folder), label: 'Assets'),
+    NavigationDestination(icon: Icon(Icons.settings), selectedIcon: Icon(Icons.settings), label: 'Settings'),
   ];
 
   Widget _pageForIndex() {
@@ -169,14 +174,16 @@ class _RigCanvasShellState extends State<RigCanvasShell> {
           key: const ValueKey('assets'),
           controller: widget.assetController,
         );
-      default:
-        return const FeaturePlaceholderScreen(
-          key: ValueKey('settings'),
-          title: 'Settings',
-          description:
-              'Connection preferences, audio settings, appearance, and diagnostics will live here.',
-          icon: Icons.settings_outlined,
+      case 4:
+        return SettingsScreen(
+          key: const ValueKey('settings'),
+          presetController: widget.presetController,
+          assetController: widget.assetController,
+          usbInventory: widget.usbInventory,
+          hardwareGateway: widget.hardwareGateway,
         );
+      default:
+        return const SizedBox.shrink();
     }
   }
 

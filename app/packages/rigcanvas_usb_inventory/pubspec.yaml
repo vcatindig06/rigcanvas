@@ -1,0 +1,21 @@
+name: rigcanvas_usb_inventory
+description: Read-only USB device inventory for RigCanvas Android and Windows.
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.rigcanvas.usbinventory
+        pluginClass: RigCanvasUsbInventoryPlugin
+      windows:
+        pluginClass: RigCanvasUsbInventoryPluginCApi

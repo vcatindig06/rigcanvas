@@ -2,7 +2,7 @@
 
 RigCanvas is an independent Windows and Android guitar-rig editor and processing workspace. Development starts with a safe, local editor prototype and KPT Pro compatibility research.
 
-> **Current status:** local-first editor prototype with persistent presets, scene snapshots, Gig View setlists, and an Asset Library for amp captures and cabinet impulse responses. KPT Pro communication remains disabled: no device protocol has been confirmed or implemented.
+> **Current status:** local-first editor with persistent presets, Grid layout, scene snapshots, Gig View setlists, an Asset Library, and an expanded offline native DSP prototype. Live audio-device I/O and KPT Pro communication remain disabled; no device protocol has been confirmed or implemented.
 
 ## Product direction
 
@@ -28,7 +28,7 @@ Software-only blocks must never be sent to a physical pedal that cannot execute 
 - Local-first preset, setlist, and asset persistence in app-private storage.
 - Kotlin and Android USB/Bluetooth APIs for Android-specific communication.
 - Native Windows USB APIs behind a Windows adapter.
-- Shared native C++ audio/DSP engine for Android and Windows, with thin operating-system-specific audio I/O adapters.
+- Shared native C++ audio/DSP engine for Android and Windows, with thin operating-system-specific audio I/O adapters. The first offline DSP foundation is implemented through Flutter native-assets FFI; real-time I/O is a later milestone.
 - Plugin hosting only after a format/runtime with equivalent Android and Windows support has been selected and licensing reviewed.
 
 Flutter 3.50.0 is the current pinned CI toolchain at project initialization.
@@ -60,7 +60,7 @@ The initial app opens in **Simulation Workspace**. Reordering blocks and togglin
 
 ## Hardware safety
 
-Do not flash firmware, replay undocumented traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
+The KPT Pro captured-frame parser is offline only; it does not communicate with the pedal. Do not flash firmware, replay captured traffic, or write unverified preset bytes to a physical pedal. Begin with read-only identification and observation of official software. See the KPT Pro compatibility and protocol investigation docs in docs/hardware/ and docs/device-discovery/.
 
 ## Roadmap
 
@@ -74,3 +74,48 @@ No open-source license is applied yet. Third-party SDKs, capture formats, tradem
 ## Workspace asset links
 
 Amplifier blocks can reference an imported amp capture, and Cabinet blocks can reference a cabinet IR from the local Asset Library. The link is saved as a local asset ID in the preset and scene snapshot. New assignments require acknowledgement of the compatibility notice. A file-format check is not an audio-renderer or KPT Pro compatibility guarantee; the current Workspace still runs in simulation mode only.
+
+
+## Grid Workspace v1
+
+The Grid Workspace is designed around a four-row by eight-slot editor. Effect blocks keep stable IDs while their saved row and slot positions can be changed by drag-and-drop. Dropping a block onto an occupied slot swaps the two positions. The layout and its derived lane connections are stored in the RigCanvas preset format.
+
+Preset, Scene, Stomp, and Hybrid are control modes for the same active preset:
+
+- **Preset:** edit, add, move, and remove blocks in the Grid.
+- **Scene:** A–H recall the first eight saved snapshots, with additional saved scenes available below the pads; each snapshot restores block settings and Grid positions.
+- **Stomp:** A–H toggle the first eight blocks in preset order.
+- **Hybrid:** A–D recall scenes, while E–H toggle the first four blocks in preset order.
+
+The current v1 layout treats each row as an independent local lane. It does not yet model splitters, mixers, cross-lane routing, or custom multi-block footswitch assignments. The input/output labels are local editor lane endpoints, not verified KPT Pro ports.
+
+Android and Windows use the same Flutter workspace and preset schema. The Audio page can process a generated test signal offline using the shared native DSP core; the Workspace is not a live audio path and does not send data to hardware.
+
+
+## Fixed effect-model catalog
+
+Adding a block now opens a searchable model picker rather than creating a generic custom-named block. Models are grouped into Dynamics, Drive, Amplifier, Cabinet, Modulation, Delay, Reverb, EQ, Pitch, and Wah / Expression. Each model has a stable ID; the block name is resolved from the selected catalog entry and custom free-text model names are not supported.
+
+The catalog distinguishes two sources:
+
+- **KPT Pro Factory:** 152 catalog entries based on the available KPT Pro manual's named options and documented numbered AMP/CAB slots, including a separately documented 3-band EQ overview entry. The manual itself has a discrepancy: the detailed MOD list names nine options while its FAQ says eight; the app preserves all nine named options. AMP/CAB individual factory labels are not available in the inspected manual, so those choices are shown as numbered guitar/bass slots, not invented model names.
+- **RigCanvas Library:** additional generic amp, cabinet, drive, dynamics, modulation, delay, reverb, EQ, pitch, and expression archetypes informed by the broad block families of leading processors. These are not KPT Pro factory models.
+
+The current catalog is selection metadata only. It does not implement the DSP, load a virtual amp/cab model for playback, or send model/parameter values to the KPT Pro. See [Effect Model Catalog research](docs/research/EFFECT_MODEL_CATALOG.md) for the source distinctions, manual discrepancies, and next validation requirements.
+
+
+## Offline DSP foundation
+
+The Audio page processes an internally generated 440 Hz / 48 kHz / 500 ms test signal through the active preset's supported enabled blocks in Grid order. The shared C++ core has generic dynamics (gate/compressor), soft-clipping drive, amplifier preamp/tone shaping, cabinet FIR, chorus/vibrato/flanger/tremolo, a four-stage phaser, envelope-responsive wah/autofilter, a rotary-speaker approximation, standard/ping-pong delay, a room-style reverb, and four-band EQ.
+
+Linked cabinet WAVs are loaded from the Asset Library for the offline test. The shared WAV decoder validates RIFF/WAVE structure, accepts PCM 8/16/24/32-bit and IEEE float 32/64-bit mono/stereo files, resamples to 48 kHz, and caps the loaded IR at 4,096 frames per channel. The Audio test reports resampling and truncation. The original imported file is preserved.
+
+These are generic RigCanvas prototypes, **not** emulations of KPT Pro factory algorithms or other manufacturers' DSP. The phaser, envelope wah/autofilter, and rotary effects are newly implemented generic algorithms; wah is envelope-responsive and is not controlled by a physical expression pedal. Catalog names remain labels; Univibe, ring modulation, pitch, ducking/reverse/tape/lo-fi delay, and spring/shimmer/cloud reverb remain unsupported and are explicitly skipped. The current linear-interpolation resampler and direct FIR convolution are not production-grade live-audio implementations.
+
+The engine is still offline: it does not capture a guitar or microphone, open an audio interface, or play through speakers/headphones. NAM/AM2 capture execution and KPT Pro device control remain unimplemented. See [DSP engine architecture](docs/architecture/DSP_ENGINE.md).
+
+## Current development priority — native KPT Pro patch control
+
+The next major milestone is the physical KPT Pro workflow: read device presets, edit hardware parameters, save a patch to the pedal, and import/export native tone files. Generic RigCanvas DSP work is paused until this workflow is verified on the owner's KPT Pro firmware baseline. The existing four-row/eight-slot Workspace and RigCanvas JSON preset files remain local software features; they are not a representation of the pedal's seven-module chain or a hardware patch transfer format.
+
+Implementation status and required evidence: [KPT Pro Patch Control plan](docs/device-discovery/KPT_PRO_PATCH_CONTROL_PLAN.md).

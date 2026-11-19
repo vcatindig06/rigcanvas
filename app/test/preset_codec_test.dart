@@ -129,6 +129,47 @@ void main() {
       );
     });
 
+    test('migrates schema version 2 presets to fixed catalog model IDs', () {
+      final preset = RigPreset.starter().toJson();
+      final blocks = preset['blocks'] as List<dynamic>;
+      for (final value in blocks) {
+        (value as Map<String, dynamic>).remove('modelId');
+      }
+      final source = jsonEncode({
+        'format': 'rigcanvas-preset',
+        'schemaVersion': 2,
+        'preset': preset,
+      });
+
+      final restored = PresetCodec.decode(source);
+
+      expect(restored.blocks.first.modelId, 'dyn.input_gate');
+      expect(restored.blocks[1].modelId, 'drive.transparent');
+      expect(restored.blocks[2].modelId, 'amp.british_stack');
+      expect(restored.blocks[3].modelId, 'cab.4x12_vintage');
+      expect(restored.blocks[4].modelId, 'delay.stereo');
+      expect(restored.blocks[5].modelId, 'kpt.reverb.hall');
+    });
+
+    test('normalizes legacy custom block labels to a catalog model', () {
+      final preset = RigPreset.starter().toJson();
+      final blocks = preset['blocks'] as List<dynamic>;
+      final drive = blocks[1] as Map<String, dynamic>;
+      drive
+        ..remove('modelId')
+        ..['name'] = 'User Typed Custom Overdrive Name';
+      final source = jsonEncode({
+        'format': 'rigcanvas-preset',
+        'schemaVersion': 2,
+        'preset': preset,
+      });
+
+      final restored = PresetCodec.decode(source);
+
+      expect(restored.blocks[1].name, 'A Boost');
+      expect(restored.blocks[1].modelId, 'kpt.fx.a_boost');
+    });
+
     test('rejects an unsupported schema version', () {
       final source = jsonEncode({
         'format': 'rigcanvas-preset',
